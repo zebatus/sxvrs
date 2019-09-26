@@ -22,51 +22,28 @@ import yaml
 import time
 from datetime import datetime
 
-def ConfigRead_YAML(filename):
-    """
-    Loading config values from a files.
-    Returns YAML objects loaded from: <filename.yaml>
-    """
-    def read(filename):
-        try:
-            with open(filename) as yaml_data_file:
-                txt_data = yaml_data_file.read()     
-                yaml_data = yaml.load(txt_data, Loader=yaml.FullLoader)
-        except:
-            logger.exception('Exception in ConfigRead_YAML')
-            raise
-        return yaml_data
-    cnfg = read(filename)
-    return cnfg
-
-def setup_logging(config, env_key='yamlLOG'):
-    """
-    Setup logging configuration
-    """
-    value = os.getenv(env_key, None)
-    if value:
-        path = value
-        if os.path.exists(path):
-            with open(path, 'rt') as f:
-                config = yaml.safe_load(f.read())
-            logging.config.dictConfig(config)
-    else:
-        logging.config.dictConfig(config)
 
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
 app_name = script_name + f'_{datetime.now():%H%M}' # unique name for PGAdmin
 
-# Load configuration files
-cnfg = ConfigRead_YAML(os.path.join('config' ,script_name + '.yaml'))
-
-# setup logger
-setup_logging(script_name)
 logger = logging.getLogger(script_name)
 
+# Load configuration files
+try:
+    with open(os.path.join('cnfg' ,script_name + '.yaml')) as yaml_data_file:
+        txt_data = yaml_data_file.read()     
+        cnfg = yaml.load(txt_data, Loader=yaml.FullLoader)
+except:
+    logger.exception('Exception in ConfigRead_YAML')
+    raise
+
+# setup logger
+logging.config.dictConfig(cnfg['logger'])
+
+# Main loop start
 logger.info(f'! Script started: "{script_name}" ')
 stored_exception=None
-
 while True:
     try:
         if stored_exception:
