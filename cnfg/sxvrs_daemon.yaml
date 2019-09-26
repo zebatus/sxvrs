@@ -1,0 +1,45 @@
+global:
+  record_autostart: True
+  record_time: 300 # Seconds
+  storage_max_size: 102400 # MBytes
+  cmd_before:
+  cmd:
+  cmd_after:
+
+source:
+  camera_1:
+
+logger:
+  version: 1
+  disable_existing_loggers: False
+  formatters:
+      simple:
+          format: "%(asctime)s - %(name)s [%(levelname)s]: \t %(message)s"
+  handlers:
+      console:
+          class: logging.StreamHandler
+          level: DEBUG
+          formatter: simple
+          stream: ext://sys.stdout
+
+      info_file_handler:
+          class: logging.handlers.RotatingFileHandler
+          level: INFO
+          formatter: simple
+          filename: ../logs/sspd_xml_gen.log
+          maxBytes: 10485760 # 10MB
+          backupCount: 20
+          encoding: utf8
+
+      error_file_handler:
+          class: logging.handlers.RotatingFileHandler
+          level: ERROR
+          formatter: simple
+          filename: ../logs/sspd_xml_gen.err
+          maxBytes: 10485760 # 10MB
+          backupCount: 20
+          encoding: utf8
+
+  root:
+      level: INFO
+      handlers: [console, info_file_handler, error_file_handler]
