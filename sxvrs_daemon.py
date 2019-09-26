@@ -42,19 +42,20 @@ except:
 logging.config.dictConfig(cnfg['logger'])
 
 # Main loop start
-logger.info(f'! Script started: "{script_name}" ')
+logger.info(f'! Script started: "{script_name}" Press [CTRL+C] to exit')
 stored_exception=None
 while True:
     try:
         if stored_exception:
-            break
-        time.sleep(1)
+            break        
     except KeyboardInterrupt:
         logger.info("[CTRL+C detected]")
         stored_exception=sys.exc_info()
     finally:
-        logger.info('# Script terminated')
+        print(f'\r{datetime.now()}: recording 0 from 0     ', end = '\r')
+        time.sleep(.5)
 
+logger.info('# Script terminated')
 if stored_exception:
     raise Exception(stored_exception[0], stored_exception[1], stored_exception[2])
 sys.exit()

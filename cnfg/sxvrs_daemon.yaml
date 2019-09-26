@@ -26,18 +26,18 @@ logger:
           class: logging.handlers.RotatingFileHandler
           level: INFO
           formatter: simple
-          filename: ../logs/sspd_xml_gen.log
+          filename: logs/sxvrs.log
           maxBytes: 10485760 # 10MB
-          backupCount: 20
+          backupCount: 10
           encoding: utf8
 
       error_file_handler:
           class: logging.handlers.RotatingFileHandler
           level: ERROR
           formatter: simple
-          filename: ../logs/sspd_xml_gen.err
+          filename: logs/sxvrs.err
           maxBytes: 10485760 # 10MB
-          backupCount: 20
+          backupCount: 10
           encoding: utf8
 
   root:
