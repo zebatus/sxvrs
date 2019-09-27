@@ -84,14 +84,13 @@ if stored_exception==None:
     # Main loop start
     while True:
         try:
-            if stored_exception:
-                break        
-        except KeyboardInterrupt:
-            logger.info("[CTRL+C detected]")
-            stored_exception=sys.exc_info()
-        finally:
             print(f'\r{datetime.now()}: recording {cnt_instanse}     ', end = '\r')
             time.sleep(2)
+            if stored_exception:
+                break        
+        except (KeyboardInterrupt, SystemExit):
+            logger.info("[CTRL+C detected]")
+            stored_exception=sys.exc_info()
 
     # Stop all instances
     for vr in vr_list:
@@ -100,6 +99,5 @@ if stored_exception==None:
     mqtt_client.loop_stop()
     logger.info('# Script terminated')
 
-if stored_exception:
+if stored_exception and stored_exception[0]!=KeyboardInterrupt:
     raise Exception(stored_exception[0], stored_exception[1], stored_exception[2])
-sys.exit()

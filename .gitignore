@@ -4,3 +4,4 @@ logs/*
 storage/*
 !storage/.gitkeep 
 extra/*
+.vscode/settings.json

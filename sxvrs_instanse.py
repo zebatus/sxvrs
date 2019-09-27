@@ -7,7 +7,7 @@ import os
 import logging
 import json
 from datetime import datetime
-from threading import Thread
+from threading import Thread, Event
 
 class vr_thread(Thread):
     """
@@ -23,6 +23,10 @@ class vr_thread(Thread):
     def __init__(self, name, cnfg, mqtt_client):
         """Init and assigning params before run"""
         Thread.__init__(self)
+        self._stop_event = Event()
+        self._record_start_event = Event()
+        self._record_stop_event = Event()
+        self.recording = False
         self.name = name
         self.cnfg = cnfg
         self.mqtt_client = mqtt_client
@@ -35,25 +39,50 @@ class vr_thread(Thread):
         self.cmd = self.read_config('cmd')
         self.cmd_after = self.read_config('cmd_after')
     
+    def record_start(self):
+        """ Start recording, if it is not started yet """
+        self._record_start_event.set()
+        logging.debug(f'  receve "record_start" event for thread {self.name}')
+
+    def record_stop(self):
+        """ Stop recording, if it is not started yet """
+        self._record_stop_event.set()
+        logging.debug(f'  receve "record_stop" event for thread {self.name}')
+
+    def stop(self, timeout=None):
+        """ Stop the thread. """        
+        self._stop_event.set()
+        logging.debug(f'  receve "stop" event for thread {self.name}')
+        Thread.join(self, timeout)
+
     def run(self):
-        """Starting thread"""
-        self.mqtt_client.subscribe(self.cnfg['mqtt']['topic'].format(name=self.name))        
-        if self.record_autostart:
-            # Force create path
-            path = self.storage_path.format(name=self.name, datetime=datetime.now())
-            if not os.path.exists(path):
-                logging.debug(f'  path not existing: {path} \n try to create it..')
-                try:
-                    os.makedirs(path)
-                except:
-                    logging.exception(f'Can''t create path {path}')
-            # force clear path
-            # take snapshot
-            #self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'snapshot'}))
-            # run cmd before start
-            # run cmd
-            self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'started'}))
-            # run cmd after finishing
+        """Starting thread loop"""
+        self.mqtt_client.subscribe(self.cnfg['mqtt']['topic'].format(name=self.name))  
+        i = 0 
+        while not self._stop_event.isSet():     
+            if self.record_autostart or self._record_start_event.isSet():
+                self.recording = True
+            if self._record_stop_event.isSet():
+                self.recording = False
+            if self.recording:
+                # Force create path
+                path = self.storage_path.format(name=self.name, datetime=datetime.now())
+                if not os.path.exists(path):
+                    logging.debug(f'  path not existing: {path} \n try to create it..')
+                    try:
+                        os.makedirs(path)
+                    except:
+                        logging.exception(f'Can''t create path {path}')
+                # force clear path
+                # take snapshot
+                #self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'snapshot'}))
+                # run cmd before start
+                # run cmd
+                self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'started'}))
+                # run cmd after finishing
+            i += 1
+            logging.debug(f'Running thread {self.name} iteration #{i}')
+            self._stop_event.wait(1)
 
 
 def vr_create(name, cnfg, mqtt_client):

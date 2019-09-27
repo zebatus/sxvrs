@@ -5,7 +5,7 @@ mqtt:
 
 global:
   ip: 127.0.0.1
-  record_autostart: True
+  record_autostart: False
   record_time: 300 # Seconds
   storage_max_size: 102400 # MBytes
   storage_path: storage/{name}/{datetime:%Y%m}/{datetime:%d}
@@ -16,7 +16,7 @@ global:
 sources:
   camera_1:
     ip: 192.168.1.10
-    filename: "{name}_{datetime:%Y%m%d_%H%M%S}.ts"
+    filename: "{storage_path}/{name}_{datetime:%Y%m%d_%H%M%S}.ts"
 
 logger:
   version: 1
