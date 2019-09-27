@@ -6,6 +6,8 @@ Main features:
     2) Script able to maintain free space and record files in a loop
     3) Communicate with other software thrue MQTT
 
+Dependencies:
+    pip install pyyaml
 """
 
 __author__      = "Rustem Sharipov"
@@ -46,6 +48,12 @@ logger.info(f'! Script started: "{script_name}" Press [CTRL+C] to exit')
 stored_exception=None
 while True:
     try:
+        for instanse in cnfg['sources']:
+            if 'record_autostart' in cnfg['sources'][instanse]:
+                record_autostart = cnfg['sources']['record_autostart']
+            else:
+                record_autostart = cnfg['global']['record_autostart']
+
         if stored_exception:
             break        
     except KeyboardInterrupt:

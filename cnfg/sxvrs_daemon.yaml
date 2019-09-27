@@ -6,7 +6,7 @@ global:
   cmd:
   cmd_after:
 
-source:
+sources:
   camera_1:
 
 logger:
