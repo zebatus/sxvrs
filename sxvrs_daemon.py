@@ -7,7 +7,7 @@ Main features:
     3) Communicate with other software thrue MQTT
 
 Dependencies:
-    pip install pyyaml, paho-mqtt
+    pip install pyyaml paho-mqtt
 """
 
 __author__      = "Rustem Sharipov"
@@ -69,30 +69,37 @@ try:
     mqtt_client.connect(cnfg['mqtt']['server_ip']) #connect to broker
     mqtt_client.loop_start() #start the loop
     logger.info(f"Connected to MQTT: {cnfg['mqtt']['server_ip']}")
-except:
-    logger.exception('Can''t connect to MQTT broker')
-    stored_exception=sys.exc_info()
+except :
+    logger.exception(f"Can't connect to MQTT broker at address: {cnfg['mqtt']['server_ip']}")
+    stored_exception=sys.exc_info()    
 
-logger.info(f'! Script started: "{script_name}" Press [CTRL+C] to exit')
-# create and start all instances from config
-cnt_instanse = 0
-for instanse in cnfg['sources']:
-    vr_list.append(vr_create(instanse, cnfg, mqtt_client))
-    cnt_instanse += 1
-# Main loop start
-while True:
-    try:
-        if stored_exception:
-            break        
-    except KeyboardInterrupt:
-        logger.info("[CTRL+C detected]")
-        stored_exception=sys.exc_info()
-    finally:
-        print(f'\r{datetime.now()}: recording {cnt_instanse}     ', end = '\r')
-        time.sleep(2)
+if stored_exception==None:
+    logger.info(f'! Script started: "{script_name}" Press [CTRL+C] to exit')
+    # create and start all instances from config
+    cnt_instanse = 0
+    for instanse in cnfg['sources']:
+        vr_list.append(vr_create(instanse, cnfg, mqtt_client))
+        cnt_instanse += 1
 
-mqtt_client.loop_stop()
-logger.info('# Script terminated')
+    # Main loop start
+    while True:
+        try:
+            if stored_exception:
+                break        
+        except KeyboardInterrupt:
+            logger.info("[CTRL+C detected]")
+            stored_exception=sys.exc_info()
+        finally:
+            print(f'\r{datetime.now()}: recording {cnt_instanse}     ', end = '\r')
+            time.sleep(2)
+
+    # Stop all instances
+    for vr in vr_list:
+        vr.stop()
+        logger.debug(f"   stoping instance: {vr.name}")
+    mqtt_client.loop_stop()
+    logger.info('# Script terminated')
+
 if stored_exception:
     raise Exception(stored_exception[0], stored_exception[1], stored_exception[2])
 sys.exit()
