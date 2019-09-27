@@ -4,19 +4,24 @@ mqtt:
   server_ip: 127.0.0.1
 
 global:
-  ip: 127.0.0.1
   record_autostart: False
-  record_time: 300 # Seconds
+  ip: 127.0.0.1
+  stream_url: "rtsp://{ip}:5544/live0.264"
+  record_time: 30 # Seconds
   storage_max_size: 102400 # MBytes
-  storage_path: storage/{name}/{datetime:%Y%m}/{datetime:%d}
+  storage_path: storage/{name}/{datetime:%Y-%m-%d}
+  filename: "{storage_path}/{name}_{datetime:%Y%m%d_%H%M%S}.ts"
   cmd_before:
   cmd:
   cmd_after:
 
 sources:
   camera_1:
+    record_autostart: True
     ip: 192.168.1.10
+    stream_url: rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov
     filename: "{storage_path}/{name}_{datetime:%Y%m%d_%H%M%S}.ts"
+    cmd: ffmpeg -hide_banner -nostdin -nostats -fflags +igndts -y -i "{stream_url}" -c:v copy -t {record_time} -copytb 1 "{filename}"
 
 logger:
   version: 1

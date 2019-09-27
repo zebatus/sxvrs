@@ -8,6 +8,7 @@ import logging
 import json
 from datetime import datetime
 from threading import Thread, Event
+import queue, subprocess, signal
 
 class vr_thread(Thread):
     """
@@ -31,10 +32,12 @@ class vr_thread(Thread):
         self.cnfg = cnfg
         self.mqtt_client = mqtt_client
         self.ip = self.read_config('ip')
+        self.stream_url = self.read_config('stream_url')
         self.record_autostart = self.read_config('record_autostart')
         self.record_time = self.read_config('record_time')
         self.storage_max_size = self.read_config('storage_max_size')
         self.storage_path = self.read_config('storage_path')
+        self.filename = self.read_config('filename')
         self.cmd_before = self.read_config('cmd_before')
         self.cmd = self.read_config('cmd')
         self.cmd_after = self.read_config('cmd_after')
@@ -55,6 +58,14 @@ class vr_thread(Thread):
         logging.debug(f'  receve "stop" event for thread {self.name}')
         Thread.join(self, timeout)
 
+    def shell_execute(self, cmd, path):
+        filename = self.filename.format(storage_path=path, name=self.name, datetime=datetime.now())
+        stream_url = self.stream_url.format(ip=self.ip)
+        cmd = cmd.format(filename=filename, ip=self.ip, stream_url=stream_url, record_time=self.record_time)
+        logging.debug(f'shell_execute: {cmd}')
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
+        return process
+
     def run(self):
         """Starting thread loop"""
         self.mqtt_client.subscribe(self.cnfg['mqtt']['topic'].format(name=self.name))  
@@ -73,13 +84,25 @@ class vr_thread(Thread):
                         os.makedirs(path)
                     except:
                         logging.exception(f'Can''t create path {path}')
-                # force clear path
+                # force cleanup {path} by {storage_max_size}
                 # take snapshot
                 #self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'snapshot'}))
                 # run cmd before start
+                if self.cmd_before!=None and self.cmd_before!='':
+                    process = self.shell_execute(self.cmd_before, path)
                 # run cmd
-                self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'started'}))
+                if self.cmd!=None and self.cmd!='':
+                    process = self.shell_execute(self.cmd, path)
+                    self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'started'}))
+                    try:
+                        process.wait(self.record_time)
+                    except subprocess.TimeoutExpired:
+                        logging.debug(f'/t {self.name}: process.wait TimeoutExpired {self.record_time}')
+                    logging.debug(f'/t process execution finished')
+                    self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'restarting'}))
                 # run cmd after finishing
+                if self.cmd_after!=None and self.cmd_after!='':
+                    process = self.shell_execute(self.cmd_after, path)
             i += 1
             logging.debug(f'Running thread {self.name} iteration #{i}')
             self._stop_event.wait(1)

@@ -55,10 +55,13 @@ def on_mqtt_message(client, userdata, message):
     logger.debug("message topic=" + message.topic)
     logger.debug("message qos=" + str(message.qos))
     logger.debug("message retain flag=" + str(message.retain))
-    #payload = json.loads(str(message.payload.decode("utf-8")))[0]
+    payload = json.loads(str(message.payload.decode("utf-8")))
     for vr in vr_list:
-        if message.topic.endswith("/"+vr.name):
-            print('found !!')
+        if message.topic.endswith("/"+vr.name) and 'cmd' in payload:
+            if payload['cmd']=='start':
+                vr.record_start()
+            elif payload['cmd']=='stop':
+                vr.record_stop()
 
 
 # setup MQTT connection
