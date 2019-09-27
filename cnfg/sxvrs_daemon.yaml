@@ -2,12 +2,14 @@ global:
   record_autostart: True
   record_time: 300 # Seconds
   storage_max_size: 102400 # MBytes
+  storage_path: storage
   cmd_before:
   cmd:
   cmd_after:
 
 sources:
   camera_1:
+    filename: {self.name}_{datetime.now():%Y%m%d_%H%M%S}
 
 logger:
   version: 1

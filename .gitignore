@@ -1,4 +1,6 @@
 __pycache__/
 logs/*
 !logs/.gitkeep 
+storage/*
+!storage/.gitkeep 
 extra/*
