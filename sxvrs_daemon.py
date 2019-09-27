@@ -7,7 +7,7 @@ Main features:
     3) Communicate with other software thrue MQTT
 
 Dependencies:
-    pip install pyyaml
+    pip install pyyaml, paho-mqtt
 """
 
 __author__      = "Rustem Sharipov"
@@ -21,13 +21,18 @@ __status__      = "Production"
 
 import os, sys, logging, logging.config
 import yaml
+import json
 import time
 from datetime import datetime
+import paho.mqtt.client as mqtt
 
+from sxvrs_instanse import vr_create
 
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
-app_name = script_name + f'_{datetime.now():%H%M}' # unique name for PGAdmin
+app_label = script_name + f'_{datetime.now():%H%M}'
+stored_exception=None
+vr_list = []
 
 logger = logging.getLogger(script_name)
 
@@ -37,32 +42,55 @@ try:
         txt_data = yaml_data_file.read()     
         cnfg = yaml.load(txt_data, Loader=yaml.FullLoader)
 except:
-    logger.exception('Exception in ConfigRead_YAML')
+    logger.exception('Exception in reading config from YAML')
     raise
 
-# setup logger
+# setup logger from yaml config file
 logging.config.dictConfig(cnfg['logger'])
 
-# Main loop start
+# MQTT event listener
+def on_mqtt_message(client, userdata, message):
+    """Provides reaction on all events received from MQTT broker"""
+    logger.debug("message received " + str(message.payload.decode("utf-8")))
+    logger.debug("message topic=" + message.topic)
+    logger.debug("message qos=" + str(message.qos))
+    logger.debug("message retain flag=" + str(message.retain))
+    #payload = json.loads(str(message.payload.decode("utf-8")))[0]
+    for vr in vr_list:
+        if message.topic.endswith("/"+vr.name):
+            print('found !!')
+
+
+# setup MQTT connection
+try:
+    mqtt_client = mqtt.Client(cnfg['mqtt']['name']) #create new instance
+    mqtt_client.on_message=on_mqtt_message #attach function to callback
+    mqtt_client.connect(cnfg['mqtt']['server_ip']) #connect to broker
+    mqtt_client.loop_start() #start the loop
+    logger.info(f"Connected to MQTT: {cnfg['mqtt']['server_ip']}")
+except:
+    logger.exception('Can''t connect to MQTT broker')
+    stored_exception=sys.exc_info()
+
 logger.info(f'! Script started: "{script_name}" Press [CTRL+C] to exit')
-stored_exception=None
+# create and start all instances from config
+cnt_instanse = 0
+for instanse in cnfg['sources']:
+    vr_list.append(vr_create(instanse, cnfg, mqtt_client))
+    cnt_instanse += 1
+# Main loop start
 while True:
     try:
-        for instanse in cnfg['sources']:
-            if 'record_autostart' in cnfg['sources'][instanse]:
-                record_autostart = cnfg['sources']['record_autostart']
-            else:
-                record_autostart = cnfg['global']['record_autostart']
-
         if stored_exception:
             break        
     except KeyboardInterrupt:
         logger.info("[CTRL+C detected]")
         stored_exception=sys.exc_info()
     finally:
-        print(f'\r{datetime.now()}: recording 0 from 0     ', end = '\r')
-        time.sleep(.5)
+        print(f'\r{datetime.now()}: recording {cnt_instanse}     ', end = '\r')
+        time.sleep(2)
 
+mqtt_client.loop_stop()
 logger.info('# Script terminated')
 if stored_exception:
     raise Exception(stored_exception[0], stored_exception[1], stored_exception[2])
