@@ -83,7 +83,7 @@ class vr_thread(Thread):
         return process
 
     def run(self):
-        """Starting thread loop"""
+        """Starting main thread loop"""
         self.mqtt_client.subscribe(self.cnfg['mqtt']['topic_subscribe'].format(source_name=self.name))  
         i = 0 
         while not self._stop_event.isSet():     
@@ -150,6 +150,8 @@ class vr_thread(Thread):
                         logging.debug(f'[{self.name}] Probably can''t start recording. Finished in {duration} sec (attempt {self.err_cnt})')
                         if (self.err_cnt % self.start_error_atempt_cnt)==0:
                             logging.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.start_error_sleep} sec')
+                            self.state_msg = 'error'
+                            self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg, 'count':self.err_cnt}))
                             self._stop_event.wait(self.start_error_sleep)
                     else:
                         self.err_cnt = 0
