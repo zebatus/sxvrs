@@ -164,7 +164,7 @@ class vr_thread(Thread):
                 item['cumsum'] = cumsum
                 if(cumsum > max_size):
                     i = i + 1               
-                    logging.info("[{self.name}] Removing file {}: {}".format(i, item['file']))
+                    logging.info(f"[{self.name}] Removing file {i}: {item['file']}")
                     os.remove(item['file'])
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name)
                         , json.dumps({
