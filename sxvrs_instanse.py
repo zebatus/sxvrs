@@ -8,7 +8,13 @@ import logging
 import json
 from datetime import datetime
 from threading import Thread, Event
-import queue, subprocess, signal
+import subprocess
+from operator import itemgetter
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir  # use scandir PyPI module on Python < 3.5
+
 
 class vr_thread(Thread):
     """
@@ -24,6 +30,7 @@ class vr_thread(Thread):
     def __init__(self, name, cnfg, mqtt_client):
         """Init and assigning params before run"""
         Thread.__init__(self)
+        self.state_msg = 'stopped'
         self._stop_event = Event()
         self._record_start_event = Event()
         self._record_stop_event = Event()
@@ -68,7 +75,7 @@ class vr_thread(Thread):
 
     def run(self):
         """Starting thread loop"""
-        self.mqtt_client.subscribe(self.cnfg['mqtt']['topic'].format(name=self.name))  
+        self.mqtt_client.subscribe(self.cnfg['mqtt']['topic_subscribe'].format(source_name=self.name))  
         i = 0 
         while not self._stop_event.isSet():     
             if self.record_autostart or self._record_start_event.isSet():
@@ -85,21 +92,24 @@ class vr_thread(Thread):
                     except:
                         logging.exception(f'Can''t create path {path}')
                 # force cleanup {path} by {storage_max_size}
+                self.clear_storage(os.path.dirname(self.storage_path.format(name=self.name, datetime=datetime.now())))
                 # take snapshot
-                #self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'snapshot'}))
+                #self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':'snapshot'}))
                 # run cmd before start
                 if self.cmd_before!=None and self.cmd_before!='':
                     process = self.shell_execute(self.cmd_before, path)
                 # run cmd
                 if self.cmd!=None and self.cmd!='':
                     process = self.shell_execute(self.cmd, path)
-                    self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'started'}))
+                    self.state_msg = 'started'
+                    self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg }))
                     try:
                         process.wait(self.record_time)
                     except subprocess.TimeoutExpired:
                         logging.debug(f'/t {self.name}: process.wait TimeoutExpired {self.record_time}')
                     logging.debug(f'/t process execution finished')
-                    self.mqtt_client.publish(self.cnfg['mqtt']['topic'].format(name=self.name),json.dumps({'status':'restarting'}))
+                    self.state_msg = 'restarting'
+                    self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg}))
                 # run cmd after finishing
                 if self.cmd_after!=None and self.cmd_after!='':
                     process = self.shell_execute(self.cmd_after, path)
@@ -107,6 +117,56 @@ class vr_thread(Thread):
             logging.debug(f'Running thread {self.name} iteration #{i}')
             self._stop_event.wait(1)
 
+    def clear_storage(self, cleanup_path):
+        """function removes old files in Camera folder. This gives ability to write files in neverending loop, when old records are rewritedby new ones"""
+        try:            
+            max_size = self.storage_max_size*1024*1024*1024
+            logging.debug("Start storage cleanup on path: {0} (Max size: {1:.2f} GB)".format(cleanup_path, max_size/1024/1024/1024))
+            self.file_list = []
+            self.folder_size(cleanup_path)
+            # sort list of files by datetime value (DESC)
+            self.file_list = sorted(self.file_list, key=itemgetter('dt'), reverse=True)
+            # calculate cumulative size
+            i = 0
+            cumsum = 0
+            for item in self.file_list:
+                cumsum += item['size']
+                item['cumsum'] = cumsum
+                if(cumsum > max_size):
+                    i = i + 1               
+                    logging.info("Removing file {}: {}".format(i, item['file']))
+                    os.remove(item['file'])
+                    self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name)
+                        , json.dumps({
+                                        'status': self.state_msg,
+                                        'deleted': item['file']
+                                        })
+                    )
+            # remove empty directories
+            for (_path, _dirs, _files) in os.walk(cleanup_path, topdown=False):
+                if _files or _dirs: continue # skip remove
+                try:
+                    os.rmdir(_path)
+                    logging.debug(F'Remove empty folder: {_path}')
+                except OSError:
+                    logging.exception('Folder not empty :')
+        except:
+            logging.exception("Storage Cleanup Error")
+
+    def folder_size(self, path='.'):
+        total = 0
+        for entry in scandir(path):
+            if entry.is_file(follow_symlinks=False):
+                total += entry.stat().st_size
+                row = {
+                            'file': entry.path,
+                            'size': entry.stat().st_size,
+                            'dt': entry.stat().st_ctime,
+                         }
+                self.file_list.append(row)
+            elif entry.is_dir(follow_symlinks=False):
+                total += self.folder_size(entry.path)
+        return total
 
 def vr_create(name, cnfg, mqtt_client):
     vr = vr_thread(name, cnfg, mqtt_client)
