@@ -86,7 +86,7 @@ class vr_thread(Thread):
         """Starting main thread loop"""
         self.mqtt_client.subscribe(self.cnfg['mqtt']['topic_subscribe'].format(source_name=self.name))  
         i = 0 
-        while not self._stop_event.isSet():     
+        while self._stop_event.isSet():     
             if self.record_autostart or self._record_start_event.isSet():
                 self.recording = True
             if self._record_stop_event.isSet():
@@ -147,7 +147,7 @@ class vr_thread(Thread):
                     # detect if process run too fast (unsuccessful start)
                     if duration<self.start_error_threshold:
                         self.err_cnt += 1
-                        logging.debug(f'[{self.name}] Probably can''t start recording. Finished in {duration} sec (attempt {self.err_cnt})')
+                        logging.debug(f"[{self.name}] Probably can't start recording. Finished in {duration} sec (attempt {self.err_cnt})")
                         if (self.err_cnt % self.start_error_atempt_cnt)==0:
                             logging.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.start_error_sleep} sec')
                             self.state_msg = 'error'
@@ -163,7 +163,6 @@ class vr_thread(Thread):
                     process = self.shell_execute(self.cmd_after, path)
             i += 1
             logging.debug(f'[{self.name}] Running thread, iteration #{i}')
-            self._stop_event.wait(1)
 
     def clear_storage(self, cleanup_path):
         """function removes old files in Camera folder. This gives ability to write files in neverending loop, when old records are rewritedby new ones"""
