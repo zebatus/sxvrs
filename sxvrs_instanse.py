@@ -151,7 +151,7 @@ class vr_thread(Thread):
         """function removes old files in Camera folder. This gives ability to write files in neverending loop, when old records are rewritedby new ones"""
         try:            
             max_size = self.storage_max_size*1024*1024*1024
-            logging.debug("[{self.name}] Start storage cleanup on path: {0} (Max size: {1:.2f} GB)".format(cleanup_path, max_size/1024/1024/1024))
+            logging.debug(f"[{self.name}] Start storage cleanup on path: {cleanup_path} (Max size: {max_size/1024/1024/1024:.2f} GB)")
             self.file_list = []
             self.folder_size(cleanup_path)
             # sort list of files by datetime value (DESC)
