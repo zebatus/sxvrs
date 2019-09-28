@@ -86,7 +86,7 @@ class vr_thread(Thread):
         """Starting main thread loop"""
         self.mqtt_client.subscribe(self.cnfg['mqtt']['topic_subscribe'].format(source_name=self.name))  
         i = 0 
-        while self._stop_event.isSet():     
+        while not self._stop_event.isSet():     
             if self.record_autostart or self._record_start_event.isSet():
                 self.recording = True
             if self._record_stop_event.isSet():
@@ -134,7 +134,7 @@ class vr_thread(Thread):
                 if self.cmd_before!=None and self.cmd_before!='':
                     process = self.shell_execute(self.cmd_before, path)
                 # run cmd
-                if self.cmd!=None and self.cmd!='':
+                if (not self._stop_event.isSet()) and self.cmd!=None and self.cmd!='':
                     process = self.shell_execute(self.cmd, path)
                     self.state_msg = 'started'
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg }))
