@@ -48,6 +48,8 @@ class vr_thread(Thread):
         self.cmd_before = self.read_config('cmd_before')
         self.cmd = self.read_config('cmd')
         self.cmd_after = self.read_config('cmd_after')
+        self.snapshot_filename = self.read_config('snapshot_filename')
+        self.snapshot_cmd = self.read_config('snapshot_cmd')
     
     def record_start(self):
         """ Start recording, if it is not started yet """
@@ -65,7 +67,7 @@ class vr_thread(Thread):
         logging.debug(f'  receve "stop" event for thread {self.name}')
         Thread.join(self, timeout)
 
-    def shell_execute(self, cmd, path):
+    def shell_execute(self, cmd, path=''):
         filename = self.filename.format(storage_path=path, name=self.name, datetime=datetime.now())
         stream_url = self.stream_url.format(ip=self.ip)
         cmd = cmd.format(filename=filename, ip=self.ip, stream_url=stream_url, record_time=self.record_time)
@@ -94,7 +96,21 @@ class vr_thread(Thread):
                 # force cleanup {path} by {storage_max_size}
                 self.clear_storage(os.path.dirname(self.storage_path.format(name=self.name, datetime=datetime.now())))
                 # take snapshot
-                #self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':'snapshot'}))
+                if self.snapshot_filename != '' and self.snapshot_cmd != '':
+                    logging.debug(f"Take snapshot to file: {self.snapshot_filename}")
+                    process = self.shell_execute(self.snapshot_cmd.format(
+                            snapshot_filename=self.snapshot_filename.format(name=self.name),
+                            # additionally provide all possible variables for future use (TODO: it is better to rewrite this in more pythonic way)
+                            filename="{filename}",
+                            ip=self.ip,
+                            stream_url="{stream_url}",
+                            record_time=self.record_time,
+                            storage_path=path,
+                            name=self.name,
+                            datetime=datetime.now()
+                            )
+                        )
+                    self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':'snapshot'}))
                 # run cmd before start
                 if self.cmd_before!=None and self.cmd_before!='':
                     process = self.shell_execute(self.cmd_before, path)

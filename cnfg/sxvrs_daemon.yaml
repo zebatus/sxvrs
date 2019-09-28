@@ -15,14 +15,15 @@ global:
   cmd_before:
   cmd:
   cmd_after:
+  snapshot_filename: storage/{name}/snapshot.jpeg
+  snapshot_cmd: ffmpeg -hide_banner -ss 2 -i "{stream_url}" -y -f image2 -qscale 0 -frames 1 "{snapshot_filename}"
 
 sources:
-  camera_1:
+  camera_1: #Source name
     record_autostart: True
     ip: 192.168.1.10
     storage_max_size: 1 #GB
     stream_url: rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov
-    filename: "{storage_path}/{name}_{datetime:%Y%m%d_%H%M%S}.ts"
     cmd: ffmpeg -hide_banner -nostdin -nostats -fflags +igndts -y -i "{stream_url}" -c:v copy -t {record_time} -copytb 1 "{filename}"
 
 logger:
