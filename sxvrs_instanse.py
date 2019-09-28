@@ -55,17 +55,17 @@ class vr_thread(Thread):
     def record_start(self):
         """ Start recording, if it is not started yet """
         self._record_start_event.set()
-        logging.debug(f'  receve "record_start" event for thread {self.name}')
+        logging.debug(f'[{self.name}] receve "record_start" event')
 
     def record_stop(self):
         """ Stop recording, if it is not started yet """
         self._record_stop_event.set()
-        logging.debug(f'  receve "record_stop" event for thread {self.name}')
+        logging.debug(f'[{self.name}] receve "record_stop" event')
 
     def stop(self, timeout=None):
         """ Stop the thread. """        
         self._stop_event.set()
-        logging.debug(f'  receve "stop" event for thread {self.name}')
+        logging.debug(f'[{self.name}] receve "stop" event')
         Thread.join(self, timeout)
 
     def shell_execute(self, cmd, path=''):
@@ -73,7 +73,7 @@ class vr_thread(Thread):
         self.last_recorded_filename = filename
         stream_url = self.stream_url.format(ip=self.ip)
         cmd = cmd.format(filename=filename, ip=self.ip, stream_url=stream_url, record_time=self.record_time)
-        logging.debug(f'shell_execute: {cmd}')
+        logging.debug(f'[{self.name}] shell_execute: {cmd}')
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
         return process
 
@@ -90,17 +90,17 @@ class vr_thread(Thread):
                 # Force create path
                 path = self.storage_path.format(name=self.name, datetime=datetime.now())
                 if not os.path.exists(path):
-                    logging.debug(f'  path not existing: {path} \n try to create it..')
+                    logging.debug(f'[{self.name}] path not existing: {path} \n try to create it..')
                     try:
                         os.makedirs(path)
                     except:
-                        logging.exception(f'Can''t create path {path}')
+                        logging.exception(f'[{self.name}] Can''t create path {path}')
                 # force cleanup {path} by {storage_max_size}
                 self.clear_storage(os.path.dirname(self.storage_path.format(name=self.name, datetime=datetime.now())))
                 # take snapshot
                 if self.snapshot_filename != '' and self.snapshot_cmd != '':
                     if '{last_recorded_filename}' in self.snapshot_cmd:
-                        logging.debug(f"Take snapshot from URL to file: {self.snapshot_filename}")
+                        logging.debug(f"[{self.name}] Take snapshot from URL to file: {self.snapshot_filename}")
                         if self.last_recorded_filename=='':
                             filename = self.stream_url # if there was no any recordings yet, then take snapshot from URL stream
                         else:
@@ -111,7 +111,7 @@ class vr_thread(Thread):
                                 )
                             )
                     else:                     
-                        logging.debug(f"Take snapshot from URL to file: {self.snapshot_filename}")
+                        logging.debug(f"[{self.name}] Take snapshot from URL to file: {self.snapshot_filename}")
                         process = self.shell_execute(self.snapshot_cmd.format(
                                 snapshot_filename=self.snapshot_filename.format(name=self.name),
                                 # additionally provide all possible variables for future use (TODO: it is better to rewrite this in more pythonic way)
@@ -136,22 +136,22 @@ class vr_thread(Thread):
                     try:
                         process.wait(self.record_time)
                     except subprocess.TimeoutExpired:
-                        logging.debug(f'{self.name}: process.wait TimeoutExpired {self.record_time}')
-                    logging.debug(f'process execution finished')
+                        logging.debug(f'[{self.name}] process.wait TimeoutExpired {self.record_time}')
+                    logging.debug(f'[{self.name}] process execution finished')
                     self.state_msg = 'restarting'
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg}))
                 # run cmd after finishing
                 if self.cmd_after!=None and self.cmd_after!='':
                     process = self.shell_execute(self.cmd_after, path)
             i += 1
-            logging.debug(f'Running thread {self.name} iteration #{i}')
+            logging.debug(f'[{self.name}] Running thread, iteration #{i}')
             self._stop_event.wait(1)
 
     def clear_storage(self, cleanup_path):
         """function removes old files in Camera folder. This gives ability to write files in neverending loop, when old records are rewritedby new ones"""
         try:            
             max_size = self.storage_max_size*1024*1024*1024
-            logging.debug("Start storage cleanup on path: {0} (Max size: {1:.2f} GB)".format(cleanup_path, max_size/1024/1024/1024))
+            logging.debug("[{self.name}] Start storage cleanup on path: {0} (Max size: {1:.2f} GB)".format(cleanup_path, max_size/1024/1024/1024))
             self.file_list = []
             self.folder_size(cleanup_path)
             # sort list of files by datetime value (DESC)
@@ -164,7 +164,7 @@ class vr_thread(Thread):
                 item['cumsum'] = cumsum
                 if(cumsum > max_size):
                     i = i + 1               
-                    logging.info("Removing file {}: {}".format(i, item['file']))
+                    logging.info("[{self.name}] Removing file {}: {}".format(i, item['file']))
                     os.remove(item['file'])
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name)
                         , json.dumps({
@@ -177,11 +177,11 @@ class vr_thread(Thread):
                 if _files or _dirs: continue # skip remove
                 try:
                     os.rmdir(_path)
-                    logging.debug(F'Remove empty folder: {_path}')
+                    logging.debug(F'[{self.name}] Remove empty folder: {_path}')
                 except OSError:
-                    logging.exception('Folder not empty :')
+                    logging.exception('[{self.name}] Folder not empty :')
         except:
-            logging.exception("Storage Cleanup Error")
+            logging.exception("[{self.name}] Storage Cleanup Error")
 
     def folder_size(self, path='.'):
         total = 0
