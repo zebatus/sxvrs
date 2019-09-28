@@ -147,7 +147,7 @@ class vr_thread(Thread):
                     # detect if process run too fast (unsuccessful start)
                     if duration<self.start_error_threshold:
                         self.err_cnt += 1
-                        logging.debug(f"[{self.name}] Probably can't start recording. Finished in {duration} sec (attempt {self.err_cnt})")
+                        logging.debug(f"[{self.name}] Probably can't start recording. Finished in {duration:.2f} sec (attempt {self.err_cnt})")
                         if (self.err_cnt % self.start_error_atempt_cnt)==0:
                             logging.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.start_error_sleep} sec')
                             self.state_msg = 'error'
@@ -155,7 +155,7 @@ class vr_thread(Thread):
                             self._stop_event.wait(self.start_error_sleep)
                     else:
                         self.err_cnt = 0
-                        logging.debug(f'[{self.name}] process execution finished in {duration} sec')
+                        logging.debug(f'[{self.name}] process execution finished in {duration:.2f} sec')
                     self.state_msg = 'restarting'
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg}))
                 # run cmd after finishing
