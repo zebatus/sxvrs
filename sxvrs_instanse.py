@@ -136,8 +136,8 @@ class vr_thread(Thread):
                     try:
                         process.wait(self.record_time)
                     except subprocess.TimeoutExpired:
-                        logging.debug(f'/t {self.name}: process.wait TimeoutExpired {self.record_time}')
-                    logging.debug(f'/t process execution finished')
+                        logging.debug(f'{self.name}: process.wait TimeoutExpired {self.record_time}')
+                    logging.debug(f'process execution finished')
                     self.state_msg = 'restarting'
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg}))
                 # run cmd after finishing
