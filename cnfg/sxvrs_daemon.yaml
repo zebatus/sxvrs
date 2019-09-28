@@ -16,7 +16,7 @@ global:
   cmd:
   cmd_after:
   snapshot_filename: storage/{name}/snapshot.jpeg
-  snapshot_cmd: ffmpeg -hide_banner -ss 2 -i "{stream_url}" -y -f image2 -qscale 0 -frames 1 "{snapshot_filename}"
+  snapshot_cmd: ffmpeg -hide_banner -ss 2 -i "{last_recorded_filename}" -y -f image2 -qscale 0 -frames 1 "{snapshot_filename}"
 
 sources:
   camera_1: #Source name

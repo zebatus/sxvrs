@@ -50,6 +50,7 @@ class vr_thread(Thread):
         self.cmd_after = self.read_config('cmd_after')
         self.snapshot_filename = self.read_config('snapshot_filename')
         self.snapshot_cmd = self.read_config('snapshot_cmd')
+        self.last_recorded_filename = '' # in this variable I will keep the latest recorded filename (for using for snapshots)
     
     def record_start(self):
         """ Start recording, if it is not started yet """
@@ -69,6 +70,7 @@ class vr_thread(Thread):
 
     def shell_execute(self, cmd, path=''):
         filename = self.filename.format(storage_path=path, name=self.name, datetime=datetime.now())
+        self.last_recorded_filename = filename
         stream_url = self.stream_url.format(ip=self.ip)
         cmd = cmd.format(filename=filename, ip=self.ip, stream_url=stream_url, record_time=self.record_time)
         logging.debug(f'shell_execute: {cmd}')
@@ -97,19 +99,31 @@ class vr_thread(Thread):
                 self.clear_storage(os.path.dirname(self.storage_path.format(name=self.name, datetime=datetime.now())))
                 # take snapshot
                 if self.snapshot_filename != '' and self.snapshot_cmd != '':
-                    logging.debug(f"Take snapshot to file: {self.snapshot_filename}")
-                    process = self.shell_execute(self.snapshot_cmd.format(
-                            snapshot_filename=self.snapshot_filename.format(name=self.name),
-                            # additionally provide all possible variables for future use (TODO: it is better to rewrite this in more pythonic way)
-                            filename="{filename}",
-                            ip=self.ip,
-                            stream_url="{stream_url}",
-                            record_time=self.record_time,
-                            storage_path=path,
-                            name=self.name,
-                            datetime=datetime.now()
+                    if '{last_recorded_filename}' in self.snapshot_cmd:
+                        logging.debug(f"Take snapshot from URL to file: {self.snapshot_filename}")
+                        if self.last_recorded_filename=='':
+                            filename = self.stream_url # if there was no any recordings yet, then take snapshot from URL stream
+                        else:
+                            filename = self.last_recorded_filename
+                        process = self.shell_execute(self.snapshot_cmd.format(
+                                snapshot_filename=self.snapshot_filename.format(name=self.name),
+                                last_recorded_filename=filename
+                                )
                             )
-                        )
+                    else:                     
+                        logging.debug(f"Take snapshot from URL to file: {self.snapshot_filename}")
+                        process = self.shell_execute(self.snapshot_cmd.format(
+                                snapshot_filename=self.snapshot_filename.format(name=self.name),
+                                # additionally provide all possible variables for future use (TODO: it is better to rewrite this in more pythonic way)
+                                filename="{filename}",
+                                ip=self.ip,
+                                stream_url="{stream_url}",
+                                record_time=self.record_time,
+                                storage_path=path,
+                                name=self.name,
+                                datetime=datetime.now()
+                                )
+                            )
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':'snapshot'}))
                 # run cmd before start
                 if self.cmd_before!=None and self.cmd_before!='':
