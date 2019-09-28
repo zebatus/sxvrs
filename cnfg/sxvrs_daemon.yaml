@@ -17,6 +17,9 @@ global:
   cmd_after:
   snapshot_filename: storage/{name}/snapshot.jpeg
   snapshot_cmd: ffmpeg -hide_banner -ss 2 -i "{last_recorded_filename}" -y -f image2 -qscale 0 -frames 1 "{snapshot_filename}"
+  start_error_atempt_cnt: 10 # If process will not able to start for this number attempts, then it will go to sleep
+  start_error_threshold: 10 # Minimum number of seconds, to understand that process is started normally
+  start_error_sleep: 600 # Number of seconds to sleep on error
 
 sources:
   camera_1: #Source name

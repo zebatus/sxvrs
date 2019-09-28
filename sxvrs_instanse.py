@@ -7,6 +7,7 @@ import os
 import logging
 import json
 from datetime import datetime
+import time
 from threading import Thread, Event
 import subprocess
 from operator import itemgetter
@@ -51,6 +52,10 @@ class vr_thread(Thread):
         self.snapshot_filename = self.read_config('snapshot_filename')
         self.snapshot_cmd = self.read_config('snapshot_cmd')
         self.last_recorded_filename = '' # in this variable I will keep the latest recorded filename (for using for snapshots)
+        self.err_cnt = 0
+        self.start_error_atempt_cnt = self.read_config('start_error_atempt_cnt')
+        self.start_error_threshold = self.read_config('start_error_threshold')
+        self.start_error_sleep = self.read_config('start_error_sleep')
     
     def record_start(self):
         """ Start recording, if it is not started yet """
@@ -133,11 +138,22 @@ class vr_thread(Thread):
                     process = self.shell_execute(self.cmd, path)
                     self.state_msg = 'started'
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg }))
+                    start_time = time.time()
                     try:
                         process.wait(self.record_time)
                     except subprocess.TimeoutExpired:
                         logging.debug(f'[{self.name}] process.wait TimeoutExpired {self.record_time}')
-                    logging.debug(f'[{self.name}] process execution finished')
+                    duration = time.time() - start_time
+                    # detect if process run too fast (unsuccessful start)
+                    if duration<self.start_error_threshold:
+                        self.err_cnt += 1
+                        logging.debug(f'[{self.name}] Probably can''t start recording. Finished in {duration} sec (attempt {self.err_cnt})')
+                        if (self.err_cnt % self.start_error_atempt_cnt)==0:
+                            logging.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.start_error_sleep} sec')
+                            self._stop_event.wait(self.start_error_sleep)
+                    else:
+                        self.err_cnt = 0
+                        logging.debug(f'[{self.name}] process execution finished in {duration} sec')
                     self.state_msg = 'restarting'
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg}))
                 # run cmd after finishing
