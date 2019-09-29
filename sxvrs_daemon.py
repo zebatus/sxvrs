@@ -65,6 +65,12 @@ def on_mqtt_message(client, userdata, message):
                 vr.record_stop()
             elif payload['cmd']=='status':
                 vr.mqtt_status()
+    if message.topic.endswith("/*/list"):
+        names = []
+        for vr in vr_list:
+            names.append(vr.name)
+            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='*/list'),
+            json.dumps(names))            
 
 
 # setup MQTT connection
