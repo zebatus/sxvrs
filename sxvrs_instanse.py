@@ -208,7 +208,7 @@ class vr_thread(Thread):
                 row = {
                             'file': entry.path,
                             'size': entry.stat().st_size,
-                            'dt': entry.stat().st_ctime,
+                            'dt': entry.stat().st_mtime, # have to use last modification time because of Linux: there is no easy way to get correct creation time value
                          }
                 self.file_list.append(row)
             elif entry.is_dir(follow_symlinks=False):
