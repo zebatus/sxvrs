@@ -60,7 +60,7 @@ def on_mqtt_message(client, userdata, message):
             logger.debug("message retain flag=" + str(message.retain))
             payload = json.loads(str(message.payload.decode("utf-8")))
         for vr in vr_list:
-            if (message.topic.endswith("/"+vr.name) or topic_for_all)and 'cmd' in payload:
+            if message.topic.endswith("/"+vr.name) and 'cmd' in payload:
                 if payload['cmd']=='start':
                     vr.record_start()
                 elif payload['cmd']=='stop':
