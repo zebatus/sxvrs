@@ -1,7 +1,7 @@
 mqtt:
-  name: sxvrs
-  topic_publish  : sxvrs/{source_name}
-  topic_subscribe: sxvrs/{source_name}
+  name: sxvrs_daemon
+  topic_publish  : sxvrs/clients/{source_name}
+  topic_subscribe: sxvrs/daemon/{source_name}
   server_ip: 127.0.0.1
 
 global:

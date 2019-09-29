@@ -97,7 +97,6 @@ class vr_thread(Thread):
 
     def run(self):
         """Starting main thread loop"""
-        self.mqtt_client.subscribe(self.cnfg['mqtt']['topic_subscribe'].format(source_name=self.name))  
         i = 0 
         while not self._stop_event.isSet():     
             if self.record_autostart or self._record_start_event.isSet():

@@ -51,26 +51,31 @@ logging.config.dictConfig(cnfg['logger'])
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):
     """Provides reaction on all events received from MQTT broker"""
-    logger.debug("message received " + str(message.payload.decode("utf-8")))
-    logger.debug("message topic=" + message.topic)
-    logger.debug("message qos=" + str(message.qos))
-    logger.debug("message retain flag=" + str(message.retain))
-    payload = json.loads(str(message.payload.decode("utf-8")))
-    topic_for_all = message.topic.endswith("/*")
-    for vr in vr_list:
-        if (message.topic.endswith("/"+vr.name) or topic_for_all)and 'cmd' in payload:
-            if payload['cmd']=='start':
-                vr.record_start()
-            elif payload['cmd']=='stop':
-                vr.record_stop()
-            elif payload['cmd']=='status':
-                vr.mqtt_status()
-    if message.topic.endswith("/*/list"):
-        names = []
+    try:
+        payload = ''
+        if len(message.payload)>0:
+            logger.debug("message received " + str(message.payload.decode("utf-8")))
+            logger.debug("message topic=" + message.topic)
+            logger.debug("message qos=" + str(message.qos))
+            logger.debug("message retain flag=" + str(message.retain))
+            payload = json.loads(str(message.payload.decode("utf-8")))
         for vr in vr_list:
-            names.append(vr.name)
-            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='*/list'),
-            json.dumps(names))            
+            if (message.topic.endswith("/"+vr.name) or topic_for_all)and 'cmd' in payload:
+                if payload['cmd']=='start':
+                    vr.record_start()
+                elif payload['cmd']=='stop':
+                    vr.record_stop()
+                elif payload['cmd']=='status':
+                    vr.mqtt_status()
+        if message.topic.endswith("/list"):
+            names = []
+            for vr in vr_list:
+                names.append(vr.name)
+            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='list'),            
+                        json.dumps(names))
+            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')}")
+    except:
+        logger.exception(f'Error on_mqtt_message() topic: {message.topic} msg_len={len(message.payload)}')
 
 
 # setup MQTT connection
@@ -81,8 +86,8 @@ try:
     mqtt_client.connect(cnfg['mqtt']['server_ip']) #connect to broker
     mqtt_client.loop_start() #start the loop
     logger.info(f"Connected to MQTT: {cnfg['mqtt']['server_ip']}")
-    mqtt_client.subscribe(cnfg['mqtt']['topic_subscribe'].format(source_name='*'))  
-    logger.debug(f"MQTT subscribe: {cnfg['mqtt']['topic_subscribe']}")
+    mqtt_client.subscribe(cnfg['mqtt']['topic_subscribe'].format(source_name='#'))  
+    logger.debug(f"MQTT subscribe: {cnfg['mqtt']['topic_subscribe'].format(source_name='#')}")
 except :
     logger.exception(f"Can't connect to MQTT broker at address: {cnfg['mqtt']['server_ip']}")
     stored_exception=sys.exc_info()    
