@@ -46,7 +46,7 @@ logger:
           class: logging.handlers.RotatingFileHandler
           level: INFO
           formatter: simple
-          filename: logs/sxvrs.log
+          filename: logs/sxvrs_daemon.log
           maxBytes: 10485760 # 10MB
           backupCount: 10
           encoding: utf8
@@ -55,7 +55,7 @@ logger:
           class: logging.handlers.RotatingFileHandler
           level: ERROR
           formatter: simple
-          filename: logs/sxvrs.err
+          filename: logs/sxvrs_daemon.err
           maxBytes: 10485760 # 10MB
           backupCount: 10
           encoding: utf8

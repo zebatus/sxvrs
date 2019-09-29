@@ -92,6 +92,8 @@ class vr_thread(Thread):
             if self._record_stop_event.isSet():
                 self.recording = False
             if self.recording:
+                # force cleanup {path} by {storage_max_size}
+                self.clear_storage(os.path.dirname(self.storage_path.format(name=self.name, datetime=datetime.now())))
                 # Force create path
                 path = self.storage_path.format(name=self.name, datetime=datetime.now())
                 if not os.path.exists(path):
@@ -100,8 +102,6 @@ class vr_thread(Thread):
                         os.makedirs(path)
                     except:
                         logging.exception(f'[{self.name}] Can''t create path {path}')
-                # force cleanup {path} by {storage_max_size}
-                self.clear_storage(os.path.dirname(self.storage_path.format(name=self.name, datetime=datetime.now())))
                 # take snapshot
                 if self.snapshot_filename != '' and self.snapshot_cmd != '':
                     if '{last_recorded_filename}' in self.snapshot_cmd:
