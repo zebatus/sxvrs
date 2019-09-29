@@ -1,9 +1,0 @@
-mosquitto_pub -m "{\"cmd\":\"start\"}" -t "sxvrs/camera_1"
-mosquitto_pub -m "{'cmd':'stop'}" -t "sxvrs/camera_1"
-
-
-cd '/media/Data/Work/Projects/python/sxvrs'
-ffmpeg -hide_banner -nostdin -nostats -xerror -fflags +igndts -y -i "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov" -c:v copy -t 300 -copytb 1 "storage/camera_1/2019-09-27/camera_1_20190927_230436.ts"
-
-
-env/bin/python sxvrs_daemon.py

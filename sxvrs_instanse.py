@@ -52,6 +52,7 @@ class vr_thread(Thread):
         self.snapshot_filename = self.read_config('snapshot_filename')
         self.snapshot_cmd = self.read_config('snapshot_cmd')
         self.last_recorded_filename = '' # in this variable I will keep the latest recorded filename (for using for snapshots)
+        self.last_snapshot = ''
         self.err_cnt = 0
         self.start_error_atempt_cnt = self.read_config('start_error_atempt_cnt')
         self.start_error_threshold = self.read_config('start_error_threshold')
@@ -72,6 +73,18 @@ class vr_thread(Thread):
         self._stop_event.set()
         logging.debug(f'[{self.name}] receve "stop" event')
         Thread.join(self, timeout)
+    
+    def mqtt_status(self):
+        """ Sends MQTT status """
+        logging.debug(f'[{self.name}] receve "status" event')
+        self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),
+            json.dumps({
+                'name': self.name,
+                'status': self.state_msg, 
+                'error_cnt': self.err_cnt,
+                'latest_file': self.last_recorded_filename,
+                'snapshot': self.last_snapshot
+                }))
 
     def shell_execute(self, cmd, path=''):
         filename = self.filename.format(storage_path=path, name=self.name, datetime=datetime.now())
@@ -115,6 +128,7 @@ class vr_thread(Thread):
                                 last_recorded_filename=filename
                                 )
                             )
+                        self.last_snapshot = filename
                     else:                     
                         logging.debug(f"[{self.name}] Take snapshot from URL to file: {self.snapshot_filename}")
                         process = self.shell_execute(self.snapshot_cmd.format(

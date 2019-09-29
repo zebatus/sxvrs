@@ -63,6 +63,8 @@ def on_mqtt_message(client, userdata, message):
                 vr.record_start()
             elif payload['cmd']=='stop':
                 vr.record_stop()
+            elif payload['cmd']=='status':
+                vr.mqtt_status()
 
 
 # setup MQTT connection

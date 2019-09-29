@@ -1,0 +1,16 @@
+sxvrs_daemon.py - is the main script that must run in background. It provide all recording functions
+
+env/bin/python sxvrs_daemon.py
+
+sxvrs_simplehttpserver.py - This script is needed only when you whant to monitor your cameras 
+from web browser. Actually it was created only for using inside HomeAssistant
+
+env/bin/python sxvrs_simplehttpserver.py
+
+
+MQQT:
+    Testing from linux shell:
+mosquitto_pub -m "{\"cmd\":\"start\"}" -t "sxvrs/camera_1"
+mosquitto_pub -m "{'cmd':'stop'}" -t "sxvrs/camera_1"
+
+
