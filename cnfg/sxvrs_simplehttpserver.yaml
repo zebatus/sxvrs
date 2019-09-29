@@ -1,0 +1,47 @@
+server:
+  host:
+  port: 8282
+
+url:
+  jpeg: ".jpeg"
+
+mqtt:
+  name: sxvrs_http
+  topic_publish  : sxvrs/daemon/{source_name}
+  topic_subscribe: sxvrs/clients/{source_name}
+  server_ip: 127.0.0.1
+
+logger:
+  version: 1
+  disable_existing_loggers: False
+  formatters:
+      simple:
+          format: "%(asctime)s - %(name)s [%(levelname)s]: \t %(message)s"
+  handlers:
+      console:
+          class: logging.StreamHandler
+          level: DEBUG
+          formatter: simple
+          stream: ext://sys.stdout
+
+      info_file_handler:
+          class: logging.handlers.RotatingFileHandler
+          level: INFO
+          formatter: simple
+          filename: logs/sxvrs_simplehttpserver.log
+          maxBytes: 10485760 # 10MB
+          backupCount: 10
+          encoding: utf8
+
+      error_file_handler:
+          class: logging.handlers.RotatingFileHandler
+          level: ERROR
+          formatter: simple
+          filename: logs/sxvrs_simplehttpserver.err
+          maxBytes: 10485760 # 10MB
+          backupCount: 10
+          encoding: utf8
+
+  root:
+      level: DEBUG
+      handlers: [console, info_file_handler, error_file_handler]
