@@ -76,15 +76,15 @@ class vr_thread(Thread):
     
     def mqtt_status(self):
         """ Sends MQTT status """
-        logging.debug(f'[{self.name}] receve "status" event')
-        self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),
-            json.dumps({
+        payload = json.dumps({
                 'name': self.name,
                 'status': self.state_msg, 
                 'error_cnt': self.err_cnt,
                 'latest_file': self.last_recorded_filename,
                 'snapshot': self.last_snapshot
-                }))
+                })
+        logging.debug(f'[{self.name}] receve "status" event [{payload}]')
+        self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),payload)
 
     def shell_execute(self, cmd, path=''):
         filename = self.filename.format(storage_path=path, name=self.name, datetime=datetime.now())
@@ -117,17 +117,18 @@ class vr_thread(Thread):
                 # take snapshot
                 if self.snapshot_filename != '' and self.snapshot_cmd != '':
                     if '{last_recorded_filename}' in self.snapshot_cmd:
-                        logging.debug(f"[{self.name}] Take snapshot from URL to file: {self.snapshot_filename}")
+                        snapshot_filename = self.snapshot_filename.format(name=self.name)
+                        logging.debug(f"[{self.name}] Take snapshot from URL to file: {snapshot_filename}")
                         if self.last_recorded_filename=='':
                             filename = self.stream_url # if there was no any recordings yet, then take snapshot from URL stream
                         else:
                             filename = self.last_recorded_filename
                         process = self.shell_execute(self.snapshot_cmd.format(
-                                snapshot_filename=self.snapshot_filename.format(name=self.name),
-                                last_recorded_filename=filename
+                                snapshot_filename = snapshot_filename,
+                                last_recorded_filename = filename
                                 )
                             )
-                        self.last_snapshot = filename
+                        self.last_snapshot = snapshot_filename
                     else:                     
                         logging.debug(f"[{self.name}] Take snapshot from URL to file: {self.snapshot_filename}")
                         process = self.shell_execute(self.snapshot_cmd.format(

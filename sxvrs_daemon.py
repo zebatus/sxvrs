@@ -54,10 +54,10 @@ def on_mqtt_message(client, userdata, message):
     try:
         payload = ''
         if len(message.payload)>0:
-            logger.debug("message received " + str(message.payload.decode("utf-8")))
-            logger.debug("message topic=" + message.topic)
-            logger.debug("message qos=" + str(message.qos))
-            logger.debug("message retain flag=" + str(message.retain))
+            logger.debug("MQTT received " + str(message.payload.decode("utf-8")))
+            logger.debug("MQTT topic=" + message.topic)
+            logger.debug("MQTT qos=" + str(message.qos))
+            logger.debug("MQTT retain flag=" + str(message.retain))
             payload = json.loads(str(message.payload.decode("utf-8")))
         for vr in vr_list:
             if message.topic.endswith("/"+vr.name) and 'cmd' in payload:
@@ -73,7 +73,7 @@ def on_mqtt_message(client, userdata, message):
                 names.append(vr.name)
             mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='list'),            
                         json.dumps(names))
-            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')}")
+            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')} [{names}]")
     except:
         logger.exception(f'Error on_mqtt_message() topic: {message.topic} msg_len={len(message.payload)}')
 
