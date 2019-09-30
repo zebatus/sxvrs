@@ -79,18 +79,22 @@ def on_mqtt_message(client, userdata, message):
 
 
 # setup MQTT connection
-try:
-    mqtt_client = mqtt.Client(cnfg['mqtt']['name']) #create new instance
-    mqtt_client.enable_logger(logger)
-    mqtt_client.on_message=on_mqtt_message #attach function to callback
-    mqtt_client.connect(cnfg['mqtt']['server_ip']) #connect to broker
-    mqtt_client.loop_start() #start the loop
-    logger.info(f"Connected to MQTT: {cnfg['mqtt']['server_ip']}")
-    mqtt_client.subscribe(cnfg['mqtt']['topic_subscribe'].format(source_name='#'))  
-    logger.debug(f"MQTT subscribe: {cnfg['mqtt']['topic_subscribe'].format(source_name='#')}")
-except :
-    logger.exception(f"Can't connect to MQTT broker at address: {cnfg['mqtt']['server_ip']}")
-    stored_exception=sys.exc_info()    
+connecting = True
+while connecting:
+    try:
+        mqtt_client = mqtt.Client(cnfg['mqtt']['name']) #create new instance
+        mqtt_client.enable_logger(logger)
+        mqtt_client.on_message=on_mqtt_message #attach function to callback
+        mqtt_client.connect(cnfg['mqtt']['server_ip']) #connect to broker
+        mqtt_client.loop_start() #start the loop
+        logger.info(f"Connected to MQTT: {cnfg['mqtt']['server_ip']}")
+        mqtt_client.subscribe(cnfg['mqtt']['topic_subscribe'].format(source_name='#'))  
+        logger.debug(f"MQTT subscribe: {cnfg['mqtt']['topic_subscribe'].format(source_name='#')}")
+        connecting = False
+    except :
+        logger.exception(f"Can't connect to MQTT broker at address: {cnfg['mqtt']['server_ip']}")
+        time.sleep(10)
+        #stored_exception=sys.exc_info()    
 
 if stored_exception==None:
     logger.info(f'! Script started: "{script_name}" Press [CTRL+C] to exit')

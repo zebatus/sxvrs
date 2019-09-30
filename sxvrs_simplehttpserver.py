@@ -100,16 +100,20 @@ def on_mqtt_connect(client, userdata, flags, rc):
     logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')}")
 
 # setup MQTT connection
-try:
-    mqtt_client = mqtt.Client(cnfg['mqtt']['name']) #create new instance
-    mqtt_client.enable_logger(logger)
-    mqtt_client.on_connect = on_mqtt_connect
-    mqtt_client.on_message = on_mqtt_message #attach function to callback
-    mqtt_client.connect(cnfg['mqtt']['server_ip']) #connect to broker
-    mqtt_client.loop_start() #start the loop
-except :
-    logger.exception(f"Can't connect to MQTT broker at address: {cnfg['mqtt']['server_ip']}")
-    stored_exception=sys.exc_info()    
+connecting = True
+while connecting:
+    try:
+        mqtt_client = mqtt.Client(cnfg['mqtt']['name']) #create new instance
+        mqtt_client.enable_logger(logger)
+        mqtt_client.on_connect = on_mqtt_connect
+        mqtt_client.on_message = on_mqtt_message #attach function to callback
+        mqtt_client.connect(cnfg['mqtt']['server_ip']) #connect to broker
+        mqtt_client.loop_start() #start the loop
+        connecting = False
+    except :
+        logger.exception(f"Can't connect to MQTT broker at address: {cnfg['mqtt']['server_ip']}")
+        time.sleep(10)
+        #stored_exception=sys.exc_info()    
 
 # SimpleHTTPServer implementation
 class Handler(http.server.SimpleHTTPRequestHandler):
