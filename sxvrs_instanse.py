@@ -67,6 +67,8 @@ class vr_thread(Thread):
         """ Stop recording, if it is not started yet """
         self._record_stop_event.set()
         logging.debug(f'[{self.name}] receve "record_stop" event')
+        self.state_msg = 'stopped'
+        self.mqtt_status()
 
     def stop(self, timeout=None):
         """ Stop the thread. """        
@@ -101,8 +103,10 @@ class vr_thread(Thread):
         while not self._stop_event.isSet():     
             if self.record_autostart or self._record_start_event.isSet():
                 self.recording = True
+                self._record_start_event.clear()
             if self._record_stop_event.isSet():
                 self.recording = False
+                self._record_stop_event.clear()
             if self.recording:
                 # force cleanup {path} by {storage_max_size}
                 self.clear_storage(os.path.dirname(self.storage_path.format(name=self.name, datetime=datetime.now())))
@@ -175,8 +179,12 @@ class vr_thread(Thread):
                 # run cmd after finishing
                 if self.cmd_after!=None and self.cmd_after!='':
                     process = self.shell_execute(self.cmd_after, path)
-            i += 1
-            logging.debug(f'[{self.name}] Running thread, iteration #{i}')
+                i += 1
+                logging.debug(f'[{self.name}] Running thread, iteration #{i}')
+            else:
+                i = 0
+                logging.debug(f'[{self.name}] Sleeping thread')
+                self._stop_event.wait(3)
 
     def clear_storage(self, cleanup_path):
         """function removes old files in Camera folder. This gives ability to write files in neverending loop, when old records are rewritedby new ones"""

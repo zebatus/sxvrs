@@ -156,6 +156,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             payload = json.dumps({'cmd':'start'})
                             mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), payload)
                             logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} [{payload}]")
+                            time.sleep(2) # sleep before refresh, to give time to update data
                             self.send_response(303)
                             self.send_header('Location', '/' + vr.name)
                             self.end_headers()
@@ -163,6 +164,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             payload = json.dumps({'cmd':'stop'})
                             mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), payload)
                             logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} [{payload}]")
+                            time.sleep(2) # sleep before refresh, to give time to update data
                             self.send_response(303)
                             self.send_header('Location', '/' + vr.name)
                             self.end_headers()
@@ -213,12 +215,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             blink = ''
             if vr.status == 'stopped':
                 btn_name = 'Start'
-                state_img = ''
+                state_img = 'stop.gif'
+                widget_status = 'widget_status_ok'
             else:
                 btn_name = 'Stop'
                 if vr.status == 'started':
                     blink = 'blink'
-                    state_img = 'rec.png'
+                    state_img = 'rec.gif'
                     widget_status = 'widget_status_ok'
                 elif vr.status in ['snapshot','restarting']:
                     state_img = 'state.gif'
