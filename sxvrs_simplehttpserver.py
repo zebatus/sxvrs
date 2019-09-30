@@ -136,10 +136,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} {{'cmd':'status'}}")
 
     def do_GET(self):
-        res = False
         logger.debug(f'HTTP do_GET: {self.path}')
         parsed_path = self.path.split('/')
         try:
+            if self.path=='/':
+                self.refresh_vr_status()
+                self.send_head()
             if len(parsed_path)==3:
                 if parsed_path[1]=='static':
                     self.send_file(os.path.join('templates', 'static', parsed_path[2]))
@@ -165,12 +167,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             self.send_header('Location', '/' + vr.name)
                             self.end_headers()
                     else:
-                        res = self.send_itempage(vr)
+                        self.send_itempage(vr)
         except:
             self.send_response(501)
-        if not res:
-           self.refresh_vr_status()
-           self.send_head()
     
     def send_headers(self, response, content_type, content_size):
         self.send_response(200)
@@ -233,7 +232,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 widget_err = ''
             widget = widget.format(
                 snapshot = vr.snapshot,
-                latest_file = vr.latest_file,
+                latest_file = os.path.basename(vr.latest_file),
                 error_cnt = vr.error_cnt,
                 status = vr.status,
                 name = vr.name,
@@ -259,6 +258,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         ''' Overwriting SimpleHTTPRequestHandler.list_directory()
                 insead listing all recording instances
         '''
+        global vr_list
         enc = sys.getfilesystemencoding()
         title = 'List of all available cameras'
         tmpl = self.load_template('index.html')
@@ -291,7 +291,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     widget_err = ''
                 wd = widget.format(
                 snapshot = vr.snapshot,
-                latest_file = vr.latest_file,
+                latest_file = os.path.basename(vr.latest_file),
                 error_cnt = vr.error_cnt,
                 status = vr.status,
                 name = vr.name,

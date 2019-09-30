@@ -3,7 +3,9 @@ body{
 }
 .vr_box {
     height:300px;
-    width:400px
+    width:400px;
+    float:left;
+    padding:3px;
 }
 a{text-decoration: #242424;color: #bbbbbb; }
 .vr_link{widows: 100%; text-align: right}
