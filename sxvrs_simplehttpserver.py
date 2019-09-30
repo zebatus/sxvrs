@@ -157,8 +157,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         res = self.send_itempage(vr)
         except:
             self.send_response(501)
-        #if not res:
-        #    self.send_head()
+        if not res:
+           self.send_head()
     
     def send_headers(self, response, content_type, content_size):
         self.send_response(200)
@@ -277,8 +277,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     widget_err = 'widget_err' 
                 else:
                     widget_err = ''
-                html_list += f'<li><a href="{vr.name}">{vr.name}</a></li>'
-                html_list += widget.format(
+                wd = widget.format(
                 snapshot = vr.snapshot,
                 latest_file = vr.latest_file,
                 error_cnt = vr.error_cnt,
@@ -289,7 +288,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 state_img = state_img,
                 widget_status = widget_status,
                 widget_err = widget_err
-            )
+                )
+                html_list += f'<div class="vr_box"><div class="vr_link"><a href="{vr.name}">{vr.name}</a></div>{wd}</div>'
+                
             html = tmpl.format(
                 charset = enc,
                 title = title,

@@ -1,6 +1,26 @@
 body{
     background-color: #242424; color: honeydew; font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
+.vr_box {
+    height:300px;
+    width:400px
+}
+a{text-decoration: #242424;color: #bbbbbb; }
+.vr_link{widows: 100%; text-align: right}
+.vr_link a{
+    widows: 100%;
+    background-color: #7e7e7e;       
+    text-align: center;
+    vertical-align: middle;
+    padding:1px 40px;
+    font-size: 120%;        
+}
+.vr_link a:hover{
+    background-color: #949494;
+    color:white;
+    cursor: pointer; 
+}
+
 /* Firefox old*/
 @-moz-keyframes blink {
     0% {opacity:1;}
@@ -53,12 +73,13 @@ body{
 }
 .widget_bar{
     width:100%;     
-    background-color: gray;
+    background-color: #7e7e7e;
 }
 .widget_bar div{
     font-size: 80%;
     padding: 3px 7px;
 }
+.widget_bar div a:hover{color:white;}
 .widget_err{color: red;}
 .widget_status_ok{color: rgb(4, 56, 4);}
 .widget_status_err{color: red;}
@@ -67,12 +88,14 @@ body{
 .widget_btn{
     z-index: 2; 
     position: absolute;  
-    top:10px; left:45px;    
-    width:64px; height:20px;
+    top:7px; left:45px;    
     background-color: rgba(55, 55, 56, 0.445);
     float:left; 
     color: honeydew;
-    text-decoration: #242424
+    text-align: center;
+    vertical-align: middle;
+    padding:4px 10px;
+    font-size: 80%;
 }
 .widget_btn:hover{
     background-color: rgba(44, 44, 44, 0.63);
