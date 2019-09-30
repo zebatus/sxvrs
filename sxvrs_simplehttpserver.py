@@ -250,13 +250,46 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         enc = sys.getfilesystemencoding()
         title = 'List of all available cameras'
         tmpl = self.load_template('index.html')
+        widget = self.load_template('widget.html')
         if not tmpl:
             self.send_response(501)
             return False
         else:
             html_list = ''
             for vr in vr_list:
+                blink = ''
+                if vr.status == 'stopped':
+                    btn_name = 'Start'
+                    state_img = ''
+                else:
+                    btn_name = 'Stop'
+                    if vr.status == 'started':
+                        blink = 'blink'
+                        state_img = 'rec.png'
+                        widget_status = 'widget_status_ok'
+                    elif vr.status in ['snapshot','restarting']:
+                        state_img = 'state.gif'
+                        widget_status = 'widget_status'
+                    elif vr.status == 'error':
+                        state_img = 'err.gif'
+                        widget_status = 'widget_status_err'
+                if vr.error_cnt>0:
+                    widget_err = 'widget_err' 
+                else:
+                    widget_err = ''
                 html_list += f'<li><a href="{vr.name}">{vr.name}</a></li>'
+                html_list += widget.format(
+                snapshot = vr.snapshot,
+                latest_file = vr.latest_file,
+                error_cnt = vr.error_cnt,
+                status = vr.status,
+                name = vr.name,
+                btn_name = btn_name,
+                blink = blink,
+                state_img = state_img,
+                widget_status = widget_status,
+                widget_err = widget_err
+            )
             html = tmpl.format(
                 charset = enc,
                 title = title,
