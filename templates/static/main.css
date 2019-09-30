@@ -1,0 +1,80 @@
+body{
+    background-color: #242424; color: honeydew; font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+/* Firefox old*/
+@-moz-keyframes blink {
+    0% {opacity:1;}
+    50% {opacity:0;}
+    100% {opacity:1;}
+} 
+
+@-webkit-keyframes blink {
+    0% {opacity:1;}
+    50% {opacity:0;}
+    100% {opacity:1;}
+}
+/* IE */
+@-ms-keyframes blink {
+    0% {opacity:1;}
+    50% {opacity:0;}
+    100% {opacity:1;}
+} 
+/* Opera and prob css3 final iteration */
+@keyframes blink {
+    0% {opacity:1;}
+    50% {opacity:0;}
+    100% {opacity:1;}
+} 
+.blink {
+    -moz-animation: blink normal 1.5s infinite ease-in-out; /* Firefox */
+    -webkit-animation: blink normal 1.5s infinite ease-in-out; /* Webkit */
+    -ms-animation: blink normal 1.5s infinite ease-in-out; /* IE */
+    animation: blink normal 1.5s infinite ease-in-out; /* Opera and prob css3 final iteration */
+}
+.widget_mark {
+        z-index: 2; 
+    position: absolute; 
+    top:0px; left:0px; 
+    height:40px; width:40px;
+}
+.widget {
+    position: relative; 
+    width: 100%; height:100%; 
+    background-color: gray;
+}
+.widget_cap {
+    z-index: 2; 
+    position: absolute; 
+    top: 10px; left: 120px; height:20px; 
+    text-shadow: #000 0px 0px 1px; -webkit-font-smoothing: antialiased;letter-spacing: .1em;
+}
+.widget_latest_file{
+    
+}
+.widget_bar{
+    width:100%;     
+    background-color: gray;
+}
+.widget_bar div{
+    font-size: 80%;
+    padding: 3px 7px;
+}
+.widget_err{color: red;}
+.widget_status_ok{color: rgb(4, 56, 4);}
+.widget_status_err{color: red;}
+.widget_status{color: orangered;}
+
+.widget_btn{
+    z-index: 2; 
+    position: absolute;  
+    top:10px; left:45px;    
+    width:64px; height:20px;
+    background-color: rgba(55, 55, 56, 0.445);
+    float:left; 
+    color: honeydew;
+    text-decoration: #242424
+}
+.widget_btn:hover{
+    background-color: rgba(44, 44, 44, 0.63);
+    cursor: pointer; 
+}

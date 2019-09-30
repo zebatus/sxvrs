@@ -1,13 +1,13 @@
-<div style="position: relative; width: 100%; height:100%; background-color: gray">
-    <div style="z-index: 2; absolute: relative; top: 0px; left: 0px;">{name}</div>
-    <div style=""><img src="/{name}/snapshot" style="width:100%; height:100%"/></div>
-    <div style="width:100%; height:20px">
-        <div style="float:left; width:50px">Start</div>
-        <div style="float:left; width:50px">Stop</div>
+<div class="widget">
+    <div class="widget_cap" id="vr_{name}">{name}</div>
+    <img class="widget_mark {blink}" src="/static/{state_img}" />
+    <a class="widget_btn" href="/{name}/{btn_name}">{btn_name}</a>
+    <div><img src="/{name}/snapshot" style="width:100%; height:100%" /></div>
+    <div class="widget_bar">
+        <div style="float:right;" class="{widget_err}">{error_cnt}</div>
+        <div style="float:right;" class="{widget_status}">{status}</div>
+        <div class="widget_latest_file">
+            {latest_file}
+        </div>
     </div>
-    <div style="width:100%; height:20px">
-        {latest_file}
-    </div>
-    <div>{error_cnt}</div>
-    <div>{status}</div>
 </div>

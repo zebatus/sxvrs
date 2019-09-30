@@ -26,6 +26,7 @@ import html
 import io
 import socketserver
 import urllib.parse
+import mimetypes
 
 # Global variables
 vr_list = []
@@ -112,39 +113,72 @@ except :
 
 # SimpleHTTPServer implementation
 class Handler(http.server.SimpleHTTPRequestHandler):
+    ext_img = ['.jpeg','jpg','png','gif']
+    ext_static = ['.css']
+
+    def valid_extension(self, valid_ext_list, filename):
+        """ Function checks if specified filename has valid extension """
+        result = False
+        for ext in valid_ext_list:
+            if filename.endswith(ext):
+                result = True
+                break
+        return result
+
     def do_GET(self):
         res = False
         logger.debug(f'HTTP do_GET: {self.path}')
         parsed_path = self.path.split('/')
-        for vr in vr_list:
-            if parsed_path[1]==vr.name:
-                if len(parsed_path)>2:
-                    if parsed_path[2]=='snapshot':
-                        res = self.send_jpeg(vr)
-                else:
-                    res = self.send_itempage(vr)
-        if not res:
-            self.send_head()
-    
-    def send_jpeg(self, vr):
-        err = False
         try:
-            img = open(vr.snapshot, 'rb')
-            statinfo = os.stat(vr.snapshot)
-            img_size = statinfo.st_size            
+            if len(parsed_path)==3:
+                if parsed_path[1]=='static':
+                    self.send_file(os.path.join('templates', 'static', parsed_path[2]))
+            for vr in vr_list:
+                if parsed_path[1]==vr.name:
+                    if len(parsed_path)==3:
+                        if parsed_path[2]=='snapshot':
+                            if self.valid_extension(self.ext_img, vr.snapshot):
+                                self.send_file(vr.snapshot)
+                        if parsed_path[2]=='Start':
+                            payload = json.dumps({'cmd':'start'})
+                            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), payload)
+                            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} [{payload}]")
+                            self.send_response(303)
+                            self.send_header('Location', '/' + vr.name)
+                            self.end_headers()
+                        if parsed_path[2]=='Stop':
+                            payload = json.dumps({'cmd':'stop'})
+                            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), payload)
+                            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} [{payload}]")
+                            self.send_response(303)
+                            self.send_header('Location', '/' + vr.name)
+                            self.end_headers()
+                    else:
+                        res = self.send_itempage(vr)
         except:
-            logger.exception('Can''t load snapshot file')
-            err = True
-        if err:
             self.send_response(501)
+        #if not res:
+        #    self.send_head()
+    
+    def send_headers(self, response, content_type, content_size):
+        self.send_response(200)
+        self.send_header('Content-Type', content_type)
+        self.send_header('Content-Length', content_size)
+        self.end_headers()
+
+    def get_file(self, filename):
+        if self.valid_extension(self.ext_img, filename):
+            with open(filename, mode='rb') as f:
+                content = f.read()
+            return content
         else:
-            self.send_response(200)
-            self.send_header("Content-type", "image/jpg")
-            self.send_header("Content-length", img_size)
-            self.end_headers() 
-            self.wfile.write(img.read())            
-        img.close() 
-        return not err
+            with open(filename, mode='r', encoding='utf-8') as f:
+                content = f.read()
+            return bytes(content, 'utf-8')
+
+    def send_file(self, filename):
+        self.send_headers(200, mimetypes.guess_type(filename)[0], os.path.getsize(filename))
+        self.wfile.write(self.get_file(filename))
 
     def load_template(self, name):
         try:
@@ -165,12 +199,37 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_response(501)
             return False
         else:
+            blink = ''
+            if vr.status == 'stopped':
+                btn_name = 'Start'
+                state_img = ''
+            else:
+                btn_name = 'Stop'
+                if vr.status == 'started':
+                    blink = 'blink'
+                    state_img = 'rec.png'
+                    widget_status = 'widget_status_ok'
+                elif vr.status in ['snapshot','restarting']:
+                    state_img = 'state.gif'
+                    widget_status = 'widget_status'
+                elif vr.status == 'error':
+                    state_img = 'err.gif'
+                    widget_status = 'widget_status_err'
+            if vr.error_cnt>0:
+                widget_err = 'widget_err' 
+            else:
+                widget_err = ''
             widget = widget.format(
                 snapshot = vr.snapshot,
                 latest_file = vr.latest_file,
                 error_cnt = vr.error_cnt,
                 status = vr.status,
-                name = vr.name
+                name = vr.name,
+                btn_name = btn_name,
+                blink = blink,
+                state_img = state_img,
+                widget_status = widget_status,
+                widget_err = widget_err
             )
             html = tmpl.format(
                 charset = enc,
