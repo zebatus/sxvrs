@@ -125,6 +125,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 break
         return result
 
+    def refresh_vr_status(self, vr=None):
+        """This function is for running of refreshment of the status for all cam"""
+        if vr is None:
+            for vr in vr_list:
+                mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), json.dumps({'cmd':'status'}))
+                logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} {{'cmd':'status'}}")
+        else:
+            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), json.dumps({'cmd':'status'}))
+            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} {{'cmd':'status'}}")
+
     def do_GET(self):
         res = False
         logger.debug(f'HTTP do_GET: {self.path}')
@@ -135,6 +145,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     self.send_file(os.path.join('templates', 'static', parsed_path[2]))
             for vr in vr_list:
                 if parsed_path[1]==vr.name:
+                    self.refresh_vr_status(vr)
                     if len(parsed_path)==3:
                         if parsed_path[2]=='snapshot':
                             if self.valid_extension(self.ext_img, vr.snapshot):
@@ -158,6 +169,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except:
             self.send_response(501)
         if not res:
+           self.refresh_vr_status()
            self.send_head()
     
     def send_headers(self, response, content_type, content_size):
