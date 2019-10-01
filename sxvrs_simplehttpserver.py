@@ -155,8 +155,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), json.dumps({'cmd':'status'}))
                 logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} {{'cmd':'status'}}")
         else:
-            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), json.dumps({'cmd':'status'}))
-            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} {{'cmd':'status'}}")
+            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='list'))
+            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')}")
 
     def do_GET(self):
         logger.debug(f'HTTP do_GET: {self.path}')
