@@ -165,6 +165,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if self.path=='/':
                 self.refresh_vr_status()
                 self.send_head()
+            if len(parsed_path)>=2:
+                if parsed_path[1]=='logs':
+                    page = None
+                    if len(parsed_path)==3:
+                        page = parsed_path[2]                        
+                    self.send_logspage(page)
             if len(parsed_path)==3:
                 if parsed_path[1]=='static':
                     self.send_file(os.path.join('templates', 'static', parsed_path[2]))
@@ -225,6 +231,39 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             logger.exception(f"Can't load template file: {filename}")
         return data
 
+    def send_logspage(self, page = None):
+        logs_path = os.path.dirname(cnfg['logger']['handlers']['info_file_handler']['filename'])
+        enc = sys.getfilesystemencoding()
+        title = f'Logs: {page}'
+        tmpl = self.load_template('logs.html')
+        list_box = ""
+        for file in os.listdir(logs_path):
+            if os.path.isfile(os.path.join(logs_path,file)) and file[-4:] in ['.err','.log']:
+                list_box += f'<li><a href="/logs/{file}">{file}</a></li>'
+        if page==None:
+            log_box = "Please select logs.file"
+        else:
+            try:
+                log_box = ""
+                i = 0
+                with open(os.path.join(logs_path, page), mode='r', encoding='utf-8') as f:
+                    for row in reversed(f.readlines()):
+                        log_box += html.escape(row)
+                        i += 1
+                        if i>10000:
+                            break
+            except:
+                logger.exception(f'Error in opening logs file: {page}')
+                log_box = 'Error loading log file'
+        content = tmpl.format(
+                charset = enc,
+                title = title,
+                list_box = list_box,
+                log_box = log_box
+            )
+        self.send_headers(200, f"text/html; charset={enc}", str(len(content)))
+        self.wfile.write(bytes(content, enc))
+
     def send_itempage(self, vr):
         """Returns page for given camera"""
         enc = sys.getfilesystemencoding()
@@ -268,17 +307,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 widget_status = widget_status,
                 widget_err = widget_err
             )
-            html = tmpl.format(
+            content = tmpl.format(
                 charset = enc,
                 title = title,
                 widget = widget
             )
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=%s" % enc)
-            self.send_header("Content-Length", str(len(html)))
-            self.end_headers()
-            self.wfile.write(bytes(html, enc))
-            return True
+            self.send_headers(200, f"text/html; charset={enc}", str(len(content)))
+            self.wfile.write(bytes(content, enc))
     
     def list_directory(self, path):
         ''' Overwriting SimpleHTTPRequestHandler.list_directory()
@@ -329,17 +364,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 )
                 html_list += f'<div class="vr_box"><div class="vr_link"><a href="{vr.name}">{vr.name}</a></div>{wd}</div>'
                 
-            html = tmpl.format(
+            content = tmpl.format(
                 charset = enc,
                 title = title,
                 list = html_list
             )
-            self.send_response(200)
-            self.send_header("Content-type", "text/html; charset=%s" % enc)
-            self.send_header("Content-Length", str(len(html)))
-            self.end_headers()
-            self.wfile.write(bytes(html, enc))
-            return True
+            self.send_headers(200, f"text/html; charset={enc}", str(len(content)))
+            self.wfile.write(bytes(content, enc))
     
 
 if stored_exception==None:

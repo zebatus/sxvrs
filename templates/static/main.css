@@ -103,3 +103,26 @@ a{text-decoration: #242424;color: #bbbbbb; }
     background-color: rgba(44, 44, 44, 0.63);
     cursor: pointer; 
 }
+
+.tabs {
+    margin:  0;
+    padding: 0;
+    list-style: none;
+    display: table; 
+    table-layout: fixed; 
+    width: 100%; 
+    text-align: center;
+    overflow: hidden;
+}
+
+.tabs ul li {display: table-cell;}
+.tabs ul li a {
+    display: block;
+    padding: 7px 20px;
+    background-color: rgb(48, 48, 48);
+    color: #fff;
+    font-weight: bold;
+    text-decoration: none;
+}
+.tabs ul li a:hover {background-color: rgb(53, 53, 53);}
+.log_box{padding: 20px 40px}
