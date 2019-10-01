@@ -338,7 +338,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     btn_name = 'Stop'
                     if vr.status == 'started':
                         blink = 'blink'
-                        state_img = 'rec.png'
+                        state_img = 'rec.gif'
                         widget_status = 'widget_status_ok'
                     elif vr.status in ['snapshot','restarting']:
                         state_img = 'state.gif'
