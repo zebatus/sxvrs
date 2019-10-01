@@ -77,24 +77,42 @@ def on_mqtt_message(client, userdata, message):
     except:
         logger.exception(f'Error on_mqtt_message() topic: {message.topic} msg_len={len(message.payload)}')
 
+def on_mqtt_connect(client, userdata, flags, rc):
+    client.connection_rc = rc
+    if rc==0:
+        client.is_connected = True
 
 # setup MQTT connection
-connecting = True
-while connecting:
-    try:
-        mqtt_client = mqtt.Client(cnfg['mqtt']['name']) #create new instance
-        mqtt_client.enable_logger(logger)
-        mqtt_client.on_message=on_mqtt_message #attach function to callback
-        mqtt_client.connect(cnfg['mqtt']['server_ip']) #connect to broker
-        mqtt_client.loop_start() #start the loop
-        logger.info(f"Connected to MQTT: {cnfg['mqtt']['server_ip']}")
-        mqtt_client.subscribe(cnfg['mqtt']['topic_subscribe'].format(source_name='#'))  
-        logger.debug(f"MQTT subscribe: {cnfg['mqtt']['topic_subscribe'].format(source_name='#')}")
-        connecting = False
-    except :
-        logger.exception(f"Can't connect to MQTT broker at address: {cnfg['mqtt']['server_ip']}")
-        time.sleep(10)
-        #stored_exception=sys.exc_info()    
+try:
+    mqtt_client = mqtt.Client(cnfg['mqtt']['name']) #create new instance
+    mqtt_client.is_connected = False
+    mqtt_client.connection_rc = 3
+    mqtt_client.enable_logger(logger)
+    mqtt_client.on_message=on_mqtt_message #attach function to callback
+    mqtt_client.on_connect=on_mqtt_connect #attach function to callback
+    #try to connect to broker in a loop, until server becomes available
+    logger.debug(f"host={cnfg['mqtt']['server_ip']}, port={cnfg['mqtt']['server_port']}, keepalive={cnfg['mqtt']['server_keepalive']}")
+    mqtt_client.loop_start() 
+    while mqtt_client.connection_rc==3:
+        try:
+            logger.info(f"Try to connect to MQTT Server..")                
+            mqtt_client.connect(cnfg['mqtt']['server_ip'], 
+                port=cnfg['mqtt']['server_port'],
+                keepalive=cnfg['mqtt']['server_keepalive']
+                ) 
+            while not mqtt_client.is_connected: # blocking code untill connection
+                time.sleep(1)
+        except ConnectionRefusedError:
+            mqtt_client.connection_rc==3
+            wait = 1
+            logger.info(f"Server is offline. Wait {wait} sec before retry")
+            time.sleep(wait) # if server is not available, then wait for it
+    logger.info(f"Connected to MQTT: {cnfg['mqtt']['server_ip']}")
+    mqtt_client.subscribe(cnfg['mqtt']['topic_subscribe'].format(source_name='#'))  
+    logger.debug(f"MQTT subscribe: {cnfg['mqtt']['topic_subscribe'].format(source_name='#')}")
+except :
+    logger.exception(f"Can't connect to MQTT broker at address: {cnfg['mqtt']['server_ip']}")
+    stored_exception=sys.exc_info()    
 
 if stored_exception==None:
     logger.info(f'! Script started: "{script_name}" Press [CTRL+C] to exit')
@@ -120,6 +138,7 @@ if stored_exception==None:
         vr.stop()
         logger.debug(f"   stoping instance: {vr.name}")
     mqtt_client.loop_stop()
+    mqtt_client.disconnect()
     logger.info('# Script terminated')
 
 if stored_exception and stored_exception[0]!=KeyboardInterrupt:

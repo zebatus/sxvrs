@@ -10,6 +10,8 @@ mqtt:
   topic_publish  : sxvrs/daemon/{source_name}
   topic_subscribe: sxvrs/clients/{source_name}
   server_ip: 127.0.0.1
+  server_port: 1883
+  server_keepalive: 60
 
 logger:
   version: 1

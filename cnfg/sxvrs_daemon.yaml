@@ -3,6 +3,8 @@ mqtt:
   topic_publish  : sxvrs/clients/{source_name}
   topic_subscribe: sxvrs/daemon/{source_name}
   server_ip: 127.0.0.1
+  server_port: 1883
+  server_keepalive: 60
 
 global:
   record_autostart: False
@@ -27,7 +29,8 @@ sources:
     ip: 192.168.1.10
     storage_max_size: 1 #GB
     stream_url: rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov
-    cmd: ffmpeg -hide_banner -nostdin -nostats -fflags +igndts -y -i "{stream_url}" -c:v copy -t {record_time} -copytb 1 "{filename}"
+    #cmd: "\"extra/ffmpeg64/bin/ffmpeg.exe\" -hide_banner -nostdin -nostats -fflags +igndts -y -i \"{stream_url}\" -c:v copy -t {record_time} -copytb 1 \"{filename}\""
+    cmd: dummy_cmd
 
 logger:
   version: 1
