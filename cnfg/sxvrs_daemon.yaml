@@ -5,6 +5,8 @@ mqtt:
   server_ip: 127.0.0.1
   server_port: 1883
   server_keepalive: 60
+  login:
+  pwd:
 
 global:
   record_autostart: False

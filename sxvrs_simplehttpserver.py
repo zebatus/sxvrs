@@ -94,12 +94,14 @@ def on_mqtt_connect(client, userdata, flags, rc):
     client.connection_rc = rc
     if rc==0:
         client.is_connected = True
-    logger.info(f"Connected to MQTT: {cnfg['mqtt']['server_ip']} rc={str(rc)}")
-    mqtt_client.subscribe(cnfg['mqtt']['topic_subscribe'].format(source_name='#'))  
-    logger.debug(f"MQTT subscribe: {cnfg['mqtt']['topic_subscribe'].format(source_name='#')}")
-    time.sleep(1)
-    mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='list'))
-    logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')}")
+        logger.info(f"Connected to MQTT: {cnfg['mqtt']['server_ip']} rc={str(rc)}")
+        mqtt_client.subscribe(cnfg['mqtt']['topic_subscribe'].format(source_name='#'))  
+        logger.debug(f"MQTT subscribe: {cnfg['mqtt']['topic_subscribe'].format(source_name='#')}")
+        time.sleep(1)
+        mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='list'))
+        logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')}")
+    else:
+        logging.error(f"MQTT connection failure with code={rc}")
 
 # setup MQTT connection
 try:
@@ -112,6 +114,8 @@ try:
     #try to connect to broker in a loop, until server becomes available
     logger.debug(f"host={cnfg['mqtt']['server_ip']}, port={cnfg['mqtt']['server_port']}, keepalive={cnfg['mqtt']['server_keepalive']}")
     mqtt_client.loop_start() 
+    if cnfg['mqtt']['login']!=None: 
+        mqtt_client.username_pw_set(cnfg['mqtt']['login'], cnfg['mqtt']['pwd'])
     while mqtt_client.connection_rc==3:
         try:
             logger.info(f"Try to connect to MQTT Server..")                

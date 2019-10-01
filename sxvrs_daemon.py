@@ -81,6 +81,8 @@ def on_mqtt_connect(client, userdata, flags, rc):
     client.connection_rc = rc
     if rc==0:
         client.is_connected = True
+    else:
+        logging.error(f"MQTT connection failure with code={rc}")
 
 # setup MQTT connection
 try:
@@ -92,7 +94,9 @@ try:
     mqtt_client.on_connect=on_mqtt_connect #attach function to callback
     #try to connect to broker in a loop, until server becomes available
     logger.debug(f"host={cnfg['mqtt']['server_ip']}, port={cnfg['mqtt']['server_port']}, keepalive={cnfg['mqtt']['server_keepalive']}")
-    mqtt_client.loop_start() 
+    mqtt_client.loop_start()
+    if cnfg['mqtt']['login']!=None: 
+        mqtt_client.username_pw_set(cnfg['mqtt']['login'], cnfg['mqtt']['pwd'])
     while mqtt_client.connection_rc==3:
         try:
             logger.info(f"Try to connect to MQTT Server..")                
@@ -101,7 +105,7 @@ try:
                 keepalive=cnfg['mqtt']['server_keepalive']
                 ) 
             while not mqtt_client.is_connected: # blocking code untill connection
-                time.sleep(1)
+                time.sleep(1)                
         except ConnectionRefusedError:
             mqtt_client.connection_rc==3
             wait = 1
