@@ -80,7 +80,7 @@ def on_mqtt_message(client, userdata, message):
                     logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=name)} {{'cmd':'status'}}")
             else:
                 for vr in vr_list:
-                    if message.topic.endswith("/"+vr.name):
+                    if message.topic.lower().endswith("/"+vr.name.lower()):
                         if 'status' in payload:
                             vr.status = payload['status']
                         if 'error_cnt' in payload:
