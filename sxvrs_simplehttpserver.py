@@ -216,26 +216,32 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def get_file(self, filename):
-        if self.valid_extension(self.ext_img, filename):
-            with open(filename, mode='rb') as f:
-                content = f.read()
-            return content
-        else:
-            with open(filename, mode='r', encoding='utf-8') as f:
-                content = f.read()
-            return bytes(content, 'utf-8')
+        try:
+            if self.valid_extension(self.ext_img, filename):
+                with open(filename, mode='rb') as f:
+                    content = f.read()
+                return content
+            else:
+                with open(filename, mode='r', encoding='utf-8') as f:
+                    content = f.read()
+                return bytes(content, 'utf-8')
+        except:
+            logger.exception(f"Error on get_file({filename})")
 
     def send_file(self, filename, param1=None, param2=None):
-        if param1!=None and param2!=None: #resize image
-            widtn = int(param1)
-            height = int(param2)
-            new_filename = f'{filename}.{widtn}x{height}.jpg'
-            cmd = f'convert {filename} -resize {widtn}x{height}\> {new_filename}'
-            process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
-            process.wait(20)
-            filename = new_filename
-        self.send_headers(200, mimetypes.guess_type(filename)[0], os.path.getsize(filename))
-        self.wfile.write(self.get_file(filename))
+        try:
+            if param1!=None and param2!=None: #resize image
+                widtn = int(param1)
+                height = int(param2)
+                new_filename = f'{filename}.{widtn}x{height}.jpg'
+                cmd = f'convert {filename} -resize {widtn}x{height}\> {new_filename}'
+                process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
+                process.wait(20)
+                filename = new_filename
+            self.send_headers(200, mimetypes.guess_type(filename)[0], os.path.getsize(filename))
+            self.wfile.write(self.get_file(filename))
+        except:
+            logger.exception(f"Error on send_file({filename},{param1},{param2})")
 
     def load_template(self, name):
         try:
