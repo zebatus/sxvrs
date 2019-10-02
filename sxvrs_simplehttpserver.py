@@ -279,7 +279,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_headers(200, f"text/html; charset={enc}", str(len(content)))
         self.wfile.write(bytes(content, enc))
 
-    def send_itempage(self, vr):
+    def send_itempage(self, vr, width=800, height=600):
         """Returns page for given camera"""
         enc = sys.getfilesystemencoding()
         title = f'Camera: {vr.name}'
@@ -327,7 +327,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 logger.exception(f'Error in opening logs file: {logs_file}')
                 log_box = 'Error loading log file'
             widget = widget.format(
-                snapshot = vr.snapshot,
+                snapshot = os.path.join(vr.snapshot, width, height),
                 latest_file = os.path.basename(vr.latest_file),
                 error_cnt = vr.error_cnt,
                 status = vr.status,
@@ -352,6 +352,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 insead listing all recording instances
         '''
         global vr_list
+        width = 300
+        height = 200
         enc = sys.getfilesystemencoding()
         title = 'List of all available cameras'
         tmpl = self.load_template('index.html')
@@ -383,7 +385,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 else:
                     widget_err = ''
                 wd = widget.format(
-                snapshot = vr.snapshot,
+                snapshot = os.path.join(vr.snapshot, width, height),
                 latest_file = os.path.basename(vr.latest_file),
                 error_cnt = vr.error_cnt,
                 status = vr.status,
