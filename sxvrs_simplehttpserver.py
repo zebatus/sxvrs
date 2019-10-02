@@ -162,7 +162,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         logger.debug(f'HTTP do_GET: {self.path}')
-        parsed_path = self.path.split('/')
+        parsed_path = self.path.lower().split('/')
         try:
             if self.path=='/':
                 self.refresh_vr_status()
@@ -177,7 +177,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if parsed_path[1]=='static':
                     self.send_file(os.path.join('templates', 'static', parsed_path[2]))
             for vr in vr_list:
-                if parsed_path[1]==vr.name:
+                if parsed_path[1]==vr.name.lower():
                     self.refresh_vr_status(vr)
                     if len(parsed_path)>=3:
                         if parsed_path[2]=='snapshot':
@@ -188,7 +188,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                 height = parsed_path[4]
                             if self.valid_extension(self.ext_img, vr.snapshot):
                                 self.send_file(vr.snapshot, param1=width, param2=height)
-                        if parsed_path[2]=='Start':
+                        if parsed_path[2]=='start':
                             payload = json.dumps({'cmd':'start'})
                             mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), payload)
                             logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} [{payload}]")
@@ -196,7 +196,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             self.send_response(303)
                             self.send_header('Location', '/' + vr.name)
                             self.end_headers()
-                        if parsed_path[2]=='Stop':
+                        if parsed_path[2]=='stop':
                             payload = json.dumps({'cmd':'stop'})
                             mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), payload)
                             logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} [{payload}]")
