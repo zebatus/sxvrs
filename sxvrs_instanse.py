@@ -216,11 +216,11 @@ class vr_thread(Thread):
                 if _files or _dirs: continue # skip remove
                 try:
                     os.rmdir(_path)
-                    logging.debug(F'[{self.name}] Remove empty folder: {_path}')
+                    logging.debug(f'[{self.name}] Remove empty folder: {_path}')
                 except OSError:
                     logging.exception('[{self.name}] Folder not empty :')
         except:
-            logging.exception("[{self.name}] Storage Cleanup Error")
+            logging.exception(f"[{self.name}] Storage Cleanup Error")
 
     def folder_size(self, path='.'):
         total = 0

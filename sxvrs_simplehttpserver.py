@@ -295,6 +295,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 widget_err = 'widget_err' 
             else:
                 widget_err = ''
+            #show log for selected vr
+            logs_path = os.path.dirname(cnfg['logger']['handlers']['info_file_handler']['filename'])
+            logs_file = 'sxvrs_daemon.log'
+            try:
+                log_box = ""
+                i = 0
+                with open(os.path.join(logs_path, logs_file), mode='r', encoding='utf-8') as f:
+                    for row in reversed(f.readlines()):
+                        if vr.name in row:
+                            log_box += html.escape(row)
+                            i += 1
+                            if i>500:
+                                break
+            except:
+                logger.exception(f'Error in opening logs file: {logs_file}')
+                log_box = 'Error loading log file'
             widget = widget.format(
                 snapshot = vr.snapshot,
                 latest_file = os.path.basename(vr.latest_file),
@@ -310,7 +326,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             content = tmpl.format(
                 charset = enc,
                 title = title,
-                widget = widget
+                widget = widget,
+                log_box = log_box
             )
             self.send_headers(200, f"text/html; charset={enc}", str(len(content)))
             self.wfile.write(bytes(content, enc))

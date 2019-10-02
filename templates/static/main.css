@@ -75,6 +75,7 @@ a{text-decoration: #242424;color: #bbbbbb; }
 }
 .widget_bar{
     width:100%;     
+    height: 16px;
     background-color: #7e7e7e;
 }
 .widget_bar div{
