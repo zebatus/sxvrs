@@ -3,6 +3,7 @@
 """     This is SimpleHTTPServer for showing snapshots (embedded into HASS)
 Dependencies:
     pip install pyyaml paho-mqtt
+    sudo apt install imagemagick 
 """
 
 __author__      = "Rustem Sharipov"
@@ -27,6 +28,7 @@ import io
 import socketserver
 import urllib.parse
 import mimetypes
+import subprocess
 
 # Global variables
 vr_list = []
@@ -177,10 +179,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             for vr in vr_list:
                 if parsed_path[1]==vr.name:
                     self.refresh_vr_status(vr)
-                    if len(parsed_path)==3:
+                    if len(parsed_path)>=3:
                         if parsed_path[2]=='snapshot':
+                            width = None
+                            height = None
+                            if len(parsed_path)==5:
+                                width = parsed_path[3]
+                                height = parsed_path[4]
                             if self.valid_extension(self.ext_img, vr.snapshot):
-                                self.send_file(vr.snapshot)
+                                self.send_file(vr.snapshot, param1=width, param2=height)
                         if parsed_path[2]=='Start':
                             payload = json.dumps({'cmd':'start'})
                             mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), payload)
@@ -218,7 +225,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 content = f.read()
             return bytes(content, 'utf-8')
 
-    def send_file(self, filename):
+    def send_file(self, filename, param1=None, param2=None):
+        if param1!=None and param2!=None: #resize image
+            widtn = int(param1)
+            height = int(param2)
+            new_filename = f'{filename}.{widtn}x{height}.jpg'
+            cmd = f'convert {filename} -resize {widtn}x{height}\> {new_filename}'
+            process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
+            process.wait(20)
+            filename = new_filename
         self.send_headers(200, mimetypes.guess_type(filename)[0], os.path.getsize(filename))
         self.wfile.write(self.get_file(filename))
 
