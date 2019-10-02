@@ -334,6 +334,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 log_box = 'Error loading log file'
             widget = widget.format(
                 snapshot = os.path.join(vr.snapshot, str(width), str(height)),
+                width = width,
+                height = height,
                 latest_file = os.path.basename(vr.latest_file),
                 error_cnt = vr.error_cnt,
                 status = vr.status,
@@ -393,6 +395,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 snapshot = os.path.join(vr.snapshot, str(width), str(height))
                 wd = widget.format(
                 snapshot = snapshot,
+                width = width,
+                height = height,
                 latest_file = os.path.basename(vr.latest_file),
                 error_cnt = vr.error_cnt,
                 status = vr.status,
