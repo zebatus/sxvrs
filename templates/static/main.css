@@ -2,8 +2,6 @@ body{
     background-color: #242424; color: honeydew; font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 .vr_box {
-    height:300px;
-    width:400px;
     float:left;
     padding:3px;
 }
@@ -11,16 +9,18 @@ a{text-decoration: #242424;color: #bbbbbb; }
 .vr_link{widows: 100%; text-align: right}
 .vr_link a{
     widows: 100%;
-    background-color: #7e7e7e;       
+    background-color: #1e1e1e;       
     text-align: center;
     vertical-align: middle;
     padding:1px 40px;
-    font-size: 120%;        
+    font-size: 120%; 
+    box-shadow: 0px 0px 10px 2px rgba(255, 255, 190, .1);       
 }
 .vr_link a:hover{
-    background-color: #949494;
+    background-color: #1f1f1f;
     color:white;
     cursor: pointer; 
+    box-shadow: 0px 0px 15px 2px rgba(255, 255, 190, .1);
 }
 
 /* Firefox old*/
@@ -61,8 +61,7 @@ a{text-decoration: #242424;color: #bbbbbb; }
 }
 .widget {
     position: relative; 
-    width: 100%; height:100%; 
-    background-color: gray;
+    background-color:#1e1e1e;
 }
 .widget_cap {
     z-index: 2; 
@@ -76,7 +75,7 @@ a{text-decoration: #242424;color: #bbbbbb; }
 .widget_bar{
     width:100%;     
     height: 6%;
-    background-color: #7e7e7e;
+    background-color: #1e1e1e;
 }
 .widget_bar div{
     font-size: 80%;
