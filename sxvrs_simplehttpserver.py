@@ -138,7 +138,7 @@ except :
 
 # SimpleHTTPServer implementation
 class Handler(http.server.SimpleHTTPRequestHandler):
-    ext_img = ['.jpeg','jpg','png','gif']
+    ext_img = ['.jpeg','.jpg','.png','.gif']
     ext_static = ['.css']
 
     def valid_extension(self, valid_ext_list, filename):
@@ -175,7 +175,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.send_head()
             page = self.get_list_param(parsed_path,1)
             if page=='logs':
-                self.send_logspage(self.get_list_param(parsed_path,2))
+                self.send_logspage(self.get_list_param(parsed_path,2),self.get_list_param(parsed_path,3))
             if page=='restart':
                 self.restart(self.get_list_param(parsed_path,2))
             if len(parsed_path)==3:
@@ -257,7 +257,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             logger.exception(f"Can't load template file: {filename}")
         return data
 
-    def send_logspage(self, page = None):
+    def send_logspage(self, page = None, max_len = None):
         logs_path = os.path.dirname(cnfg['logger']['handlers']['info_file_handler']['filename'])
         enc = sys.getfilesystemencoding()
         title = f'Logs: {page}'
@@ -272,11 +272,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             try:
                 log_box = ""
                 i = 0
+                if max_len is None:
+                    max_len = 500
+                else:
+                    max_len = int(max_len)
                 with open(os.path.join(logs_path, page), mode='r', encoding='utf-8') as f:
                     for row in reversed(f.readlines()):
                         log_box += html.escape(row)
                         i += 1
-                        if i>10000:
+                        if i>max_len:
                             break
             except:
                 logger.exception(f'Error in opening logs file: {page}')
