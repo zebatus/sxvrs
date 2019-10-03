@@ -173,6 +173,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     if len(parsed_path)==3:
                         page = parsed_path[2]                        
                     self.send_logspage(page)
+                if parsed_path[1]=='restart':
+                    self.restart()
             if len(parsed_path)==3:
                 if parsed_path[1]=='static':
                     self.send_file(os.path.join('templates', 'static', parsed_path[2]))
@@ -363,7 +365,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         width = 300
         height = 200
         enc = sys.getfilesystemencoding()
-        title = 'List of all available cameras'
+        title = 'SXVRS'
         tmpl = self.load_template('index.html')
         widget = self.load_template('widget.html')
         if not tmpl:
@@ -416,6 +418,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             )
             self.send_headers(200, f"text/html; charset={enc}", str(len(content)))
             self.wfile.write(bytes(content, enc))
+
+    def restart(self):
+        try:
+            self.send_file(os.path.join('templates', '', 'restart.html'))
+            httpd.server_close()
+            time.sleep(1)
+            args = sys.argv[:]
+            exe = sys.executable
+            logging.info(f" > {exe} {args} ")
+            logging.info("> "*5 + " Restarting the server " + " <"*5)
+            args.insert(0, sys.executable)
+            if sys.platform == 'win32':
+                args = ['"%s"' % arg for arg in args]
+            os.execv(exe, args)
+        except:
+            logger.exception("Can't restart server")
     
 
 if stored_exception==None:
@@ -423,7 +441,20 @@ if stored_exception==None:
     if server_host=='' or server_host is None:
         server_host = '0.0.0.0'
     logger.info(f"! HTTP server start on http://{server_host}:{cnfg['server']['port']} Press [CTRL+C] to exit")
-    httpd = socketserver.TCPServer((server_host, cnfg['server']['port']), Handler)
+    is_started = False    
+    while not is_started:
+        try:
+            httpd = socketserver.TCPServer((server_host, cnfg['server']['port']), Handler)
+            is_started = True
+        except OSError as e:
+            if e.errno == 98:
+                logger.error("Address already in use")
+                time.sleep(5)
+            else:
+                logger.exception("Can't start HTTP Server")
+                sys.exit(1)
+            
+
     httpd.serve_forever()
     mqtt_client.loop_stop()
     mqtt_client.disconnect()
