@@ -160,6 +160,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='list'))
             logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')}")
 
+    def get_list_param(self, list, index):
+        res = None
+        if len(list)>index:
+            res = list[index]
+        return res
+
     def do_GET(self):
         logger.debug(f'HTTP do_GET: {self.path}')
         parsed_path = self.path.lower().split('/')
@@ -167,19 +173,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if self.path=='/':
                 self.refresh_vr_status()
                 self.send_head()
-            if len(parsed_path)>=2:
-                if parsed_path[1]=='logs':
-                    page = None
-                    if len(parsed_path)==3:
-                        page = parsed_path[2]                        
-                    self.send_logspage(page)
-                if parsed_path[1]=='restart':
-                    self.restart()
+            page = self.get_list_param(parsed_path,1)
+            if page=='logs':
+                self.send_logspage(self.get_list_param(parsed_path,2))
+            if page=='restart':
+                self.restart(self.get_list_param(parsed_path,2))
             if len(parsed_path)==3:
-                if parsed_path[1]=='static':
+                if page=='static':
                     self.send_file(os.path.join('templates', 'static', parsed_path[2]))
             for vr in vr_list:
-                if parsed_path[1]==vr.name.lower():
+                if page==vr.name.lower():
                     self.refresh_vr_status(vr)
                     if len(parsed_path)>=3:
                         if parsed_path[2]=='snapshot':
@@ -430,21 +433,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_headers(200, f"text/html; charset={enc}", str(len(content)))
             self.wfile.write(bytes(content, enc))
 
-    def restart(self):
-        try:
-            self.send_file(os.path.join('templates', '', 'restart.html'))
-            httpd.server_close()
-            time.sleep(1)
-            args = sys.argv[:]
-            exe = sys.executable
-            logging.info(f" > {exe} {args} ")
-            logging.info("> "*5 + " Restarting the server " + " <"*5)
-            args.insert(0, sys.executable)
-            if sys.platform == 'win32':
-                args = ['"%s"' % arg for arg in args]
-            os.execv(exe, args)
-        except:
-            logger.exception("Can't restart server")
+    def restart(self, name = None):
+        if name == "daemon":
+            self.send_file(os.path.join('templates', '', 'restart_daemon.html'))
+            payload = json.dumps({'cmd':'restart'})
+            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=name), payload)
+            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=name)} [{payload}]")
+        else:
+            try:
+                self.send_file(os.path.join('templates', '', 'restart.html'))
+                httpd.server_close()
+                time.sleep(1)
+                args = sys.argv[:]
+                exe = sys.executable
+                logging.info("> "*5 + " Restarting the server " + " <"*5)
+                args.insert(0, sys.executable)
+                if sys.platform == 'win32':
+                    args = ['"%s"' % arg for arg in args]
+                os.execv(exe, args)
+            except:
+                logger.exception("Can't restart server")
     
 
 if stored_exception==None:
@@ -459,13 +467,13 @@ if stored_exception==None:
             is_started = True
         except OSError as e:
             if e.errno == 98:
-                logger.error("Address already in use")
+                logger.error(f"Port {cnfg['server']['port']} already in use. Wait 5 sec and retry..")
                 time.sleep(5)
             else:
                 logger.exception("Can't start HTTP Server")
                 sys.exit(1)
             
-
+    logger.info(f"HTTP Server started on port {cnfg['server']['port']}. Waiting for connections..")
     httpd.serve_forever()
     mqtt_client.loop_stop()
     mqtt_client.disconnect()

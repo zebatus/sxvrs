@@ -59,21 +59,36 @@ def on_mqtt_message(client, userdata, message):
             logger.debug("MQTT qos=" + str(message.qos))
             logger.debug("MQTT retain flag=" + str(message.retain))
             payload = json.loads(str(message.payload.decode("utf-8")))
-        for vr in vr_list:
-            if message.topic.lower().endswith("/"+vr.name.lower()) and 'cmd' in payload:
-                if payload['cmd']=='start':
-                    vr.record_start()
-                elif payload['cmd']=='stop':
-                    vr.record_stop()
-                elif payload['cmd']=='status':
-                    vr.mqtt_status()
-        if message.topic.endswith("/list"):
+        if message.topic.lower().endswith("/list"):
             names = []
             for vr in vr_list:
                 names.append(vr.name)
             mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='list'),            
                         json.dumps(names))
             logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')} [{names}]")
+        elif message.topic.lower().endswith("/daemon"):
+            if payload['cmd'].lower()=='restart':
+                try:
+                    logging.info("Restart command recieved")
+                    mqtt_client.disconnect()
+                    args = sys.argv[:]
+                    exe = sys.executable
+                    logging.info("> "*5 + " Restarting the daemon " + " <"*5)
+                    args.insert(0, sys.executable)
+                    if sys.platform == 'win32':
+                        args = ['"%s"' % arg for arg in args]
+                    os.execv(exe, args)
+                except:
+                    logger.exception("Can't restart daemon")                
+        else:
+            for vr in vr_list:
+                if message.topic.lower().endswith("/"+vr.name.lower()) and 'cmd' in payload:
+                    if payload['cmd'].lower()=='start':
+                        vr.record_start()
+                    elif payload['cmd'].lower()=='stop':
+                        vr.record_stop()
+                    elif payload['cmd'].lower()=='status':
+                        vr.mqtt_status()
     except:
         logger.exception(f'Error on_mqtt_message() topic: {message.topic} msg_len={len(message.payload)}')
 
