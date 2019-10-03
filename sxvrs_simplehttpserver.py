@@ -410,7 +410,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 widget_err = widget_err
                 )
                 html_list += f'<div class="vr_box"><div class="vr_link"><a href="{vr.name}">{vr.name}</a></div>{wd}</div>'
-                
+            if len(vr_list)==0:
+                html_list = """<h3>Oops, looks like there is no any device.</h3><br>
+                This may be caused by:<br>
+                <ul>
+                    <li>1. sxvrs_daemon is not started yet. You just need to wait and refresh this page</li>
+                    <li>2. There is no any available instance configured in sxvrs_daemon </li>
+                    <li>3. sxvrs_daemon is down</li>
+                    <li>4. There are some problems with MQTT server or configuration for using it</li>
+                </ul>
+                <br>
+                Please note: This HTTP server is independent and comunicates with sxvrs_daemon only by mqtt messages
+                """
             content = tmpl.format(
                 charset = enc,
                 title = title,
