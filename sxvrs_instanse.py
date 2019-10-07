@@ -85,7 +85,7 @@ class vr_thread(Thread):
                 'latest_file': self.last_recorded_filename,
                 'snapshot': self.last_snapshot
                 })
-        logging.debug(f'[{self.name}] receve "status" event [{payload}]')
+        logging.debug(f'[{self.name}] mqtt send "status" [{payload}]')
         self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),payload)
 
     def shell_execute(self, cmd, path=''):
@@ -169,7 +169,7 @@ class vr_thread(Thread):
                         if (self.err_cnt % self.start_error_atempt_cnt)==0:
                             logging.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.start_error_sleep} sec')
                             self.state_msg = 'error'
-                            self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg, 'count':self.err_cnt}))
+                            self.mqtt_status()
                             self._stop_event.wait(self.start_error_sleep)
                     else:
                         self.err_cnt = 0
