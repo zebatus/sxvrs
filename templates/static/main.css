@@ -126,3 +126,4 @@ a{text-decoration: #242424;color: #bbbbbb; }
 }
 .tabs ul li a:hover {background-color: rgb(53, 53, 53);}
 .log_box{padding: 20px 40px}
+.log_box pre{text-align: left}
