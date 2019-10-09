@@ -88,9 +88,7 @@ class vr_thread(Thread):
         logging.debug(f'[{self.name}] mqtt send "status" [{payload}]')
         self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),payload)
 
-    def shell_execute(self, cmd, path=''):
-        filename = self.filename.format(storage_path=path, name=self.name, datetime=datetime.now())
-        self.last_recorded_filename = filename
+    def shell_execute(self, cmd, filename):
         stream_url = self.stream_url.format(ip=self.ip)
         cmd = cmd.format(filename=filename, ip=self.ip, stream_url=stream_url, record_time=self.record_time)
         logging.debug(f'[{self.name}] shell_execute: {cmd}')
@@ -118,6 +116,7 @@ class vr_thread(Thread):
                         os.makedirs(path)
                     except:
                         logging.exception(f'[{self.name}] Can''t create path {path}')
+                filename_new = self.filename.format(storage_path=path, name=self.name, datetime=datetime.now())                
                 # take snapshot
                 if self.snapshot_filename != '' and self.snapshot_cmd != '':
                     if '{last_recorded_filename}' in self.snapshot_cmd:
@@ -130,7 +129,8 @@ class vr_thread(Thread):
                         process = self.shell_execute(self.snapshot_cmd.format(
                                 snapshot_filename = snapshot_filename,
                                 last_recorded_filename = filename
-                                )
+                                ),
+                                filename = ''
                             )
                         self.last_snapshot = snapshot_filename
                     else:                     
@@ -145,15 +145,16 @@ class vr_thread(Thread):
                                 storage_path=path,
                                 name=self.name,
                                 datetime=datetime.now()
-                                )
+                                ),
+                                filename = ''
                             )
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':'snapshot'}))
                 # run cmd before start
                 if self.cmd_before!=None and self.cmd_before!='':
-                    process = self.shell_execute(self.cmd_before, path)
+                    process = self.shell_execute(self.cmd_before, filename_new)
                 # run cmd
                 if (not self._stop_event.isSet()) and self.cmd!=None and self.cmd!='':
-                    process = self.shell_execute(self.cmd, path)
+                    process = self.shell_execute(self.cmd, filename_new)
                     self.state_msg = 'started'
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg }))
                     start_time = time.time()
@@ -174,6 +175,8 @@ class vr_thread(Thread):
                     else:
                         self.err_cnt = 0
                         logging.debug(f'[{self.name}] process execution finished in {duration:.2f} sec')
+                    if self.state_msg != 'error':
+                        self.last_recorded_filename = filename_new
                     self.state_msg = 'restarting'
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg}))
                 # run cmd after finishing
