@@ -384,7 +384,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 blink = ''
                 if vr.status == 'stopped':
                     btn_name = 'Start'
-                    state_img = ''
+                    state_img = 'stop.gif'
                 else:
                     btn_name = 'Stop'
                     if vr.status == 'started':

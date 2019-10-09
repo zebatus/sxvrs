@@ -54,10 +54,10 @@ def on_mqtt_message(client, userdata, message):
     try:
         payload = ''
         if len(message.payload)>0:
-            logger.debug("MQTT received " + str(message.payload.decode("utf-8")))
-            logger.debug("MQTT topic=" + message.topic)
-            logger.debug("MQTT qos=" + str(message.qos))
-            logger.debug("MQTT retain flag=" + str(message.retain))
+            #logger.debug("MQTT received " + str(message.payload.decode("utf-8")))
+            #logger.debug("MQTT topic=" + message.topic)
+            #logger.debug("MQTT qos=" + str(message.qos))
+            #logger.debug("MQTT retain flag=" + str(message.retain))
             payload = json.loads(str(message.payload.decode("utf-8")))
         if message.topic.lower().endswith("/list"):
             names = []
