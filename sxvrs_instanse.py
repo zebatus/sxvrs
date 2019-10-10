@@ -121,8 +121,8 @@ class vr_thread(Thread):
                 if self.snapshot_filename != '' and self.snapshot_cmd != '':
                     if '{last_recorded_filename}' in self.snapshot_cmd:
                         snapshot_filename = self.snapshot_filename.format(name=self.name)
-                        logging.debug(f"[{self.name}] Take snapshot from URL to file: {snapshot_filename}")
-                        if self.last_recorded_filename=='':
+                        logging.debug(f"[{self.name}] Take snapshot from File to file: {snapshot_filename}")
+                        if self.last_recorded_filename=='' or not os.path.isfile(self.last_recorded_filename):
                             filename = self.stream_url # if there was no any recordings yet, then take snapshot from URL stream
                         else:
                             filename = self.last_recorded_filename
@@ -175,7 +175,7 @@ class vr_thread(Thread):
                     else:
                         self.err_cnt = 0
                         logging.debug(f'[{self.name}] process execution finished in {duration:.2f} sec')
-                    if self.state_msg != 'error':
+                    if self.state_msg != 'error' and os.path.isfile(filename_new):
                         self.last_recorded_filename = filename_new
                     self.state_msg = 'restarting'
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg}))
