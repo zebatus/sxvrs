@@ -175,7 +175,9 @@ class vr_thread(Thread):
                     else:
                         self.err_cnt = 0
                         logging.debug(f'[{self.name}] process execution finished in {duration:.2f} sec')
-                    if self.state_msg != 'error' and os.path.isfile(filename_new):
+                    if not os.path.isfile(filename_new):
+                        self.state_msg = 'error'
+                    if self.state_msg != 'error':
                         self.last_recorded_filename = filename_new
                     self.state_msg = 'restarting'
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg}))
