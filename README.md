@@ -1,7 +1,12 @@
-# sxvrs
-Simple eXtendable Video Recording Script
+# SxVRS - Simple eXtendable Video Recording Script
 
-sxvrs_daemon.py - is the main script that must run in background. It provide all recording functions
+The main purpose of this script is to record rtsp stream from ip camera into a local file with goal to be as lightweight as possible.
+Actually, it runs shell commands in the loop to start such applications like ffmpeg (openrtsp, vlc, etc..)
+Keeps and maintainse available disk space. Creates snapshots from files, run shell scripts etc..
+
+
+## sxvrs_daemon.py
+This is the main script that must run in background. It provide all recording functions
 
 run:
     env/bin/python sxvrs_daemon.py
@@ -23,8 +28,8 @@ sxvrs/daemon/[instance] {cmd:status}
     - returns complete informations about current status of the [instance]
 
 ******************************************************************************************
-sxvrs_simplehttpserver.py - This script is needed only when you whant to view your cameras 
-from web browser. Actually it was created only for using inside HomeAssistant
+## sxvrs_simplehttpserver.py
+This script is needed only when you whant to view your cameras from web browser. Actually it was created only for using inside HomeAssistant
 
 run:    
     env/bin/python sxvrs_simplehttpserver.py
