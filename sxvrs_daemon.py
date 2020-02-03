@@ -34,15 +34,6 @@ app_label = script_name + f'_{datetime.now():%H%M}'
 stored_exception=None
 vr_list = []
 
-mqtt_name = cnfg['mqtt'].get('name', 'sxvrs_daemon')
-mqtt_server_host = cnfg['mqtt'].get('server_ip','127.0.0.1')
-mqtt_server_port = cnfg['mqtt'].get('server_port', 1883)
-mqtt_server_keepalive = cnfg['mqtt'].get('server_keepalive',60)
-mqtt_login = cnfg['mqtt'].get('login', None)
-mqtt_pwd = cnfg['mqtt'].get('pwd', None)
-mqtt_topic_publish_tmpl = cnfg['mqtt'].get('topic_publish', 'sxvrs/clients/{source_name}')
-mqtt_topic_subscribe_tmpl = cnfg['mqtt'].get('topic_subscribe', 'sxvrs/daemon/{source_name}')
-
 logger = logging.getLogger(script_name)
 
 # Load configuration files
@@ -56,6 +47,15 @@ except:
 
 # setup logger from yaml config file
 logging.config.dictConfig(cnfg['logger'])
+
+mqtt_name = cnfg['mqtt'].get('name', 'sxvrs_daemon')
+mqtt_server_host = cnfg['mqtt'].get('server_ip','127.0.0.1')
+mqtt_server_port = cnfg['mqtt'].get('server_port', 1883)
+mqtt_server_keepalive = cnfg['mqtt'].get('server_keepalive',60)
+mqtt_login = cnfg['mqtt'].get('login', None)
+mqtt_pwd = cnfg['mqtt'].get('pwd', None)
+mqtt_topic_publish_tmpl = cnfg['mqtt'].get('topic_publish', 'sxvrs/clients/{source_name}')
+mqtt_topic_subscribe_tmpl = cnfg['mqtt'].get('topic_subscribe', 'sxvrs/daemon/{source_name}')
 
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):

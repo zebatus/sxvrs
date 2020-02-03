@@ -32,15 +32,6 @@ import subprocess
 
 # Global variables
 vr_list = []
-mqtt_name = cnfg['mqtt'].get('name', 'sxvrs_http')
-mqtt_server_host = cnfg['mqtt'].get('server_ip','127.0.0.1')
-mqtt_server_port = cnfg['mqtt'].get('server_port', 1883)
-mqtt_server_keepalive = cnfg['mqtt'].get('server_keepalive',60)
-mqtt_login = cnfg['mqtt'].get('login', None)
-mqtt_pwd = cnfg['mqtt'].get('pwd', None)
-mqtt_topic_publish_tmpl = cnfg['mqtt'].get('topic_publish', 'sxvrs/daemon/{source_name}')
-mqtt_topic_subscribe_tmpl = cnfg['mqtt'].get('topic_subscribe', 'sxvrs/clients/{source_name}')
-
 
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
@@ -60,6 +51,15 @@ except:
 
 # setup logger from yaml config file
 logging.config.dictConfig(cnfg['logger'])
+
+mqtt_name = cnfg['mqtt'].get('name', 'sxvrs_http')
+mqtt_server_host = cnfg['mqtt'].get('server_ip','127.0.0.1')
+mqtt_server_port = cnfg['mqtt'].get('server_port', 1883)
+mqtt_server_keepalive = cnfg['mqtt'].get('server_keepalive',60)
+mqtt_login = cnfg['mqtt'].get('login', None)
+mqtt_pwd = cnfg['mqtt'].get('pwd', None)
+mqtt_topic_publish_tmpl = cnfg['mqtt'].get('topic_publish', 'sxvrs/daemon/{source_name}')
+mqtt_topic_subscribe_tmpl = cnfg['mqtt'].get('topic_subscribe', 'sxvrs/clients/{source_name}')
 
 # Class for VR
 class vr_class():
