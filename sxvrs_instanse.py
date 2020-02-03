@@ -21,12 +21,15 @@ class vr_thread(Thread):
     """
     Each Video Recording Instanse must be run in separate thread
     """  
-    def read_config(self, param):  
+    def read_config(self, param, default=None):  
         """Function read configuration param from YAML returning local or global value"""
         if param in self.cnfg['sources'][self.name]:
             return self.cnfg['sources'][self.name][param]
         else:
-            return self.cnfg['global'][param]
+            if param in self.cnfg['global']:
+                return self.cnfg['global'][param]
+            else:
+                return default
 
     def __init__(self, name, cnfg, mqtt_client):
         """Init and assigning params before run"""
@@ -41,11 +44,11 @@ class vr_thread(Thread):
         self.mqtt_client = mqtt_client
         self.ip = self.read_config('ip')
         self.stream_url = self.read_config('stream_url')
-        self.record_autostart = self.read_config('record_autostart')
-        self.record_time = self.read_config('record_time')
-        self.storage_max_size = self.read_config('storage_max_size')
+        self.record_autostart = self.read_config('record_autostart', default=False)
+        self.record_time = self.read_config('record_time', default=600)
+        self.storage_max_size = self.read_config('storage_max_size', default=10)
         self.storage_path = self.read_config('storage_path')
-        self.filename = self.read_config('filename')
+        self.filename = self.read_config('filename', default="{storage_path}/{name}_{datetime:%Y%m%d_%H%M%S}.ts")
         self.cmd_before = self.read_config('cmd_before')
         self.cmd = self.read_config('cmd')
         self.cmd_after = self.read_config('cmd_after')
@@ -54,9 +57,9 @@ class vr_thread(Thread):
         self.last_recorded_filename = '' # in this variable I will keep the latest recorded filename (for using for snapshots)
         self.last_snapshot = ''
         self.err_cnt = 0
-        self.start_error_atempt_cnt = self.read_config('start_error_atempt_cnt')
-        self.start_error_threshold = self.read_config('start_error_threshold')
-        self.start_error_sleep = self.read_config('start_error_sleep')
+        self.start_error_atempt_cnt = self.read_config('start_error_atempt_cnt', default=10)
+        self.start_error_threshold = self.read_config('start_error_threshold', default=10)
+        self.start_error_sleep = self.read_config('start_error_sleep', default=600)
     
     def record_start(self):
         """ Start recording, if it is not started yet """

@@ -32,6 +32,16 @@ import subprocess
 
 # Global variables
 vr_list = []
+mqtt_name = cnfg['mqtt'].get('name', 'sxvrs_http')
+mqtt_server_host = cnfg['mqtt'].get('server_ip','127.0.0.1')
+mqtt_server_port = cnfg['mqtt'].get('server_port', 1883)
+mqtt_server_keepalive = cnfg['mqtt'].get('server_keepalive',60)
+mqtt_login = cnfg['mqtt'].get('login', None)
+mqtt_pwd = cnfg['mqtt'].get('pwd', None)
+mqtt_topic_publish_tmpl = cnfg['mqtt'].get('topic_publish', 'sxvrs/daemon/{source_name}')
+mqtt_topic_subscribe_tmpl = cnfg['mqtt'].get('topic_subscribe', 'sxvrs/clients/{source_name}')
+
+
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
 app_label = script_name + f'_{datetime.now():%H%M}'
@@ -63,7 +73,7 @@ class vr_class():
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):
     """Provides reaction on all events received from MQTT broker"""
-    global vr_list
+    global vr_list, mqtt_topic_publish_tmpl
     try:
         if len(message.payload)>0:
             logger.debug("MQTT received " + str(message.payload.decode("utf-8")))
@@ -76,8 +86,8 @@ def on_mqtt_message(client, userdata, message):
                 vr_list = []
                 for name in payload:
                     vr_list.append(vr_class(name))
-                    mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=name), json.dumps({'cmd':'status'}))
-                    logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=name)} {{'cmd':'status'}}")
+                    mqtt_client.publish(mqtt_topic_publish_tmpl.format(source_name=name), json.dumps({'cmd':'status'}))
+                    logger.debug(f"MQTT publish: {mqtt_topic_publish_tmpl.format(source_name=name)} {{'cmd':'status'}}")
             else:
                 for vr in vr_list:
                     if message.topic.lower().endswith("/"+vr.name.lower()):
@@ -91,39 +101,39 @@ def on_mqtt_message(client, userdata, message):
                             vr.snapshot = payload['snapshot']
     except:
         logger.exception(f'Error on_mqtt_message() topic: {message.topic} msg_len={len(message.payload)}')
-        
+
 def on_mqtt_connect(client, userdata, flags, rc):
     client.connection_rc = rc
     if rc==0:
         client.is_connected = True
-        logger.info(f"Connected to MQTT: {cnfg['mqtt']['server_ip']} rc={str(rc)}")
-        mqtt_client.subscribe(cnfg['mqtt']['topic_subscribe'].format(source_name='#'))  
-        logger.debug(f"MQTT subscribe: {cnfg['mqtt']['topic_subscribe'].format(source_name='#')}")
+        logger.info(f"Connected to MQTT: {mqtt_server_host}:{mqtt_server_port} rc={str(rc)}")
+        mqtt_client.subscribe(mqtt_topic_subscribe_tmpl.format(source_name='#'))  
+        logger.debug(f"MQTT subscribe: {mqtt_topic_subscribe_tmpl.format(source_name='#')}")
         time.sleep(1)
-        mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='list'))
-        logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')}")
+        mqtt_client.publish(mqtt_topic_publish_tmpl.format(source_name='list'))
+        logger.debug(f"MQTT publish: {mqtt_topic_publish_tmpl.format(source_name='list')}")
     else:
         logging.error(f"MQTT connection failure with code={rc}")
 
 # setup MQTT connection
 try:
-    mqtt_client = mqtt.Client(cnfg['mqtt']['name']) #create new instance
+    mqtt_client = mqtt.Client(mqtt_name) #create new instance
     mqtt_client.is_connected = False
     mqtt_client.connection_rc = 3
     mqtt_client.enable_logger(logger)
     mqtt_client.on_message=on_mqtt_message #attach function to callback
     mqtt_client.on_connect=on_mqtt_connect #attach function to callback
     #try to connect to broker in a loop, until server becomes available
-    logger.debug(f"host={cnfg['mqtt']['server_ip']}, port={cnfg['mqtt']['server_port']}, keepalive={cnfg['mqtt']['server_keepalive']}")
+    logger.debug(f"host={mqtt_server_host}, port={mqtt_server_port}, keepalive={mqtt_server_keepalive}")
     mqtt_client.loop_start() 
-    if cnfg['mqtt']['login']!=None: 
-        mqtt_client.username_pw_set(cnfg['mqtt']['login'], cnfg['mqtt']['pwd'])
+    if mqtt_login!=None: 
+        mqtt_client.username_pw_set(mqtt_login, mqtt_pwd)
     while mqtt_client.connection_rc==3:
         try:
             logger.info(f"Try to connect to MQTT Server..")                
-            mqtt_client.connect(cnfg['mqtt']['server_ip'], 
-                port=cnfg['mqtt']['server_port'],
-                keepalive=cnfg['mqtt']['server_keepalive']
+            mqtt_client.connect(mqtt_server_host, 
+                port = mqtt_server_port,
+                keepalive = mqtt_server_keepalive
                 ) 
             while not mqtt_client.is_connected: # blocking code untill connection
                 time.sleep(1)
@@ -133,7 +143,7 @@ try:
             logger.info(f"Server is offline. Wait {wait} sec before retry")
             time.sleep(wait) # if server is not available, then wait for it
 except :
-    logger.exception(f"Can't connect to MQTT broker at address: {cnfg['mqtt']['server_ip']}")
+    logger.exception(f"Can't connect to MQTT broker at address: {mqtt_server_host}:{mqtt_server_port}")
     stored_exception=sys.exc_info()    
 
 # SimpleHTTPServer implementation
@@ -154,11 +164,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         """This function is for running of refreshment of the status for all cam"""
         if vr is None:
             for vr in vr_list:
-                mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), json.dumps({'cmd':'status'}))
-                logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} {{'cmd':'status'}}")
+                mqtt_client.publish(mqtt_topic_publish_tmpl.format(source_name=vr.name), json.dumps({'cmd':'status'}))
+                logger.debug(f"MQTT publish: {mqtt_topic_publish_tmpl.format(source_name=vr.name)} {{'cmd':'status'}}")
         else:
-            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name='list'))
-            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name='list')}")
+            mqtt_client.publish(mqtt_topic_publish_tmpl.format(source_name='list'))
+            logger.debug(f"MQTT publish: {mqtt_topic_publish_tmpl.format(source_name='list')}")
 
     def get_list_param(self, list, index):
         res = None
@@ -195,16 +205,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                 self.send_file(vr.snapshot, param1=width, param2=height)
                         if parsed_path[2]=='start':
                             payload = json.dumps({'cmd':'start'})
-                            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), payload)
-                            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} [{payload}]")
+                            mqtt_client.publish(mqtt_topic_publish_tmpl.format(source_name=vr.name), payload)
+                            logger.debug(f"MQTT publish: {mqtt_topic_publish_tmpl.format(source_name=vr.name)} [{payload}]")
                             time.sleep(2) # sleep before refresh, to give time to update data
                             self.send_response(303)
                             self.send_header('Location', '/' + vr.name)
                             self.end_headers()
                         if parsed_path[2]=='stop':
                             payload = json.dumps({'cmd':'stop'})
-                            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=vr.name), payload)
-                            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=vr.name)} [{payload}]")
+                            mqtt_client.publish(mqtt_topic_publish_tmpl.format(source_name=vr.name), payload)
+                            logger.debug(f"MQTT publish: {mqtt_topic_publish_tmpl.format(source_name=vr.name)} [{payload}]")
                             time.sleep(2) # sleep before refresh, to give time to update data
                             self.send_response(303)
                             self.send_header('Location', '/' + vr.name)
@@ -441,8 +451,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if name == "daemon":
             self.send_file(os.path.join('templates', '', 'restart_daemon.html'))
             payload = json.dumps({'cmd':'restart'})
-            mqtt_client.publish(cnfg['mqtt']['topic_publish'].format(source_name=name), payload)
-            logger.debug(f"MQTT publish: {cnfg['mqtt']['topic_publish'].format(source_name=name)} [{payload}]")
+            mqtt_client.publish(mqtt_topic_publish_tmpl.format(source_name=name), payload)
+            logger.debug(f"MQTT publish: {mqtt_topic_publish_tmpl.format(source_name=name)} [{payload}]")
         else:
             try:
                 self.send_file(os.path.join('templates', '', 'restart.html'))
