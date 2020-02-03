@@ -2,7 +2,7 @@
 
 The main purpose of this script is to record rtsp stream from ip camera into a local file with goal to be as lightweight as possible.
 Actually, it runs shell commands in the loop to start such applications like ffmpeg (openrtsp, vlc, etc..)
-Keeps and maintainse available disk space. Creates snapshots from files, run shell scripts etc..
+Keeps and maintains available disk space. Creates snapshots from files, run shell scripts etc..
 Each reecording runs in separate thread, communications between threads are done by Mosquitto MQTT Server.
 
 To run this script you need:
