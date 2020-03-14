@@ -25,7 +25,7 @@ import time
 from datetime import datetime
 import paho.mqtt.client as mqtt
 
-from sxvrs_instanse import vr_create
+from sxvrs_thread import vr_create
 from cls.config_reader import config_reader
 
 # Get running script name

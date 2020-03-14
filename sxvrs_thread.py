@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-""" Video Recording Instanse
-The instanse is running in separate thread
+""" Video Recording Thread
+The recording is started in separate thread
 """
 import os
 import logging
