@@ -1,0 +1,10 @@
+#####   v0.1   #####
+Fully working solution to record video files in a loop.
+SimpleHTTPServer are able to show camera snapshots control them, show logs and restart services
+Main benefits: low cpu usage, can work even on slow devices. The reason is that there is no encoding required. 
+But this causes problems with snapshots
+Problems:
+  1)during recording from raw rtsp stream some ssnapshots become corrupted.
+    In the next release will try to use different
+  2) There is no motion detection and object detection (is done by separate application)
+    In the next release motion detection and object detection will be integrated
