@@ -21,15 +21,6 @@ class vr_thread(Thread):
     """
     Each Video Recording Instanse must be run in separate thread
     """  
-    def read_config(self, param, default=None):  
-        """Function read configuration param from YAML returning local or global value"""
-        if param in self.cnfg['sources'][self.name]:
-            return self.cnfg['sources'][self.name][param]
-        else:
-            if param in self.cnfg['global']:
-                return self.cnfg['global'][param]
-            else:
-                return default
 
     def __init__(self, name, cnfg, mqtt_client):
         """Init and assigning params before run"""
@@ -42,25 +33,10 @@ class vr_thread(Thread):
         self.name = name
         self.cnfg = cnfg
         self.mqtt_client = mqtt_client
-        self.ip = self.read_config('ip')
-        self.stream_url = self.read_config('stream_url')
-        self.record_autostart = self.read_config('record_autostart', default=False)
-        self.record_time = self.read_config('record_time', default=600)
-        self.storage_max_size = self.read_config('storage_max_size', default=10)
-        self.storage_path = self.read_config('storage_path')
-        self.filename = self.read_config('filename', default="{storage_path}/{name}_{datetime:%Y%m%d_%H%M%S}.ts")
-        self.cmd_before = self.read_config('cmd_before')
-        self.cmd = self.read_config('cmd')
-        self.cmd_after = self.read_config('cmd_after')
-        self.snapshot_filename = self.read_config('snapshot_filename')
-        self.snapshot_cmd = self.read_config('snapshot_cmd')
         self.last_recorded_filename = '' # in this variable I will keep the latest recorded filename (for using for snapshots)
         self.last_snapshot = ''
         self.err_cnt = 0
-        self.start_error_atempt_cnt = self.read_config('start_error_atempt_cnt', default=10)
-        self.start_error_threshold = self.read_config('start_error_threshold', default=10)
-        self.start_error_sleep = self.read_config('start_error_sleep', default=600)
-    
+   
     def record_start(self):
         """ Start recording, if it is not started yet """
         self._record_start_event.set()
@@ -89,11 +65,11 @@ class vr_thread(Thread):
                 'snapshot': self.last_snapshot
                 })
         logging.debug(f'[{self.name}] mqtt send "status" [{payload}]')
-        self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),payload)
+        self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),payload)
 
     def shell_execute(self, cmd, filename):
-        stream_url = self.stream_url.format(ip=self.ip)
-        cmd = cmd.format(filename=filename, ip=self.ip, stream_url=stream_url, record_time=self.record_time)
+        stream_url = self.cnfg.stream_url.format(ip=self.cnfg.ip)
+        cmd = cmd.format(filename=filename, ip=self.cnfg.ip, stream_url=stream_url, record_time=self.cnfg.record_time)
         logging.debug(f'[{self.name}] shell_execute: {cmd}')
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
         return process
@@ -102,7 +78,7 @@ class vr_thread(Thread):
         """Starting main thread loop"""
         i = 0 
         while not self._stop_event.isSet():     
-            if self.record_autostart or self._record_start_event.isSet():
+            if self.cnfg.record_autostart or self._record_start_event.isSet():
                 self.recording = True
                 self._record_start_event.clear()
             if self._record_stop_event.isSet():
@@ -110,26 +86,26 @@ class vr_thread(Thread):
                 self._record_stop_event.clear()
             if self.recording:
                 # force cleanup {path} by {storage_max_size}
-                self.clear_storage(os.path.dirname(self.storage_path.format(name=self.name, datetime=datetime.now())))
+                self.clear_storage(os.path.dirname(self.cnfg.storage_path.format(name=self.name, datetime=datetime.now())))
                 # Force create path
-                path = self.storage_path.format(name=self.name, datetime=datetime.now())
+                path = self.cnfg.storage_path.format(name=self.name, datetime=datetime.now())
                 if not os.path.exists(path):
                     logging.debug(f'[{self.name}] path not existing: {path} \n try to create it..')
                     try:
                         os.makedirs(path)
                     except:
                         logging.exception(f'[{self.name}] Can''t create path {path}')
-                filename_new = self.filename.format(storage_path=path, name=self.name, datetime=datetime.now())                
+                filename_new = self.cnfg.filename.format(storage_path=path, name=self.name, datetime=datetime.now())                
                 # take snapshot
-                if self.snapshot_filename != '' and self.snapshot_cmd != '':
-                    if '{last_recorded_filename}' in self.snapshot_cmd:
-                        snapshot_filename = self.snapshot_filename.format(name=self.name)
+                if self.cnfg.snapshot_filename != '' and self.cnfg.snapshot_cmd != '':
+                    if '{last_recorded_filename}' in self.cnfg.snapshot_cmd:
+                        snapshot_filename = self.cnfg.snapshot_filename.format(name=self.name)
                         logging.debug(f"[{self.name}] Take snapshot from File to file: {snapshot_filename}")
                         if self.last_recorded_filename=='' or not os.path.isfile(self.last_recorded_filename):
-                            filename = self.stream_url # if there was no any recordings yet, then take snapshot from URL stream
+                            filename = self.cnfg.stream_url # if there was no any recordings yet, then take snapshot from URL stream
                         else:
                             filename = self.last_recorded_filename
-                        process = self.shell_execute(self.snapshot_cmd.format(
+                        process = self.shell_execute(self.cnfg.snapshot_cmd.format(
                                 snapshot_filename = snapshot_filename,
                                 last_recorded_filename = filename
                                 ),
@@ -137,44 +113,44 @@ class vr_thread(Thread):
                             )
                         self.last_snapshot = snapshot_filename
                     else:                     
-                        logging.debug(f"[{self.name}] Take snapshot from URL to file: {self.snapshot_filename}")
-                        process = self.shell_execute(self.snapshot_cmd.format(
-                                snapshot_filename=self.snapshot_filename.format(name=self.name),
+                        logging.debug(f"[{self.name}] Take snapshot from URL to file: {self.cnfg.snapshot_filename}")
+                        process = self.shell_execute(self.cnfg.snapshot_cmd.format(
+                                snapshot_filename=self.cnfg.snapshot_filename.format(name=self.name),
                                 # additionally provide all possible variables for future use (TODO: it is better to rewrite this in more pythonic way)
                                 filename="{filename}",
-                                ip=self.ip,
+                                ip=self.cnfg.ip,
                                 stream_url="{stream_url}",
-                                record_time=self.record_time,
+                                record_time=self.cnfg.record_time,
                                 storage_path=path,
                                 name=self.name,
                                 datetime=datetime.now()
                                 ),
                                 filename = ''
                             )
-                    self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':'snapshot'}))
+                    self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':'snapshot'}))
                 # run cmd before start
-                if self.cmd_before!=None and self.cmd_before!='':
-                    process = self.shell_execute(self.cmd_before, filename_new)
+                if self.cnfg.cmd_before!=None and self.cnfg.cmd_before!='':
+                    process = self.shell_execute(self.cnfg.cmd_before, filename_new)
                 # run cmd
-                if (not self._stop_event.isSet()) and self.cmd!=None and self.cmd!='':
-                    process = self.shell_execute(self.cmd, filename_new)
+                if (not self._stop_event.isSet()) and self.cnfg.cmd!=None and self.cnfg.cmd!='':
+                    process = self.shell_execute(self.cnfg.cmd, filename_new)
                     self.state_msg = 'started'
-                    self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg }))
+                    self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg }))
                     start_time = time.time()
                     try:
-                        process.wait(self.record_time)
+                        process.wait(self.cnfg.record_time)
                     except subprocess.TimeoutExpired:
-                        logging.debug(f'[{self.name}] process.wait TimeoutExpired {self.record_time}')
+                        logging.debug(f'[{self.name}] process.wait TimeoutExpired {self.cnfg.record_time}')
                     duration = time.time() - start_time
                     # detect if process run too fast (unsuccessful start)
-                    if duration<self.start_error_threshold:
+                    if duration<self.cnfg.start_error_threshold:
                         self.err_cnt += 1
                         logging.debug(f"[{self.name}] Probably can't start recording. Finished in {duration:.2f} sec (attempt {self.err_cnt})")
-                        if (self.err_cnt % self.start_error_atempt_cnt)==0:
-                            logging.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.start_error_sleep} sec')
+                        if (self.err_cnt % self.cnfg.start_error_atempt_cnt)==0:
+                            logging.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.cnfg.start_error_sleep} sec')
                             self.state_msg = 'error'
                             self.mqtt_status()
-                            self._stop_event.wait(self.start_error_sleep)
+                            self._stop_event.wait(self.cnfg.start_error_sleep)
                     else:
                         self.err_cnt = 0
                         logging.debug(f'[{self.name}] process execution finished in {duration:.2f} sec')
@@ -183,10 +159,10 @@ class vr_thread(Thread):
                     if self.state_msg != 'error':
                         self.last_recorded_filename = filename_new
                     self.state_msg = 'restarting'
-                    self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name),json.dumps({'status':self.state_msg}))
+                    self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg}))
                 # run cmd after finishing
-                if self.cmd_after!=None and self.cmd_after!='':
-                    process = self.shell_execute(self.cmd_after, path)
+                if self.cnfg.cmd_after!=None and self.cnfg.cmd_after!='':
+                    process = self.shell_execute(self.cnfg.cmd_after, path)
                 i += 1
                 logging.debug(f'[{self.name}] Running thread, iteration #{i}')
             else:

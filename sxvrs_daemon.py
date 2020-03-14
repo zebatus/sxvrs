@@ -20,13 +20,13 @@ __status__      = "Production"
 
 
 import os, sys, logging, logging.config
-import yaml
 import json
 import time
 from datetime import datetime
 import paho.mqtt.client as mqtt
 
 from sxvrs_instanse import vr_create
+from cls.config_reader import config_reader
 
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
@@ -37,25 +37,7 @@ vr_list = []
 logger = logging.getLogger(script_name)
 
 # Load configuration files
-try:
-    with open(os.path.join('cnfg' ,script_name + '.yaml')) as yaml_data_file:
-        txt_data = yaml_data_file.read()     
-        cnfg = yaml.load(txt_data, Loader=yaml.FullLoader)
-except:
-    logger.exception('Exception in reading config from YAML')
-    raise
-
-# setup logger from yaml config file
-logging.config.dictConfig(cnfg['logger'])
-
-mqtt_name = cnfg['mqtt'].get('name', 'sxvrs_daemon')
-mqtt_server_host = cnfg['mqtt'].get('server_ip','127.0.0.1')
-mqtt_server_port = cnfg['mqtt'].get('server_port', 1883)
-mqtt_server_keepalive = cnfg['mqtt'].get('server_keepalive',60)
-mqtt_login = cnfg['mqtt'].get('login', None)
-mqtt_pwd = cnfg['mqtt'].get('pwd', None)
-mqtt_topic_publish_tmpl = cnfg['mqtt'].get('topic_publish', 'sxvrs/clients/{source_name}')
-mqtt_topic_subscribe_tmpl = cnfg['mqtt'].get('topic_subscribe', 'sxvrs/daemon/{source_name}')
+cnfg = config_reader(os.path.join('cnfg' ,script_name + '.yaml'))
 
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):
@@ -72,9 +54,9 @@ def on_mqtt_message(client, userdata, message):
             names = []
             for vr in vr_list:
                 names.append(vr.name)
-            mqtt_client.publish(mqtt_topic_publish_tmpl.format(source_name='list'),            
+            mqtt_client.publish(cnfg.mqtt_topic_daemon_publish.format(source_name='list'),            
                         json.dumps(names))
-            logger.debug(f"MQTT publish: {mqtt_topic_publish_tmpl.format(source_name='list')} [{names}]")
+            logger.debug(f"MQTT publish: {cnfg.mqtt_topic_daemon_publish.format(source_name='list')} [{names}]")
         elif message.topic.lower().endswith("/daemon"):
             if payload.get('cmd').lower()=='restart':
                 try:
@@ -110,23 +92,23 @@ def on_mqtt_connect(client, userdata, flags, rc):
 
 # setup MQTT connection
 try:
-    mqtt_client = mqtt.Client(mqtt_name) #create new instance
+    mqtt_client = mqtt.Client(cnfg.mqtt_name) #create new instance
     mqtt_client.is_connected = False
     mqtt_client.connection_rc = 3
     mqtt_client.enable_logger(logger)
     mqtt_client.on_message=on_mqtt_message #attach function to callback
     mqtt_client.on_connect=on_mqtt_connect #attach function to callback
     #try to connect to broker in a loop, until server becomes available
-    logger.debug(f"host={mqtt_server_host}, port={mqtt_server_port}, keepalive={mqtt_server_keepalive}")
+    logger.debug(f"host={cnfg.mqtt_server_host}, port={cnfg.mqtt_server_port}, keepalive={cnfg.mqtt_server_keepalive}")
     mqtt_client.loop_start()
-    if mqtt_login!=None: 
-        mqtt_client.username_pw_set(mqtt_login, mqtt_pwd)
+    if cnfg.mqtt_login!=None: 
+        mqtt_client.username_pw_set(cnfg.mqtt_login, cnfg.mqtt_pwd)
     while mqtt_client.connection_rc==3:
         try:
             logger.info(f"Try to connect to MQTT Server..")                
-            mqtt_client.connect(mqtt_server_host, 
-                port=mqtt_server_port,
-                keepalive=mqtt_server_keepalive
+            mqtt_client.connect(cnfg.mqtt_server_host, 
+                port=cnfg.mqtt_server_port,
+                keepalive=cnfg.mqtt_server_keepalive
                 ) 
             while not mqtt_client.is_connected: # blocking code untill connection
                 time.sleep(1)                
@@ -135,19 +117,19 @@ try:
             wait = 1
             logger.info(f"Server is offline. Wait {wait} sec before retry")
             time.sleep(wait) # if server is not available, then wait for it
-    logger.info(f"Connected to MQTT: {mqtt_server_host}")
-    mqtt_client.subscribe(cnfg['mqtt']['topic_subscribe'].format(source_name='#'))  
-    logger.debug(f"MQTT subscribe: {cnfg['mqtt']['topic_subscribe'].format(source_name='#')}")
+    logger.info(f"Connected to MQTT: {cnfg.mqtt_server_host}")
+    mqtt_client.subscribe(cnfg.mqtt_topic_daemon_subscribe.format(source_name='#'))  
+    logger.debug(f"MQTT subscribe: {cnfg.mqtt_topic_daemon_subscribe.format(source_name='#')}")
 except :
-    logger.exception(f"Can't connect to MQTT broker at address: {mqtt_server_host}:{mqtt_server_port}")
+    logger.exception(f"Can't connect to MQTT broker at address: {cnfg.mqtt_server_host}:{cnfg.mqtt_server_port}")
     stored_exception=sys.exc_info()    
 
 if stored_exception==None:
     logger.info(f'! Script started: "{script_name}" Press [CTRL+C] to exit')
     # create and start all instances from config
     cnt_instanse = 0
-    for instanse in cnfg['sources']:
-        vr_list.append(vr_create(instanse, cnfg, mqtt_client))
+    for recorder, configuration in cnfg.recorders.items():
+        vr_list.append(vr_create(recorder, configuration, mqtt_client))
         cnt_instanse += 1
 
     # Main loop start
