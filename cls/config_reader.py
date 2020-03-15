@@ -103,6 +103,11 @@ class recorder_configuration():
         self.ffmpeg_buffer_frames = self.combine('ffmpeg_buffer_frames', default=16)
         # How many frames will be scipped between motion detection
         self.frame_skip = self.combine('frame_skip', default=5)
+        # if on RAM disk there will be too many files, then start to increase frame skiping
+        self.throtling_min_mem_size = self.combine('throtling_min_mem_size', default=5)*1024*1024
+        # if total size of files exceeds maximum value, then dissable frame saving to RAM folder
+        self.throtling_max_mem_size = self.combine('throtling_max_mem_size', default=10)*1024*1024
+
 
     def stream_url(self, **kwargs):
         if 'name' not in kwargs:

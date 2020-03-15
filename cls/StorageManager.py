@@ -2,6 +2,7 @@
 #!/usr/bin/env python
 
 import os, logging
+import glob
 try:
     from os import scandir
 except ImportError:
@@ -33,8 +34,7 @@ class StorageManager():
         """function removes old files in Camera folder. This gives ability to write files in neverending loop, when old records are rewritedby new ones"""
         try:            
             max_size = self.storage_max_size*1024*1024*1024
-            logging.debug(f"[{self.name}] Start storage cleanup on path: {self.storage_path} (Max size: {max_size/1024/1024/1024:.2f} GB)")
-            self.file_list = []
+            logging.debug(f"[{self.name}] Start storage cleanup on path: {self.storage_path} (Max size: {max_size/1024/1024/1024:.2f} GB)")            
             self.folder_size(self.storage_path)
             # sort list of files by datetime value (DESC)
             self.file_list = sorted(self.file_list, key=itemgetter('dt'), reverse=True)
@@ -65,17 +65,19 @@ class StorageManager():
         except:
             logging.exception(f"Storage Cleanup Error")
 
-    def folder_size(self, path='.'):
+    def folder_size(self, path='.', file_pattern='*'):
         total = 0
+        self.file_list = []
         for entry in scandir(path):
             if entry.is_file(follow_symlinks=False):
-                total += entry.stat().st_size
-                row = {
-                            'file': entry.path,
-                            'size': entry.stat().st_size,
-                            'dt': entry.stat().st_mtime, # have to use last modification time because of Linux: there is no easy way to get correct creation time value
-                         }
-                self.file_list.append(row)
+                if glob.fnmatch.fnmatch(entry.name, file_pattern):
+                    total += entry.stat().st_size
+                    row = {
+                                'file': entry.path,
+                                'size': entry.stat().st_size,
+                                'dt': entry.stat().st_mtime, # have to use last modification time because of Linux: there is no easy way to get correct creation time value
+                            }
+                    self.file_list.append(row)
             elif entry.is_dir(follow_symlinks=False):
                 total += self.folder_size(entry.path)
         return total

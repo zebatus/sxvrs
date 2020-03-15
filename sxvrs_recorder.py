@@ -92,13 +92,24 @@ cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=frame_s
 logging.debug(f"Execute process to write frames: {cmd_ffmpeg_write}")
 ffmpeg_write = Popen(cmd_ffmpeg_write, shell=True, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 i = 0
+throtling = 0
 while True:
     frame_bytes = ffmpeg_read.stdout.read(frame_size)
     frame_np = (np.frombuffer(frame_bytes, np.uint8).reshape(frame_shape)) 
-    if i % cnfg.frame_skip == 0:
-        # save frame to snapshot file
-        temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path)
-        cv2.imwrite(f'{temp_frame_file}.bmp', frame_np)
+    if i % (cnfg.frame_skip + throtling) == 0:
+        # check for throtling
+        tmp_size = storage.folder_size(ram_storage.storage_path, f'{cnfg.name}_*.bmp')
+        if tmp_size > cnfg.throtling_max_mem_size:
+            logging.warning(f"Can't save frame to RAM folder. There are too many files for recorder: {cnfg.name}")
+        elif tmp_size > cnfg.throtling_min_mem_size:
+            throtling += throtling + 1
+            logging.warning(f"Start frame throtling ({throtling}) for recorder: {cnfg.name}")
+        else:
+            throtling = 0
+        if tmp_size < cnfg.throtling_max_mem_size:
+            # save frame into RAM snapshot file
+            temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path)
+            cv2.imwrite(f'{temp_frame_file}.bmp', frame_np)
     # save frame to video file
     ffmpeg_write.stdin.write(frame_np.tostring())
     dt_end = datetime.now()
