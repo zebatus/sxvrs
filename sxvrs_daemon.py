@@ -27,6 +27,7 @@ import paho.mqtt.client as mqtt
 
 from sxvrs_thread import vr_create
 from cls.config_reader import config_reader
+from cls.RAM_Storage import RAM_Storage
 
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
@@ -39,16 +40,15 @@ logger = logging.getLogger(script_name)
 # Load configuration files
 cnfg = config_reader(os.path.join('cnfg' ,'sxvrs.yaml'))
 
+# Mount RAM storage disk
+ram_storage = RAM_Storage(cnfg)
+
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):
     """Provides reaction on all events received from MQTT broker"""
     try:
         payload = ''
         if len(message.payload)>0:
-            #logger.debug("MQTT received " + str(message.payload.decode("utf-8")))
-            #logger.debug("MQTT topic=" + message.topic)
-            #logger.debug("MQTT qos=" + str(message.qos))
-            #logger.debug("MQTT retain flag=" + str(message.retain))
             payload = json.loads(str(message.payload.decode("utf-8")))
         if message.topic.lower().endswith("/list"):
             names = []
