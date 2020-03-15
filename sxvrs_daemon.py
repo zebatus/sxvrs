@@ -13,10 +13,10 @@ Dependencies:
 __author__      = "Rustem Sharipov"
 __copyright__   = "Copyright 2019"
 __license__     = "GPL"
-__version__     = "1.0.1"
+__version__     = "0.2.0"
 __maintainer__  = "Rustem Sharipov"
 __email__       = "zebatus@gmail.com"
-__status__      = "Production"
+__status__      = "Development"
 
 
 import os, sys, logging, logging.config
@@ -37,7 +37,7 @@ vr_list = []
 logger = logging.getLogger(script_name)
 
 # Load configuration files
-cnfg = config_reader(os.path.join('cnfg' ,script_name + '.yaml'))
+cnfg = config_reader(os.path.join('cnfg' ,'sxvrs.yaml'))
 
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):

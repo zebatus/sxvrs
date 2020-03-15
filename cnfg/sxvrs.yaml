@@ -16,11 +16,9 @@ global:
   storage_max_size: 10 # GBytes
   storage_path: storage/{name}/{datetime:%Y-%m-%d}
   filename: "{storage_path}/{name}_{datetime:%Y%m%d_%H%M%S}.ts"
-  cmd_before:
-  cmd:
-  cmd_after:
+  cmd_ffmpeg_read: "ffmpeg -hide_banner -nostdin -nostats -fflags nobuffer -flags low_delay -fflags +genpts+discardcorrupt -y -i {stream_url} -f rawvideo -pix_fmt rgb24 pipe:"
+  cmd_ffmpeg_write: "ffmpeg -hide_banner -nostdin -nostats -y -f rawvideo -vcodec rawvideo -s {width}x{height} -pix_fmt rgb{pixbytes} -r {pixbytes} -i - -an -vcodec mpeg4 {filename}"
   snapshot_filename: storage/{name}/snapshot.jpeg
-  snapshot_cmd: ffmpeg -hide_banner -sseof 2 -i "{last_recorded_filename}" -y -f image2 -qscale 0 -frames 1 "{snapshot_filename}"
   start_error_atempt_cnt: 10 # If process will not able to start for this number attempts, then it will go to sleep
   start_error_threshold: 10 # Minimum number of seconds, to understand that process is started normally
   start_error_sleep: 600 # Number of seconds to sleep on error
@@ -31,8 +29,7 @@ recorders:
     ip: 192.168.1.10
     storage_max_size: 1 #GB
     stream_url: rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov
-    #cmd: "\"extra/ffmpeg64/bin/ffmpeg.exe\" -hide_banner -nostdin -nostats -fflags +igndts -y -i \"{stream_url}\" -c:v copy -t {record_time} -copytb 1 \"{filename}\""
-    cmd: dummy_cmd
+
 
 logger:
   version: 1
