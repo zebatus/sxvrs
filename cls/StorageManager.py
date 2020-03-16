@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 
 import os, logging
@@ -81,3 +80,17 @@ class StorageManager():
             elif entry.is_dir(follow_symlinks=False):
                 total += self.folder_size(entry.path)
         return total
+
+
+    def get_file_list(self, template):
+        # Get list of files matching to template
+        filelist = sorted(glob.glob(template, recursive=True), key=os.path.getmtime)
+        return filelist
+
+    def get_first_file(self, template):
+        # Get list of files matching to template
+        filelist = sorted(glob.glob(template, recursive=True), key=os.path.getmtime)
+        if len(filelist)>0:
+            return filelist[0]
+        else:
+            return None

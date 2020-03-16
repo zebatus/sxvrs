@@ -19,3 +19,88 @@ __version__     = "0.2.0"
 __maintainer__  = "Rustem Sharipov"
 __email__       = "zebatus@gmail.com"
 __status__      = "Development"
+
+import os, sys, logging, logging.config
+from subprocess import Popen, PIPE, STDOUT
+import yaml
+import json
+import time
+from datetime import datetime
+import argparse
+import shutil
+from threading import Thread
+
+from cls.config_reader import config_reader
+from cls.StorageManager import StorageManager
+from cls.RAM_Storage import RAM_Storage
+from cls.MotionDetector import MotionDetector
+
+# Get command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('-n','--name', help='Name of the recorder instance', required=True)
+parser.add_argument('-fw','--frame_width', help='The width of the video frames in source stream', required=False)
+parser.add_argument('-fh','--frame_height', help='The height of the video frames in source stream', required=False)
+parser.add_argument('-fd','--frame_dim', help='The number of dimensions of the video frames in source stream. (By default = 3)', required=False, default=3)
+#parser.add_argument('-','--', help='', default='default', required=False)
+args = parser.parse_args()
+_name = args.name
+try:
+    _frame_width = int(args.frame_width)
+    _frame_height = int(args.frame_height)
+    _frame_dim = int(args.frame_dim)
+except:
+    _frame_width = None
+    _frame_height = None
+    _frame_dim = 3
+
+# Get running script name
+script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
+app_label = script_name + f'_{datetime.now():%H%M}'
+
+logger = logging.getLogger(_name)
+dt_start = datetime.now()
+logging.debug(f"> Start on: '{dt_start}'")
+
+# Load configuration files
+cnfg_daemon = config_reader(os.path.join('cnfg' ,'sxvrs.yaml'))
+if _name in cnfg_daemon.recorders:
+    cnfg = cnfg_daemon.recorders[_name]
+else:
+    msg = f"Recorder '{_name}' not found in config"
+    logging.error(msg)
+    raise ValueError(msg)
+
+# Mount RAM storage disk
+ram_storage = RAM_Storage(cnfg_daemon)
+
+# Create storage manager
+storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size)
+
+# Create MotionDetector
+motion_detector = MotionDetector(cnfg)
+
+while True:
+    try:
+        filename = storage.get_first_file(f"{ram_storage.storage_path}/{_name}_*.rec")
+        filename_wch = f"{filename[:-4]}.wch"
+        os.rename(filename, filename_wch)
+        is_motion = motion_detector.detect(filename_wch)
+        if is_motion:
+            os.rename(filename_wch, f"{filename[:-4]}.obj.wait")
+        else:
+            os.remove(filename_wch)
+        # look for all files where object detection is complete
+        obj_none_list = storage.get_file_list(f"{ram_storage.storage_path}/{_name}_*.obj.none")
+        for filename_obj_none in obj_none_list:
+            os.remove(filename_obj_none)
+        obj_found_list = storage.get_file_list(f"{ram_storage.storage_path}/{_name}_*.obj.found")
+        for filename_obj_found in obj_found_list:
+            # Read info file
+            with open(filename_obj_found+'.info') as f:
+                info = json.load(f)
+            # Take actions on image where objects was found 
+            # Remove temporary file
+            os.remove(filename_obj_found+'.info')
+            os.remove(filename_obj_found)
+    except:
+        logging.exception(f"watcher '{_name}'")

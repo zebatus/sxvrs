@@ -31,6 +31,21 @@ global:
   frame_skip: 5 # How many frames will be scipped between motion detection
   throtling_min_mem_size: 5 # [MB] if on RAM disk there will be too many files, then start to increase frame skiping
   throtling_max_mem_size: 10 # [MB] if total size of files exceeds maximum value, then dissable frame saving to RAM folder
+  motion_detector:    
+    max_image_width: 400 # If image bigger in width, it will be resized to this size. Default value is 300
+    max_image_height: 300 # If image bigger in width, it will be resized to this size. Default value is 300
+    # bg_frame_count: 5 # number of frames to remember for the background (selected randomly)
+    # motion_detector_threshold: 15 # threshold for binarizing image difference in motion detector
+    # If defined <contour_detection> then it will try to detect motion by detecting contours inside the frame (slightly cpu expensive operation)
+    contour_detection:
+      min_area: 0.3% # to trigger motion event, motion contour area must have minimum size
+      max_area: 50% # if changes are too big (i.e. all image is changed) then ignore it
+      max_count: 15 # if there are too many counturs, than there is an interference (such as rain, snow etc..)
+    detect_by_diff_threshold: 1.5 # if <contour_detection> is not enabled, then trigger detect event by difference threshold
+    min_frames_changes: 3 # min_frames_changes: 4 - how many frames must be changed, before triggering for the montion start
+    max_frames_static: 2 # max_frames_static: 2 - how many frames must be static, before assume that there is no motion anymore
+    #filename_debug:
+
 
 recorders:
   camera_1: #Source name

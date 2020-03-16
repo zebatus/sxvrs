@@ -98,7 +98,7 @@ while True:
     frame_np = (np.frombuffer(frame_bytes, np.uint8).reshape(frame_shape)) 
     if i % (cnfg.frame_skip + throtling) == 0:
         # check for throtling
-        tmp_size = storage.folder_size(ram_storage.storage_path, f'{cnfg.name}_*.bmp')
+        tmp_size = storage.folder_size(ram_storage.storage_path, f'{cnfg.name}_*')
         if tmp_size > cnfg.throtling_max_mem_size:
             logging.warning(f"Can't save frame to RAM folder. There are too many files for recorder: {cnfg.name}")
         elif tmp_size > cnfg.throtling_min_mem_size:
@@ -110,6 +110,7 @@ while True:
             # save frame into RAM snapshot file
             temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path)
             cv2.imwrite(f'{temp_frame_file}.bmp', frame_np)
+            os.rename(f'{temp_frame_file}.bmp', f'{temp_frame_file}.rec')
     # save frame to video file
     ffmpeg_write.stdin.write(frame_np.tostring())
     dt_end = datetime.now()

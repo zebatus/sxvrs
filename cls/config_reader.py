@@ -56,15 +56,24 @@ class config_reader():
 class recorder_configuration():
     """ Combines global and local parameter for given redcorder record
     """
-    def combine(self, param, default=None):  
+    def combine(self, param, default=None, group=None):  
         """Function read configuration param from YAML returning local or global value"""
-        if param in self.data['recorders'][self.name]:
-            return self.data['recorders'][self.name][param]
-        else:
-            if param in self.data['global']:
-                return self.data['global'][param]
+        if group is None:
+            if param in self.data['recorders'][self.name]:
+                return self.data['recorders'][self.name][param]
             else:
-                return default
+                if param in self.data['global']:
+                    return self.data['global'][param]
+                else:
+                    return default
+        else:
+            if param in self.data['recorders'][self.name][group]:
+                return self.data['recorders'][self.name][group][param]
+            else:
+                if param in self.data['global'][group]:
+                    return self.data['global'][group][param]
+                else:
+                    return default
     def __init__(self, cnfg, name):
         self.data = cnfg
         self.mqtt_topic_recorder_publish = cnfg['mqtt'].get('topic_publish', 'sxvrs/clients/{source_name}')
@@ -107,7 +116,41 @@ class recorder_configuration():
         self.throtling_min_mem_size = self.combine('throtling_min_mem_size', default=5)*1024*1024
         # if total size of files exceeds maximum value, then dissable frame saving to RAM folder
         self.throtling_max_mem_size = self.combine('throtling_max_mem_size', default=10)*1024*1024
+        ### watcher params ###
+        # before motion detection, we can resize image to reduce calculations
+        self.motion_detector_max_image_height = self.combine('max_image_height', group='motion_detector', default=300)
+        self.motion_detector_max_image_width = self.combine('max_image_width', group='motion_detector', default=300)
+        # number of frames to remember for the background (selected randomly)
+        self.motion_detector_bg_frame_count = self.combine('bg_frame_count', group='motion_detector', default=5)
+        # threshold for binarizing image difference in motion detector
+        self.motion_detector_threshold = self.combine('motion_detector_threshold', group='motion_detector', default=15)
+        # If defined <contour_detection> then it will try to detect motion by detecting contours inside the frame (slightly cpu expensive operation)
+        _motion_contour_detection = self.combine('motion_detector', default=[])  
+        self.is_motion_contour_detection = 'contour_detection' in _motion_contour_detection
+        if self.is_motion_contour_detection:
+            # to trigger motion event, motion contour area must have minimum size
+            self.min_area = _motion_contour_detection.get('min_area', default="0.5%")
+            # if changes are too big (i.e. all image is changed) then ignore it
+            self.max_area = _motion_contour_detection.get('max_area', default="50%")
+            # if there are too many contours, than there is an interference (such as rain, snow etc..)
+            self.motion_contour_max_count = _motion_contour_detection.get('max_count', default = '30')
+        # if <contour_detection> is not enabled, then trigger detect event by difference threshold
+        self.detect_by_diff_threshold = self.combine('detect_by_diff_threshold', group='motion_detector', default=1.5)
+        # min_frames_changes: 4 - how many frames must be changed, before triggering for the montion start
+        self.motion_min_frames_changes = self.combine('min_frames_changes', group='motion_detector', default=5)
+        # max_frames_static: 2 - how many frames must be static, before assume that there is no motion anymore
+        self.motion_max_frames_static = self.combine('max_frames_static', group='motion_detector', default=5)
+        # if set debug filename, then write snapshots there
+        self._filename_debug = self.combine('filename_debug', group='motion_detector')
 
+    def filename_debug(self, **kwargs):
+        if 'name' not in kwargs:
+            kwargs['name'] = self.name
+        if 'datetime' not in kwargs:
+            kwargs['datetime'] = datetime.now()
+        if 'storage_path' not in kwargs:
+            kwargs['storage_path'] = self.storage_path()
+        return self._filename_debug.format(**kwargs)
 
     def stream_url(self, **kwargs):
         if 'name' not in kwargs:
