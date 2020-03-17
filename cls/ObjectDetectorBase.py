@@ -28,6 +28,7 @@ class ObjectDetectorBase():
         case_sensitive = True
         event_handler = PatternMatchingEventHandler(patterns, ignore_patterns, ignore_directories, case_sensitive)
         event_handler.on_created = self.on_file_created
+        event_handler.on_moved = self.on_file_created        
         self.observer = Observer()
         self.observer.schedule(event_handler, '')
 
