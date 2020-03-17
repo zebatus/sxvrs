@@ -45,6 +45,18 @@ class config_reader():
         self.recorders = []
         for recorder in cnfg['recorders']:
             self.recorders[recorder] = recorder_configuration(cnfg, recorder)
+        
+        # Object Detectors
+        self.is_object_detector_cloud = 'object_detector_cloud' in cnfg
+        if self.is_object_detector_cloud:
+            self.object_detector_cloud_url = cnfg['object_detector_cloud'].get('url') # url of the cloud API
+            self.object_detector_cloud_key = cnfg['object_detector_cloud'].get('key') # obtain your personal key from cloud server
+            self.object_detector_cloud_timeout = cnfg['object_detector_cloud'].get('timeout', default=300) # in seconds
+        self.is_object_detector_local = 'object_detector_local' in cnfg
+        if self.is_object_detector_local:
+            self.object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', default='model')
+            self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', default='not_defined')
+            self.object_detector_local_gpu = cnfg['object_detector_local'].get('timeout', default=0) # 0 means dissable GPU
     
     @property
     def temp_storage_cmd_mount(self):

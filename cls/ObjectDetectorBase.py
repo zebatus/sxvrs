@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
+# dependency: pip install watchdog
+
 import os, logging
 import glob
-from abc import ABC
+from watchdog.observers import Observer
+from watchdog.events import PatternMatchingEventHandler
 
 from cls.StorageManager import StorageManager
 from cls.RAM_Storage import RAM_Storage
@@ -18,7 +21,23 @@ class ObjectDetectorBase():
         self.ram_storage = RAM_Storage(cnfg)
         # Create storage manager
         self.storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size)
-    
+        # Create wachdog observer for folder monitoring
+        patterns = "*.obj.wait"
+        ignore_patterns = ""
+        ignore_directories = True
+        case_sensitive = True
+        event_handler = PatternMatchingEventHandler(patterns, ignore_patterns, ignore_directories, case_sensitive)
+        event_handler.on_created = self.on_file_created
+        self.observer = Observer()
+        self.observer.schedule(event_handler, '')
+
+    def on_file_created(self, event):
+        logging.debug(f"Watchdog: {event.src_path} has been created!")
+        filename_wait = event.src_path
+        filename_start = f"{filename_wait[:-5]}.start"
+        os.rename(filename_wait, filename_start)
+        self.detect(filename_start)
+
     def detect(self, filename):
         """ Abstract method, must be implementet inside derived classes
         """
@@ -32,12 +51,20 @@ class ObjectDetectorBase():
             filename_start = f"{filename_wait[:-5]}.start"
             os.rename(filename_wait, filename_start)
             self.detect(filename_start)
+    
+    def start(self):
+        self.observer.start()
+
+    def stop(self):
+        self.observer.stop()
+        self.observer.join()
 
 def SelectObjectDetector(cnfg):
     """ This function selects required ObjectDetector based on config value 
     """
-    use_cloud = cnfg['']
-    if use_cloud:
+    if cnfg.is_object_detector_cloud:
         return ObjectDetector_cloud(cnfg)
-    else:
+    elif cnfg.is_object_detector_local:
         return ObjectDetector_local(cnfg)
+    else:
+        logging.warning('Object detection is not defined. Skipping..')

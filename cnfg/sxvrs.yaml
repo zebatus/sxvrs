@@ -12,7 +12,20 @@ temp_storage_path: /dev/shm/sxvrs # folder where RAM disk will be mounted
 temp_storage_size: 128 # Size of the RAM disk in MB
 temp_storage_cmd_mount: mkdir {temp_storage_path}; mount -t tmpfs -o size={temp_storage_size}m tmpfs {temp_storage_path}
 temp_storage_cmd_unmount: umount {path}
-  
+
+# if defined <object_detector_cloud> then object detection will be done on a remote cloud server 
+# (files are encrypted with individual key, and not stored anywere on cloud server, even while processing)
+object_detector_cloud:
+  url: 
+  key:
+  timeout: 3000 # timeout in seconds
+# If cloud server is not defined, then it is possible to use local CPU/GPU (make sure you installed thensorflow, cuda in your running environment)
+object_detector_local:
+  model_path:
+  model_name: faster_rcnn_resnet50_coco_2018_01_28
+  gpu: 0
+
+# configure your recording instances by <global> or individual <recorders> blocks bellow
 global:
   record_autostart: False
   ip: 127.0.0.1

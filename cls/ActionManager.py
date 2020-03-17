@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# dependency: pip install matplotlib
+
 import os, logging
 from subprocess import Popen, PIPE, STDOUT
 import cv2

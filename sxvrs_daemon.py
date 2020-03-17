@@ -28,6 +28,7 @@ import paho.mqtt.client as mqtt
 from sxvrs_thread import vr_create
 from cls.config_reader import config_reader
 from cls.RAM_Storage import RAM_Storage
+from cls.ObjectDetectorBase import SelectObjectDetector
 
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
@@ -42,6 +43,10 @@ cnfg = config_reader(os.path.join('cnfg' ,'sxvrs.yaml'))
 
 # Mount RAM storage disk
 ram_storage = RAM_Storage(cnfg)
+
+# Start Object Detector
+object_detector = SelectObjectDetector(cnfg)
+object_detector.start()
 
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):
@@ -149,6 +154,7 @@ if stored_exception==None:
         logger.debug(f"   stoping instance: {vr.name}")
     mqtt_client.loop_stop()
     mqtt_client.disconnect()
+    object_detector.stop()
     logger.info('# Script terminated')
 
 if stored_exception and stored_exception[0]!=KeyboardInterrupt:
