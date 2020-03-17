@@ -34,6 +34,7 @@ from cls.config_reader import config_reader
 from cls.StorageManager import StorageManager
 from cls.RAM_Storage import RAM_Storage
 from cls.MotionDetector import MotionDetector
+from cls.ActionManager import ActionManager
 
 # Get command line arguments
 parser = argparse.ArgumentParser()
@@ -79,6 +80,9 @@ storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size)
 # Create MotionDetector
 motion_detector = MotionDetector(cnfg)
 
+# Create ActionManager to run actions on files with detected objects
+action_manager = ActionManager(cnfg)
+
 while True:
     try:
         filename = storage.get_first_file(f"{ram_storage.storage_path}/{_name}_*.rec")
@@ -98,7 +102,8 @@ while True:
             # Read info file
             with open(filename_obj_found+'.info') as f:
                 info = json.load(f)
-            # Take actions on image where objects was found 
+            # Take actions on image where objects was found
+            action_manager.run(filename_obj_found, info) 
             # Remove temporary file
             os.remove(filename_obj_found+'.info')
             os.remove(filename_obj_found)

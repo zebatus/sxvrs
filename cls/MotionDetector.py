@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-
 import os, logging
 import cv2
 import matplotlib.path as mplPath
 import numpy as np
 import math
 from random import randrange
+import imutils
 
 class MotionDetector():
     """ Loads frames and compares them for motion detection

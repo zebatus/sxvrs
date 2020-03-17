@@ -45,6 +45,38 @@ global:
     min_frames_changes: 3 # min_frames_changes: 4 - how many frames must be changed, before triggering for the montion start
     max_frames_static: 2 # max_frames_static: 2 - how many frames must be static, before assume that there is no motion anymore
     #filename_debug:
+  actions: 
+    draw_boxes_1:
+      type: painter
+      brush_size: 2
+      jpeg_quality: 90
+      file:
+        source: {filename}
+        target: {filename}
+      area: [[50,150], [200,1050], [1600,1050], [600,150]]    
+    mail_2:
+      type: mail
+      user: sender@gmail.com
+      password: 
+      subject: "Object detected: {recorder_name}"
+      mail_from: {recorder_name}
+      mail_to: receiver@gmail.com
+      objects: 
+        - person
+        - car
+        - bicycle
+        - cat
+        - dog
+        - horse
+        - sheep
+        - cow
+      area: [[50,150], [200,1050], [1600,1050], [600,150]]
+      score: 50 # score: 50 [%]- minimum number of score to trigger the action      
+    #save_3:
+    #  type: copy
+    #  threshold:      
+    #    score: 50 # score [%]- minimum number of score to trigger the action      
+    #    box_moves: 5 # box_move [%]- parameter which captures changes of the detected object. The idea is to not trigger new action, when there is no significant change from previous snapshot
 
 
 recorders:

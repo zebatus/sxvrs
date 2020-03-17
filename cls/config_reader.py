@@ -42,7 +42,7 @@ class config_reader():
         self._temp_storage_cmd_unmount = cnfg.get('temp_storage_cmd_unmount', 'umount {path}')
 
         # set config for each recorder
-        self.recorders = {}
+        self.recorders = []
         for recorder in cnfg['recorders']:
             self.recorders[recorder] = recorder_configuration(cnfg, recorder)
     
@@ -125,9 +125,10 @@ class recorder_configuration():
         # threshold for binarizing image difference in motion detector
         self.motion_detector_threshold = self.combine('motion_detector_threshold', group='motion_detector', default=15)
         # If defined <contour_detection> then it will try to detect motion by detecting contours inside the frame (slightly cpu expensive operation)
-        _motion_contour_detection = self.combine('motion_detector', default=[])  
-        self.is_motion_contour_detection = 'contour_detection' in _motion_contour_detection
+        _motion_detector = self.combine('motion_detector', default=[])  
+        self.is_motion_contour_detection = 'contour_detection' in _motion_detector
         if self.is_motion_contour_detection:
+            _motion_contour_detection = self.combine('contour_detection', group='motion_detector', default=[])
             # to trigger motion event, motion contour area must have minimum size
             self.min_area = _motion_contour_detection.get('min_area', default="0.5%")
             # if changes are too big (i.e. all image is changed) then ignore it
@@ -142,6 +143,10 @@ class recorder_configuration():
         self.motion_max_frames_static = self.combine('max_frames_static', group='motion_detector', default=5)
         # if set debug filename, then write snapshots there
         self._filename_debug = self.combine('filename_debug', group='motion_detector')
+        ### Action block ###
+        self.actions = []
+        for action in self.combine('actions', default=[]):
+            self.actions[action] = action_configuration(cnfg, recorder_name=self.name, action_name=action)        
 
     def filename_debug(self, **kwargs):
         if 'name' not in kwargs:
@@ -226,3 +231,64 @@ class recorder_configuration():
             kwargs['filename'] = self.filename_snapshot()
         return self._cmd_recorder_start.format(**kwargs)
         
+class action_configuration():
+    """ Combines global and local parameter for given action record
+    """
+    def combine(self, param, default=None, group=None):  
+        """Function read configuration param from YAML returning local or global value"""
+        if group is None:
+            if param in self.data['recorders'][self.recorder_name]['actions'][self.name]:
+                return self.data['recorders'][self.recorder_name]['actions'][self.name][param]
+            else:
+                if param in self.data['global']:
+                    return self.data['global'][param]
+                else:
+                    return default
+        else:
+            if param in self.data['recorders'][self.recorder_name]['actions'][self.name][group]:
+                return self.data['recorders'][self.recorder_name]['actions'][self.name][group][param]
+            else:
+                if param in self.data['global'][group]:
+                    return self.data['global'][group][param]
+                else:
+                    return default
+    def __init__(self, cnfg, recorder_name, action_name):
+        self.data = cnfg
+        self.recorder_name = recorder_name
+        self.name = action_name
+        # each action must have type
+        self.type = self.combine('type')
+        # each action can define area. If object inside this area, the action will be triggered
+        self.area = self.combine('area', default = [])
+        # the score of detected objects
+        self.score = self.combine('score', default = 50)
+        # the list of objects
+        self.objects = self.combine('objects', default = [])
+        #   for type = 'draw','copy'
+        self._file_source = self.combine('source', group='file', default='{filename}')
+        self._file_target = self.combine('target', group='file', default='{filename}')
+        #   for type = 'draw'
+        # used for width of the drawing box border
+        self.draw_brush_size = self.combine('brush_size', default = 1)
+        # quality for JPEG compression
+        self.jpeg_quality = self.combine('jpeg_quality', default = 90)
+        #   for type = 'mail'
+        self.user = self.combine('user')
+        self.password = self.combine('password')
+        self.subject = self.combine('subject')
+        self.mail_from = self.combine('mail_from')
+        self.mail_to = self.combine('mail_to')
+
+    def file_source(self, **kwargs):
+        if 'recorder_name' not in kwargs:
+            kwargs['name'] = self.recorder_name
+        if 'datetime' not in kwargs:
+            kwargs['datetime'] = datetime.now()
+        return self._file_source.format(**kwargs)
+
+    def file_target(self, **kwargs):
+        if 'recorder_name' not in kwargs:
+            kwargs['name'] = self.recorder_name
+        if 'datetime' not in kwargs:
+            kwargs['datetime'] = datetime.now()
+        return self._file_target.format(**kwargs)        
