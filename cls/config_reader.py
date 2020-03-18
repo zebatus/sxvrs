@@ -54,7 +54,7 @@ class config_reader():
             self.object_detector_cloud_timeout = cnfg['object_detector_cloud'].get('timeout', default=300) # in seconds
         self.is_object_detector_local = 'object_detector_local' in cnfg
         if self.is_object_detector_local:
-            self.object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', default='model')
+            self._object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', default='models/{model_name}/frozen_inference_graph.pb')
             self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', default='not_defined')
             self.object_detector_local_gpu = cnfg['object_detector_local'].get('timeout', default=0) # 0 means dissable GPU
     
@@ -64,6 +64,9 @@ class config_reader():
     @property
     def temp_storage_cmd_unmount(self):
         return self._temp_storage_cmd_unmount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)
+    @property
+    def object_detector_local_model_filename(self):
+        return self._object_detector_local_model_path.format(model_name=self.object_detector_local_model_name)
 
 class recorder_configuration():
     """ Combines global and local parameter for given redcorder record
