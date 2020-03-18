@@ -4,13 +4,22 @@ import yaml
 import logging, logging.config
 from datetime import datetime
 
+def dict_templ_replace(dict, **kwargs):
+    """ Function runs thrue dictionary keys and replace template values
+    """
+    for key, value in dict.items():
+        if value and isinstance(value, dict):
+            dict[key] = dict_templ_replace(value, **kwargs)
+        else:
+            dict[key] = dict[key].format(**kwargs)
+
 class config_reader():
     """     The aim of this class to read config file
     - combine global and local recorder configs
     - set default values if there key is ommited in config file
     - can be used both in main daemon process and child recorders
     """
-    def __init__(self, filename, name=None):
+    def __init__(self, filename, name_daemon=None, name_http=None, log_filename='sxvrs'):
         """ Load configuration file.
         """
         try:
@@ -22,17 +31,21 @@ class config_reader():
             raise  
         self.data = cnfg
         # setup logger from yaml config file
+        cnfg['logger'] = dict_templ_replace(cnfg['logger'], log_filename=log_filename)
         logging.config.dictConfig(cnfg['logger'])          
-        if name is None:
-            name = 'sxvrs_daemon'
-        self.mqtt_name = cnfg['mqtt'].get('name', name)
+        name_daemon = 'sxvrs_daemon' if name_daemon is None else name_daemon
+        name_http = 'sxvrs_daemon' if name_http is None else name_http
+        self.mqtt_name_daemon = cnfg['mqtt'].get('name_daemon', name_daemon)
+        self.mqtt_name_http = cnfg['mqtt'].get('name_http', name_http)
         self.mqtt_server_host = cnfg['mqtt'].get('server_ip','127.0.0.1')
         self.mqtt_server_port = cnfg['mqtt'].get('server_port', 1883)
         self.mqtt_server_keepalive = cnfg['mqtt'].get('server_keepalive',60)
         self.mqtt_login = cnfg['mqtt'].get('login', None)
         self.mqtt_pwd = cnfg['mqtt'].get('pwd', None)
-        self.mqtt_topic_daemon_publish = cnfg['mqtt'].get('topic_publish', 'sxvrs/clients/{source_name}')
-        self.mqtt_topic_daemon_subscribe = cnfg['mqtt'].get('topic_subscribe', 'sxvrs/daemon/{source_name}')
+        self.mqtt_topic_daemon_publish = cnfg['mqtt'].get('daemon_publish', 'sxvrs/clients/{source_name}')
+        self.mqtt_topic_daemon_subscribe = cnfg['mqtt'].get('daemon_subscribe', 'sxvrs/daemon/{source_name}')
+        self.mqtt_topic_client_publish = cnfg['mqtt'].get('client_publish', 'sxvrs/clients/{source_name}')
+        self.mqtt_topic_client_subscribe = cnfg['mqtt'].get('client_subscribe', 'sxvrs/daemon/{source_name}')
         # temp storage RAM disk
         # folder name where RAM disk will be mounted
         self.temp_storage_path = cnfg.get('temp_storage_path', '/mnt/ramdisk')

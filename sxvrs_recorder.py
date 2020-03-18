@@ -57,7 +57,10 @@ dt_start = datetime.now()
 logging.debug(f"> Start on: '{dt_start}'")
 
 # Load configuration files
-cnfg_daemon = config_reader(os.path.join('cnfg' ,'sxvrs.yaml'))
+cnfg_daemon = config_reader(
+        os.path.join('cnfg' ,'sxvrs.yaml'), 
+        log_filename = f'recorder_{_name}'
+    )
 if _name in cnfg_daemon.recorders:
     cnfg = cnfg_daemon.recorders[_name]
 else:

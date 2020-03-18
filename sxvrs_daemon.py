@@ -40,7 +40,11 @@ vr_list = []
 logger = logging.getLogger(script_name)
 
 # Load configuration files
-cnfg = config_reader(os.path.join('cnfg' ,'sxvrs.yaml'))
+cnfg = config_reader(
+        os.path.join('cnfg' ,'sxvrs.yaml'), 
+        name_daemon = 'sxvrs_daemon',
+        log_filename = 'daemon'
+    )
 
 # Mount RAM storage disk
 ram_storage = RAM_Storage(cnfg)
