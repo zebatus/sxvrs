@@ -35,7 +35,7 @@ class config_reader():
         self.mqtt_topic_daemon_subscribe = cnfg['mqtt'].get('topic_subscribe', 'sxvrs/daemon/{source_name}')
         # temp storage RAM disk
         # folder name where RAM disk will be mounted
-        self.temp_storage_path = cnfg.get('temp_storage_path', '/mnt/ramdisk')
+        self.temp_storage_path = cnfg.get('temp_storage_path', '/dev/shm/sxvrs')
         # Size of the RAM disk in MB
         self.temp_storage_size = cnfg.get('temp_storage_size', 128)
         self._temp_storage_cmd_mount = cnfg.get('temp_storage_cmd_mount', 'mount -t tmpfs -o size={size}m tmpfs {path}')

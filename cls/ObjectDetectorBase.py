@@ -9,8 +9,6 @@ from watchdog.events import PatternMatchingEventHandler
 
 from cls.StorageManager import StorageManager
 from cls.RAM_Storage import RAM_Storage
-from cls.ObjectDetector_cloud import ObjectDetector_cloud
-from cls.ObjectDetector_local import ObjectDetector_local
 
 class ObjectDetectorBase():
     """ Base class for object detection. Must be inherited by <local> and <cloud> versions
@@ -20,17 +18,17 @@ class ObjectDetectorBase():
         # Mount RAM storage disk
         self.ram_storage = RAM_Storage(cnfg)
         # Create storage manager
-        self.storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size)
+        self.storage = StorageManager(cnfg.temp_storage_path, cnfg.temp_storage_size)
         # Create wachdog observer for folder monitoring
         patterns = "*.obj.wait"
-        ignore_patterns = ""
+        ignore_patterns = "*"
         ignore_directories = True
         case_sensitive = True
         event_handler = PatternMatchingEventHandler(patterns, ignore_patterns, ignore_directories, case_sensitive)
         event_handler.on_created = self.on_file_created
         event_handler.on_moved = self.on_file_created        
         self.observer = Observer()
-        self.observer.schedule(event_handler, '')
+        self.observer.schedule(event_handler, f"{self.ram_storage.storage_path}/")
 
     def on_file_created(self, event):
         logging.debug(f"Watchdog: {event.src_path} has been created!")
@@ -60,12 +58,3 @@ class ObjectDetectorBase():
         self.observer.stop()
         self.observer.join()
 
-def SelectObjectDetector(cnfg):
-    """ This function selects required ObjectDetector based on config value 
-    """
-    if cnfg.is_object_detector_cloud:
-        return ObjectDetector_cloud(cnfg)
-    elif cnfg.is_object_detector_local:
-        return ObjectDetector_local(cnfg)
-    else:
-        logging.warning('Object detection is not defined. Skipping..')

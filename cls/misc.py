@@ -3,6 +3,18 @@
 import cv2
 import json
 import subprocess as sp
+from cls.ObjectDetector_cloud import ObjectDetector_cloud
+from cls.ObjectDetector_local import ObjectDetector_local
+
+def SelectObjectDetector(cnfg):
+    """ This function selects required ObjectDetector based on config value 
+    """
+    if cnfg.is_object_detector_cloud:
+        return ObjectDetector_cloud(cnfg)
+    elif cnfg.is_object_detector_local:
+        return ObjectDetector_local(cnfg)
+    else:
+        logging.warning('Object detection is not defined. Skipping..')
 
 def get_frame_shape(source):
     ffprobe_cmd = " ".join([

@@ -28,7 +28,7 @@ import paho.mqtt.client as mqtt
 from sxvrs_thread import vr_create
 from cls.config_reader import config_reader
 from cls.RAM_Storage import RAM_Storage
-from cls.ObjectDetectorBase import SelectObjectDetector
+from cls.misc import SelectObjectDetector
 
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
