@@ -42,7 +42,7 @@ class config_reader():
         self._temp_storage_cmd_unmount = cnfg.get('temp_storage_cmd_unmount', 'umount {path}')
 
         # set config for each recorder
-        self.recorders = []
+        self.recorders = {}
         for recorder in cnfg['recorders']:
             self.recorders[recorder] = recorder_configuration(cnfg, recorder)
         
@@ -51,12 +51,12 @@ class config_reader():
         if self.is_object_detector_cloud:
             self.object_detector_cloud_url = cnfg['object_detector_cloud'].get('url') # url of the cloud API
             self.object_detector_cloud_key = cnfg['object_detector_cloud'].get('key') # obtain your personal key from cloud server
-            self.object_detector_cloud_timeout = cnfg['object_detector_cloud'].get('timeout', default=300) # in seconds
+            self.object_detector_cloud_timeout = cnfg['object_detector_cloud'].get('timeout', 300) # in seconds
         self.is_object_detector_local = 'object_detector_local' in cnfg
         if self.is_object_detector_local:
-            self.object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', default='model')
-            self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', default='not_defined')
-            self.object_detector_local_gpu = cnfg['object_detector_local'].get('timeout', default=0) # 0 means dissable GPU
+            self.object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', 'model')
+            self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', 'not_defined')
+            self.object_detector_local_gpu = cnfg['object_detector_local'].get('timeout', 0) # 0 means dissable GPU
     
     @property
     def temp_storage_cmd_mount(self):
@@ -79,7 +79,7 @@ class recorder_configuration():
                 else:
                     return default
         else:
-            if param in self.data['recorders'][self.name][group]:
+            if group in self.data['recorders'][self.name] and param in self.data['recorders'][self.name][group]:
                 return self.data['recorders'][self.name][group][param]
             else:
                 if param in self.data['global'][group]:
@@ -142,11 +142,11 @@ class recorder_configuration():
         if self.is_motion_contour_detection:
             _motion_contour_detection = self.combine('contour_detection', group='motion_detector', default=[])
             # to trigger motion event, motion contour area must have minimum size
-            self.min_area = _motion_contour_detection.get('min_area', default="0.5%")
+            self.min_area = _motion_contour_detection.get('min_area', "0.5%")
             # if changes are too big (i.e. all image is changed) then ignore it
-            self.max_area = _motion_contour_detection.get('max_area', default="50%")
+            self.max_area = _motion_contour_detection.get('max_area', "50%")
             # if there are too many contours, than there is an interference (such as rain, snow etc..)
-            self.motion_contour_max_count = _motion_contour_detection.get('max_count', default = '30')
+            self.motion_contour_max_count = _motion_contour_detection.get('max_count', '30')
         # if <contour_detection> is not enabled, then trigger detect event by difference threshold
         self.detect_by_diff_threshold = self.combine('detect_by_diff_threshold', group='motion_detector', default=1.5)
         # min_frames_changes: 4 - how many frames must be changed, before triggering for the montion start
@@ -156,9 +156,9 @@ class recorder_configuration():
         # if set debug filename, then write snapshots there
         self._filename_debug = self.combine('filename_debug', group='motion_detector')
         ### Action block ###
-        self.actions = []
+        self.actions = {}
         for action in self.combine('actions', default=[]):
-            self.actions[action] = action_configuration(cnfg, recorder_name=self.name, action_name=action)        
+            self.actions[action] = action_configuration(cnfg, recorder_name=self.name, action_name=action)
 
     def filename_debug(self, **kwargs):
         if 'name' not in kwargs:
@@ -249,19 +249,19 @@ class action_configuration():
     def combine(self, param, default=None, group=None):  
         """Function read configuration param from YAML returning local or global value"""
         if group is None:
-            if param in self.data['recorders'][self.recorder_name]['actions'][self.name]:
+            if 'actions' in self.data['recorders'][self.recorder_name] and param in self.data['recorders'][self.recorder_name]['actions'][self.name]:
                 return self.data['recorders'][self.recorder_name]['actions'][self.name][param]
             else:
-                if param in self.data['global']:
-                    return self.data['global'][param]
+                if param in self.data['global']['actions'][self.name]:
+                    return self.data['global']['actions'][self.name][param]
                 else:
                     return default
         else:
-            if param in self.data['recorders'][self.recorder_name]['actions'][self.name][group]:
+            if 'actions' in self.data['recorders'][self.recorder_name] and param in self.data['recorders'][self.recorder_name]['actions'][self.name][group]:
                 return self.data['recorders'][self.recorder_name]['actions'][self.name][group][param]
             else:
-                if param in self.data['global'][group]:
-                    return self.data['global'][group][param]
+                if group in self.data['global']['actions'][self.name] and param in self.data['global']['actions'][self.name][group]:
+                    return self.data['global']['actions'][self.name][group][param]
                 else:
                     return default
     def __init__(self, cnfg, recorder_name, action_name):
