@@ -53,12 +53,10 @@ class config_reader():
         self.temp_storage_size = cnfg.get('temp_storage_size', 128)
         self._temp_storage_cmd_mount = cnfg.get('temp_storage_cmd_mount', 'mount -t tmpfs -o size={size}m tmpfs {path}')
         self._temp_storage_cmd_unmount = cnfg.get('temp_storage_cmd_unmount', 'umount {path}')
-
         # set config for each recorder
         self.recorders = []
         for recorder in cnfg['recorders']:
-            self.recorders[recorder] = recorder_configuration(cnfg, recorder)
-        
+            self.recorders[recorder] = recorder_configuration(cnfg, recorder)        
         # Object Detectors
         self.is_object_detector_cloud = 'object_detector_cloud' in cnfg
         if self.is_object_detector_cloud:
@@ -70,7 +68,14 @@ class config_reader():
             self._object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', default='models/{model_name}/frozen_inference_graph.pb')
             self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', default='not_defined')
             self.object_detector_local_gpu = cnfg['object_detector_local'].get('timeout', default=0) # 0 means dissable GPU
-    
+        # HTTP Server configs
+        if 'http_server' in cnfg:
+            self.http_server_host = cnfg['http_server'].get('host', '0.0.0.0')
+            self.http_server_port = cnfg['http_server'].get('port', '8282')
+        else
+            self.http_server_host = '0.0.0.0'
+            self.http_server_port = '8282'
+
     @property
     def temp_storage_cmd_mount(self):
         return self._temp_storage_cmd_mount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)

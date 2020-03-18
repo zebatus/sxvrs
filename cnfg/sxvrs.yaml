@@ -10,6 +10,10 @@ mqtt:
   client_publish  : sxvrs/clients/{source_name}
   client_subscribe: sxvrs/daemon/{source_name}
 
+http_server:
+  host:
+  port: 8282
+
 temp_storage_path: /dev/shm/sxvrs # folder where RAM disk will be mounted
 temp_storage_size: 128 # Size of the RAM disk in MB
 temp_storage_cmd_mount: mkdir {temp_storage_path}; mount -t tmpfs -o size={temp_storage_size}m tmpfs {temp_storage_path}
