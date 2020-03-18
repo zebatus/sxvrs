@@ -33,3 +33,6 @@ def get_frame_shape(source):
     frame_shape = frame.shape
     video.release()
     return frame_shape
+
+def check_topic(topic, value):
+    return topic.lower().endswith(f"/{value}")
