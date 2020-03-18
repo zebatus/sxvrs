@@ -27,6 +27,7 @@ import paho.mqtt.client as mqtt
 
 from sxvrs_thread import vr_create
 from cls.config_reader import config_reader
+from cls.misc import check_topic
 from cls.RAM_Storage import RAM_Storage
 from cls.misc import SelectObjectDetector
 
@@ -39,7 +40,11 @@ vr_list = []
 logger = logging.getLogger(script_name)
 
 # Load configuration files
-cnfg = config_reader(os.path.join('cnfg' ,'sxvrs.yaml'))
+cnfg = config_reader(
+        os.path.join('cnfg' ,'sxvrs.yaml'), 
+        name_daemon = 'sxvrs_daemon',
+        log_filename = 'daemon'
+    )
 
 # Mount RAM storage disk
 ram_storage = RAM_Storage(cnfg)
@@ -55,14 +60,18 @@ def on_mqtt_message(client, userdata, message):
         payload = ''
         if len(message.payload)>0:
             payload = json.loads(str(message.payload.decode("utf-8")))
-        if message.topic.lower().endswith("/list"):
+        # topic = list 
+        if check_topic(message.topic, "list"):
             names = []
             for vr in vr_list:
                 names.append(vr.name)
-            mqtt_client.publish(cnfg.mqtt_topic_daemon_publish.format(source_name='list'),            
-                        json.dumps(names))
+            mqtt_client.publish(
+                        cnfg.mqtt_topic_daemon_publish.format(source_name='list'),            
+                        json.dumps(names)
+                        )
             logger.debug(f"MQTT publish: {cnfg.mqtt_topic_daemon_publish.format(source_name='list')} [{names}]")
-        elif message.topic.lower().endswith("/daemon"):
+        # topic = daemon
+        elif check_topic(message.topic, "daemon"):
             if payload.get('cmd').lower()=='restart':
                 try:
                     logging.info("Restart command recieved")
@@ -76,9 +85,10 @@ def on_mqtt_message(client, userdata, message):
                     os.execv(exe, args)
                 except:
                     logger.exception("Can't restart daemon")                
+        # topic = <recorder_name>
         else:
             for vr in vr_list:
-                if message.topic.lower().endswith("/"+vr.name.lower()) and 'cmd' in payload:
+                if check_topic(message.topic, vr.name.lower()):
                     if payload.get('cmd').lower()=='start':
                         vr.record_start()
                     elif payload.get('cmd').lower()=='stop':

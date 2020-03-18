@@ -1,12 +1,18 @@
 mqtt:
   name: sxvrs_daemon
-  topic_publish  : sxvrs/clients/{source_name}
-  topic_subscribe: sxvrs/daemon/{source_name}
   server_ip: 127.0.0.1
   server_port: 1883
   server_keepalive: 60
   login:
   pwd:
+  daemon_publish  : sxvrs/clients/{source_name}
+  daemon_subscribe: sxvrs/daemon/{source_name}
+  client_publish  : sxvrs/clients/{source_name}
+  client_subscribe: sxvrs/daemon/{source_name}
+
+http_server:
+  host:
+  port: 8282
 
 temp_storage_path: /dev/shm/sxvrs # folder where RAM disk will be mounted
 temp_storage_size: 128 # Size of the RAM disk in MB
@@ -117,7 +123,7 @@ logger:
           class: logging.handlers.RotatingFileHandler
           level: INFO
           formatter: simple
-          filename: logs/sxvrs_daemon.log
+          filename: logs/{log_filename}.log
           maxBytes: 10485760 # 10MB
           backupCount: 10
           encoding: utf8
@@ -126,7 +132,7 @@ logger:
           class: logging.handlers.RotatingFileHandler
           level: ERROR
           formatter: simple
-          filename: logs/sxvrs_daemon.err
+          filename: logs/{log_filename}.err
           maxBytes: 10485760 # 10MB
           backupCount: 10
           encoding: utf8

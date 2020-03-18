@@ -25,13 +25,13 @@ class ObjectDetectorBase():
         ignore_directories = True
         case_sensitive = True
         event_handler = PatternMatchingEventHandler(patterns, ignore_patterns, ignore_directories, case_sensitive)
-        event_handler.on_created = self.on_file_created
-        event_handler.on_moved = self.on_file_created        
+        event_handler.on_created = self.on_file_available
+        event_handler.on_moved = self.on_file_available        
         self.observer = Observer()
         self.observer.schedule(event_handler, f"{self.ram_storage.storage_path}/")
 
-    def on_file_created(self, event):
-        logging.debug(f"Watchdog: {event.src_path} has been created!")
+    def on_file_available(self, event):
+        logging.debug(f"Watchdog: Found file {event.src_path}")
         filename_wait = event.src_path
         filename_start = f"{filename_wait[:-5]}.start"
         os.rename(filename_wait, filename_start)
