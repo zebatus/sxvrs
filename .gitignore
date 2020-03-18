@@ -4,5 +4,7 @@ storage/*
 .vscode/*
 extra/*
 env/*
+env36/*
+env38/*
 envw/*
 !.gitkeep 
