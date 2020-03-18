@@ -4,13 +4,22 @@ import yaml
 import logging, logging.config
 from datetime import datetime
 
+def dict_templ_replace(dict, **kwargs):
+    """ Function runs thrue dictionary keys and replace template values
+    """
+    for key, value in dict.items():
+        if value and isinstance(value, dict):
+            dict[key] = dict_templ_replace(value, **kwargs)
+        else:
+            dict[key] = dict[key].format(**kwargs)
+
 class config_reader():
     """     The aim of this class to read config file
     - combine global and local recorder configs
     - set default values if there key is ommited in config file
     - can be used both in main daemon process and child recorders
     """
-    def __init__(self, filename, name=None):
+    def __init__(self, filename, name_daemon=None, name_http=None, log_filename='sxvrs'):
         """ Load configuration file.
         """
         try:
@@ -22,17 +31,21 @@ class config_reader():
             raise  
         self.data = cnfg
         # setup logger from yaml config file
+        cnfg['logger'] = dict_templ_replace(cnfg['logger'], log_filename=log_filename)
         logging.config.dictConfig(cnfg['logger'])          
-        if name is None:
-            name = 'sxvrs_daemon'
-        self.mqtt_name = cnfg['mqtt'].get('name', name)
+        name_daemon = 'sxvrs_daemon' if name_daemon is None else name_daemon
+        name_http = 'sxvrs_daemon' if name_http is None else name_http
+        self.mqtt_name_daemon = cnfg['mqtt'].get('name_daemon', name_daemon)
+        self.mqtt_name_http = cnfg['mqtt'].get('name_http', name_http)
         self.mqtt_server_host = cnfg['mqtt'].get('server_ip','127.0.0.1')
         self.mqtt_server_port = cnfg['mqtt'].get('server_port', 1883)
         self.mqtt_server_keepalive = cnfg['mqtt'].get('server_keepalive',60)
         self.mqtt_login = cnfg['mqtt'].get('login', None)
         self.mqtt_pwd = cnfg['mqtt'].get('pwd', None)
-        self.mqtt_topic_daemon_publish = cnfg['mqtt'].get('topic_publish', 'sxvrs/clients/{source_name}')
-        self.mqtt_topic_daemon_subscribe = cnfg['mqtt'].get('topic_subscribe', 'sxvrs/daemon/{source_name}')
+        self.mqtt_topic_daemon_publish = cnfg['mqtt'].get('daemon_publish', 'sxvrs/clients/{source_name}')
+        self.mqtt_topic_daemon_subscribe = cnfg['mqtt'].get('daemon_subscribe', 'sxvrs/daemon/{source_name}')
+        self.mqtt_topic_client_publish = cnfg['mqtt'].get('client_publish', 'sxvrs/clients/{source_name}')
+        self.mqtt_topic_client_subscribe = cnfg['mqtt'].get('client_subscribe', 'sxvrs/daemon/{source_name}')
         # temp storage RAM disk
         # folder name where RAM disk will be mounted
         self.temp_storage_path = cnfg.get('temp_storage_path', '/dev/shm/sxvrs')
@@ -40,12 +53,10 @@ class config_reader():
         self.temp_storage_size = cnfg.get('temp_storage_size', 128)
         self._temp_storage_cmd_mount = cnfg.get('temp_storage_cmd_mount', 'mount -t tmpfs -o size={size}m tmpfs {path}')
         self._temp_storage_cmd_unmount = cnfg.get('temp_storage_cmd_unmount', 'umount {path}')
-
         # set config for each recorder
         self.recorders = {}
         for recorder in cnfg['recorders']:
-            self.recorders[recorder] = recorder_configuration(cnfg, recorder)
-        
+            self.recorders[recorder] = recorder_configuration(cnfg, recorder)        
         # Object Detectors
         self.is_object_detector_cloud = 'object_detector_cloud' in cnfg
         if self.is_object_detector_cloud:
@@ -54,16 +65,26 @@ class config_reader():
             self.object_detector_cloud_timeout = cnfg['object_detector_cloud'].get('timeout', 300) # in seconds
         self.is_object_detector_local = 'object_detector_local' in cnfg
         if self.is_object_detector_local:
-            self.object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', 'model')
+
+            self._object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', 'models/{model_name}/frozen_inference_graph.pb')
             self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', 'not_defined')
             self.object_detector_local_gpu = cnfg['object_detector_local'].get('timeout', 0) # 0 means dissable GPU
-    
+        # HTTP Server configs
+        if 'http_server' in cnfg:
+            self.http_server_host = cnfg['http_server'].get('host', '0.0.0.0')
+            self.http_server_port = cnfg['http_server'].get('port', '8282')
+        else:
+            self.http_server_host = '0.0.0.0'
+            self.http_server_port = '8282'
     @property
     def temp_storage_cmd_mount(self):
         return self._temp_storage_cmd_mount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)
     @property
     def temp_storage_cmd_unmount(self):
         return self._temp_storage_cmd_unmount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)
+    @property
+    def object_detector_local_model_filename(self):
+        return self._object_detector_local_model_path.format(model_name=self.object_detector_local_model_name)
 
 class recorder_configuration():
     """ Combines global and local parameter for given redcorder record
