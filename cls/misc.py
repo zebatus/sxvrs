@@ -6,6 +6,15 @@ import cv2
 import json
 import subprocess as sp
 
+# Class for VR
+class Recorder():
+    def __init__(self, name):
+        self.name = name
+        self.status = 'None'
+        self.error_cnt = 0 
+        self.latest_file = ''
+        self.snapshot = ''
+        
 def SelectObjectDetector(cnfg):
     """ This function selects required ObjectDetector based on config value 
     """

@@ -21,7 +21,6 @@ import json
 import time
 from datetime import datetime
 import paho.mqtt.client as mqtt
-from sxvrs_recorder import vr_create
 import html
 import io
 import socketserver
@@ -31,8 +30,7 @@ import subprocess
 
 
 from cls.config_reader import config_reader
-from cls.HTTPServer import StartHTTPServer
-from cls.misc import check_topic
+from cls.misc import check_topic, Recorder
 
 # Global variables
 recorders = []
@@ -53,15 +51,6 @@ cnfg = config_reader(
 
 mqtt_topic_pub = cnfg.mqtt_topic_client_publish
 mqtt_topic_sub = cnfg.mqtt_topic_client_subscribe
-
-# Class for VR
-class Recorder():
-    def __init__(self, name):
-        self.name = name
-        self.status = 'None'
-        self.error_cnt = 0 
-        self.latest_file = ''
-        self.snapshot = ''
 
 def mqtt_publish_recorder(recorder, message):
     if isinstance(message, dict):
