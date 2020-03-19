@@ -51,7 +51,8 @@ ram_storage = RAM_Storage(cnfg)
 
 # Start Object Detector
 object_detector = SelectObjectDetector(cnfg)
-object_detector.start()
+if not object_detector is None:
+    object_detector.start()
 
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):

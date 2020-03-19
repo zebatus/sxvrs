@@ -1,19 +1,24 @@
 #!/usr/bin/env python
 
 import logging
+import sys
 import cv2
 import json
 import subprocess as sp
-from cls.ObjectDetector_cloud import ObjectDetector_cloud
-from cls.ObjectDetector_local import ObjectDetector_local
 
 def SelectObjectDetector(cnfg):
     """ This function selects required ObjectDetector based on config value 
     """
     if cnfg.is_object_detector_cloud:
+        from cls.ObjectDetector_cloud import ObjectDetector_cloud
         return ObjectDetector_cloud(cnfg)
     elif cnfg.is_object_detector_local:
-        return ObjectDetector_local(cnfg)
+        if 'tensorflow' in sys.modules:
+            from cls.ObjectDetector_local import ObjectDetector_local
+            return ObjectDetector_local(cnfg)
+        else:
+            logging.error('Tensorflow is not installed. Using Object Detection by local CPU/GPU is not possible')
+            return None
     else:
         logging.warning('Object detection is not defined. Skipping..')
 
