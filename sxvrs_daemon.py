@@ -108,7 +108,7 @@ def on_mqtt_connect(client, userdata, flags, rc):
 
 # setup MQTT connection
 try:
-    mqtt_client = mqtt.Client(cnfg.mqtt_name) #create new instance
+    mqtt_client = mqtt.Client(cnfg.mqtt_name_daemon) #create new instance
     mqtt_client.is_connected = False
     mqtt_client.connection_rc = 3
     mqtt_client.enable_logger(logger)

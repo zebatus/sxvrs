@@ -4,14 +4,16 @@ import yaml
 import logging, logging.config
 from datetime import datetime
 
-def dict_templ_replace(dict, **kwargs):
-    """ Function runs thrue dictionary keys and replace template values
+def dict_templ_replace(dictionary, **kwargs):
+    """ Function runs over dictionary keys and replace template values
     """
-    for key, value in dict.items():
+    for key, value in dictionary.items():
         if value and isinstance(value, dict):
-            dict[key] = dict_templ_replace(value, **kwargs)
+            dictionary[key] = dict_templ_replace(value, **kwargs)
         else:
-            dict[key] = dict[key].format(**kwargs)
+            if isinstance(value, str):
+                dictionary[key] = dictionary[key].format(**kwargs)
+    return dictionary
 
 class config_reader():
     """     The aim of this class to read config file
