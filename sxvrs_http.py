@@ -157,13 +157,13 @@ if stored_exception==None:
         try:
             flask_app.run(
                     host = cnfg.http_server_host, 
-                    port = cnfg.http_server_host, 
+                    port = cnfg.http_server_port, 
                     debug = True
                 )        
             is_started = True
         except OSError as e:
             if e.errno == 98:
-                logging.error(f"Port {cnfg.http_server_host} already in use. Wait 5 sec and retry..")
+                logging.error(f"Port {cnfg.http_server_host}:{cnfg.http_server_port} already in use. Wait 5 sec and retry..")
                 time.sleep(5)
             else:
                 logging.exception("Can't start HTTP Server")

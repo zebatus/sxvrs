@@ -39,7 +39,7 @@ class config_reader():
         name_http = 'sxvrs_daemon' if name_http is None else name_http
         self.mqtt_name_daemon = cnfg['mqtt'].get('name_daemon', name_daemon)
         self.mqtt_name_http = cnfg['mqtt'].get('name_http', name_http)
-        self.mqtt_server_host = cnfg['mqtt'].get('server_ip','127.0.0.1')
+        self.mqtt_server_host = cnfg['mqtt'].get('server_host','127.0.0.1')
         self.mqtt_server_port = cnfg['mqtt'].get('server_port', 1883)
         self.mqtt_server_keepalive = cnfg['mqtt'].get('server_keepalive',60)
         self.mqtt_login = cnfg['mqtt'].get('login', None)

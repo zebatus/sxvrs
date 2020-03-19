@@ -1,7 +1,7 @@
 mqtt:
   name_daemon: sxvrs_daemon
   name_http: sxvrs_http
-  server_ip: 127.0.0.1
+  server_host: 127.0.0.1
   server_port: 1883
   server_keepalive: 60
   login:
@@ -12,7 +12,7 @@ mqtt:
   client_subscribe: sxvrs/daemon/{source_name}
 
 http_server:
-  host:
+  host: 127.0.0.1
   port: 8282
 
 temp_storage_path: /dev/shm/sxvrs # folder where RAM disk will be mounted
