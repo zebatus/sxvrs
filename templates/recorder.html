@@ -7,10 +7,10 @@
     </head>
     <body>
         <div style="width:100%; height:100%; text-align:center">
-            <div style="width:800px; margin: 0 auto;padding:10px">{widget}</div>
+            <div style="width:800px; margin: 0 auto;padding:10px">{% include 'recorder_widget.html' %}</div>
             <diw  class="log_box" style="">
                 <pre>
-{log_box}
+{{ content.log_box }}
                 </pre>
             </diw>
         </div>

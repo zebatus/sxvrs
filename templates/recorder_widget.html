@@ -1,0 +1,13 @@
+<div class="widget" style="width:{{ content.width }}px;">
+    <div class="widget_cap" id="vr_{{ content.name }}">{{ name }}</div>
+    <img class="widget_mark {{ content.blink }}" src="/static/{{ content.state_img }}" />
+    <a class="widget_btn" href="/{{ content.name }}/{{ content.btn_name }}">{{ content.btn_name }}</a>
+    <div><img src="/recorder/{{ content.name }}/snapshot/{{ content.width }}/{{ content.height }}" style="width:100%; height:94%" /></div>
+    <div class="widget_bar">
+        <div style="float:right;" class="{{ content.widget_err }}">{{ content.error_cnt }}</div>
+        <div style="float:right;" class="{{ content.widget_status }}">{{ content.status }}</div>
+        <div class="widget_latest_file">
+            <a href="">{{ content.latest_file }}</a>
+        </div>
+    </div>
+</div>
