@@ -139,7 +139,7 @@ except :
 
 #####    Flask HTTP Server   #####
 from flask import Flask, render_template, redirect, url_for
-app = Flask(__name__, static_url_path='/static', static_folder='/templates/static')
+app = Flask(__name__, static_url_path='/static', static_folder='templates/static', template_folder='templates')
 
 def refresh_recorder_status(recorder=None):
     """This function is for running of refreshment of the status for all cam"""
@@ -187,7 +187,8 @@ def page_logs(name=None, page = None, max_len = None):
         except:
             logger.exception(f'Error in opening logs file: {page}')
             log_box = 'Error loading log file'
-    render_template(os.path.join('templates', 'logs.html'),
+    #render_template(os.path.join('templates', 'logs.html'),
+    return render_template('logs.html',
             charset = charset, 
             title = title,
             list_box = list_box,
@@ -212,14 +213,14 @@ def page_restart(name):
             os.execv(exe, args)
         except:
             logger.exception("Can't restart server")
-    render_template(os.path.join('templates', 'restart.html'), name=name)
+    return render_template('restart.html', name=name)
 
 @app.route('/recorder/<recorder_name>/snapshot/<width>/<height>')
 def recorder_snapshot(recorder_name, width=None, height=None):
     # get snapshot name for the recorder
     filename = cnfg.recorders[recorder_name].filename_snapshot()
     #TODO: need to resize image
-    app.send_static_file(filename)
+    return app.send_static_file(filename)
 
 @app.route('/recorder/<recorder_name>')
 def view_recorder(recorder_name):
@@ -283,10 +284,9 @@ def view_recorder(recorder_name):
 
                 "charset" : enc,
                 "title" : title,
-                "widget" : widget,
                 "log_box" : log_box
             }
-            render_template(os.path.join('templates', 'restart.html'), content=content)
+            return render_template('restart.html', content=content)
 
 
 
