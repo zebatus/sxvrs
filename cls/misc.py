@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 import cv2
 import json
 import subprocess as sp
