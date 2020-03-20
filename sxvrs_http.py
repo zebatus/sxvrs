@@ -32,13 +32,6 @@ import subprocess
 from cls.config_reader import config_reader
 from cls.misc import check_topic, Recorder
 
-# Global variables
-recorders = []
-def get_recorder_by_name(name):
-    for recorder in recorders:
-        if recorder.name == name:
-            return recorder
-
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
 app_label = script_name + f'_{datetime.now():%H%M}'
@@ -53,42 +46,41 @@ cnfg = config_reader(
         log_filename = 'http'
     )
 
+# Global variables
+recorders = {}
+def get_recorder_by_name(name):
+    for recorder_name in recorders:
+        if recorder_name == name:
+            return recorders[recorder_name]
 mqtt_topic_pub = cnfg.mqtt_topic_client_publish
 mqtt_topic_sub = cnfg.mqtt_topic_client_subscribe
 
-def mqtt_publish_recorder(recorder, message):
+def mqtt_publish_recorder(recorder_name, message):
     if isinstance(message, dict):
         message = json.dumps(message)
-    mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder.name), message)
-    logging.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name=recorder.name)} {message}")
+    mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), message)
+    logging.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name=recorder_name)} {message}")
 
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):
     """Provides reaction on all events received from MQTT broker"""
-    global vr_list, mqtt_topic_pub
+    global recorders, mqtt_topic_pub
     try:
         if len(message.payload)>0:
             payload = json.loads(str(message.payload.decode("utf-8")))
             # topic = list
             if check_topic(message.topic, "list"):
                 logger.debug(f"receive list: {payload}")
-                vr_list = []
+                recorders = {}
                 for name in payload:
-                    vr_list.append(Recorder(name))
+                    recorders[name] = Recorder(name)
                     mqtt_client.publish(mqtt_topic_pub.format(source_name=name), json.dumps({'cmd':'status'}))
                     logger.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name=name)} {{'cmd':'status'}}")
             # topic = <recorder_name>
             else:
-                for vr in vr_list:
-                    if check_topic(message.topic, vr.name.lower()):
-                        if 'status' in payload:
-                            vr.status = payload['status']
-                        if 'error_cnt' in payload:
-                            vr.error_cnt = payload['error_cnt']
-                        if 'latest_file' in payload:
-                            vr.latest_file = payload['latest_file']
-                        if 'snapshot' in payload:
-                            vr.snapshot = payload['snapshot']
+                for name in recorders:
+                    if check_topic(message.topic, name.lower()):
+                        recorders[name].update(payload)
     except:
         logger.exception(f'Error on_mqtt_message() topic: {message.topic} msg_len={len(message.payload)}')
 
@@ -138,24 +130,64 @@ except :
 
 
 #####    Flask HTTP Server   #####
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, send_file
 app = Flask(__name__, static_url_path='/static', static_folder='templates/static', template_folder='templates')
 
 def refresh_recorder_status(recorder=None):
     """This function is for running of refreshment of the status for all cam"""
-    global recorders
     if recorder is None:
-        for recorder in recorders:
-            mqtt_publish_recorder(recorder, {'cmd':'status'})
+        for recorder_name in recorders:
+            mqtt_publish_recorder(recorder_name, {'cmd':'status'})
     else:
         mqtt_publish_recorder(None, {'cmd':'status'})
         mqtt_client.publish(mqtt_topic_pub.format(source_name='list'))
         logging.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name='list')}")
 
+def recorder_view_data(recorder, width=None, height=None):
+    """ This function prepares dictionary for displaying recorder
+    """
+    res = {
+        "width": width,
+        "height": height
+    }
+    res["snapshot"] = f'/recorder/{recorder.name}/snapshot'
+    if width>0 and height>0:
+        res["snapshot"] = res["snapshot"] + f"/{width}/{height}"
+    res['title'] = f'Camera: {recorder.name}'
+    res['blink'] = ''
+    if recorder.status == 'stopped':
+        res['btn_name'] = 'Start'
+        res['state_img'] = 'stop.gif'
+        res['widget_status'] = 'widget_status_ok'
+    else:
+        res['btn_name'] = 'Stop'
+        if recorder.status == 'started':
+            res['blink'] = 'blink'
+            res['state_img'] = 'rec.gif'
+            res['widget_status'] = 'widget_status_ok'
+        elif recorder.status in ['snapshot','restarting']:
+            res['state_img'] = 'state.gif'
+            res['widget_status'] = 'widget_status'
+        elif recorder.status == 'error':
+            res['state_img'] = 'err.gif'
+            res['widget_status'] = 'widget_status_err'
+    if recorder.error_cnt>0:
+        res['widget_err'] = 'widget_err' 
+    else:
+        res['widget_err'] = ''
+    res['state_img'] = '/static/' + res['state_img']
+    return res
+
 @app.route('/')
 def page_index():
     refresh_recorder_status()
-    return 'Hello World'
+    recorder_dict_list = []
+    for recorder_name in recorders:
+        recorder_dict_list.append(recorder_view_data(recorders[recorder_name], width=200, height=150))
+    content = {
+        "title": "SXVRS"
+    }
+    return render_template('index.html', content=content, recorders = recorder_dict_list)
 
 @app.route('/logs')
 @app.route('/logs/<name>')
@@ -220,38 +252,15 @@ def recorder_snapshot(recorder_name, width=None, height=None):
     # get snapshot name for the recorder
     filename = cnfg.recorders[recorder_name].filename_snapshot()
     #TODO: need to resize image
-    return app.send_static_file(filename)
+    return send_file(filename)
 
 @app.route('/recorder/<recorder_name>')
 def view_recorder(recorder_name):
         """Returns page for given camera"""
-        width=400
-        height=300
         enc = sys.getfilesystemencoding()
         # get recorder by name
         recorder = get_recorder_by_name(recorder_name)
-        title = f'Camera: {recorder.name}'
-        blink = ''
-        if recorder.status == 'stopped':
-            btn_name = 'Start'
-            state_img = 'stop.gif'
-            widget_status = 'widget_status_ok'
-        else:
-            btn_name = 'Stop'
-            if recorder.status == 'started':
-                blink = 'blink'
-                state_img = 'rec.gif'
-                widget_status = 'widget_status_ok'
-            elif recorder.status in ['snapshot','restarting']:
-                state_img = 'state.gif'
-                widget_status = 'widget_status'
-            elif recorder.status == 'error':
-                state_img = 'err.gif'
-                widget_status = 'widget_status_err'
-        if recorder.error_cnt>0:
-            widget_err = 'widget_err' 
-        else:
-            widget_err = ''
+        recorder_dict = recorder_view_data(recorder, width=400, height=300)
         #show log for selected recorder
         logs_path = os.path.dirname(cnfg.data['logger']['handlers']['info_file_handler']['filename'])
         logs_file = 'sxvrs_daemon.log'
@@ -269,24 +278,11 @@ def view_recorder(recorder_name):
             logger.exception(f'Error in opening logs file: {logs_file}')
             log_box = 'Error loading log file'
             content = {
-                "snapshot" : os.path.join(recorder.snapshot, str(width), str(height)),
-                "width" : width,
-                "height" : height,
-                "latest_file" : os.path.basename(recorder.latest_file),
-                "error_cnt" : recorder.error_cnt,
-                "status" : recorder.status,
-                "name" : recorder.name,
-                "btn_name" : btn_name,
-                "blink" : blink,
-                "state_img" : state_img,
-                "widget_status" : widget_status,
-                "widget_err" : widget_err,
-
                 "charset" : enc,
-                "title" : title,
+                "title" : f"Camera: recorder_name",
                 "log_box" : log_box
             }
-            return render_template('restart.html', content=content)
+            return render_template('restart.html', content=content, recorder=recorder_dict)
 
 
 

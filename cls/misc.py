@@ -6,15 +6,24 @@ import cv2
 import json
 import subprocess as sp
 
-# Class for VR
+# Class for Recorder
 class Recorder():
     def __init__(self, name):
         self.name = name
         self.status = 'None'
         self.error_cnt = 0 
         self.latest_file = ''
-        self.snapshot = ''
-        
+    
+    def update(self, values):
+        """ Function updates recorder values according on dictionary
+        """
+        if 'status' in values:
+            self.status = values['status']
+        if 'error_cnt' in values:
+            self.error_cnt = values['error_cnt']
+        if 'latest_file' in values:
+            self.latest_file = values['latest_file']
+
 def SelectObjectDetector(cnfg):
     """ This function selects required ObjectDetector based on config value 
     """

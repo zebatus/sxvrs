@@ -8,8 +8,8 @@ mqtt:
   pwd:
   daemon_publish  : sxvrs/clients/{source_name}
   daemon_subscribe: sxvrs/daemon/{source_name}
-  client_publish  : sxvrs/clients/{source_name}
-  client_subscribe: sxvrs/daemon/{source_name}
+  client_publish  : sxvrs/daemon/{source_name}
+  client_subscribe: sxvrs/clients/{source_name}
 
 http_server:
   host: 0.0.0.0
