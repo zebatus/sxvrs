@@ -94,7 +94,7 @@ logging.debug(f"Execute process to read frames: {cmd_ffmpeg_read}")
 ffmpeg_read = Popen(cmd_ffmpeg_read, shell=True, stdout = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=frame_shape[0], width=frame_shape[1], pixbytes=frame_shape[2]*8)
 logging.debug(f"Execute process to write frames: {cmd_ffmpeg_write}")
-ffmpeg_write = Popen(cmd_ffmpeg_write, shell=True, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
+ffmpeg_write = Popen(cmd_ffmpeg_write, shell=True, stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 snapshot_taken_time = 0
 i = 0
 throtling = 0
@@ -124,7 +124,7 @@ while True:
     # save frame to video file
     ffmpeg_write.stdin.write(frame_np.tostring())
     dt_end = datetime.now()
-    if (dt_start - dt_start).total_seconds() >= cnfg.record_time:
+    if (dt_end - dt_start).total_seconds() >= cnfg.record_time:
         break
     i += 1
 
