@@ -123,6 +123,8 @@ class recorder_configuration():
         self.record_autostart = self.combine('record_autostart', default=False)
         # the duration of the recording into one file
         self.record_time = self.combine('record_time', default=600)
+        # Take snapshot every <snapshot_time> seconds
+        self.snapshot_time = self.combine('snapshot_time', default=5)
         # maximum storage folder size in GB. If it exceeds, then the oldes files will be removed
         self.storage_max_size = self.combine('storage_max_size', default=10)
         # folder for storing recordings. This is template and can be formated with {name} and {datetime} params

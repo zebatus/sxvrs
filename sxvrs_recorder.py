@@ -25,6 +25,7 @@ import numpy as np
 import cv2
 from subprocess import Popen, PIPE
 from datetime import datetime
+from time import time
 from cls.config_reader import config_reader
 from cls.misc import get_frame_shape
 from cls.StorageManager import StorageManager
@@ -94,14 +95,20 @@ ffmpeg_read = Popen(cmd_ffmpeg_read, shell=True, stdout = PIPE, bufsize=frame_si
 cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=frame_shape[0], width=frame_shape[1], pixbytes=frame_shape[2]*8)
 logging.debug(f"Execute process to write frames: {cmd_ffmpeg_write}")
 ffmpeg_write = Popen(cmd_ffmpeg_write, shell=True, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
+snapshot_taken_time = 0
 i = 0
 throtling = 0
 while True:
     frame_bytes = ffmpeg_read.stdout.read(frame_size)
     frame_np = (np.frombuffer(frame_bytes, np.uint8).reshape(frame_shape)) 
+    # take snapshot
+    if time() - snapshot_taken_time > cnfg.snapshot_time:
+        cv2.imwrite(cnfg.filename_snapshot(), frame_np)
+        snapshot_taken_time = time()
+    # process frame in RAM folder
     if i % (cnfg.frame_skip + throtling) == 0:
         # check for throtling
-        tmp_size = storage.folder_size(ram_storage.storage_path, f'{cnfg.name}_*')
+        tmp_size = storage.get_folder_size(ram_storage.storage_path, f'{cnfg.name}_*')
         if tmp_size > cnfg.throtling_max_mem_size:
             logging.warning(f"Can't save frame to RAM folder. There are too many files for recorder: {cnfg.name}")
         elif tmp_size > cnfg.throtling_min_mem_size:

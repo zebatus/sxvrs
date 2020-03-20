@@ -33,8 +33,10 @@ class StorageManager():
         """function removes old files in Camera folder. This gives ability to write files in neverending loop, when old records are rewritedby new ones"""
         try:            
             max_size = self.storage_max_size*1024*1024*1024
-            logging.debug(f"[{self.name}] Start storage cleanup on path: {self.storage_path} (Max size: {max_size/1024/1024/1024:.2f} GB)")            
-            self.folder_size(self.storage_path)
+            logging.debug(f"Start storage cleanup on path: {self.storage_path} (Max size: {max_size/1024/1024/1024:.2f} GB)")            
+            #self.folder_size = self.get_folder_size(self.storage_path)
+            #if self.folder_size < self.storage_max_size:
+            #    return
             # sort list of files by datetime value (DESC)
             self.file_list = sorted(self.file_list, key=itemgetter('dt'), reverse=True)
             # calculate cumulative size
@@ -64,7 +66,7 @@ class StorageManager():
         except:
             logging.exception(f"Storage Cleanup Error")
 
-    def folder_size(self, path='.', file_pattern='*'):
+    def get_folder_size(self, path='.', file_pattern='*'):
         total = 0
         self.file_list = []
         for entry in scandir(path):

@@ -37,9 +37,10 @@ global:
   record_autostart: False
   ip: 127.0.0.1
   stream_url: "rtsp://{ip}:5544/live0.264"
-  record_time: 30 # Seconds
-  storage_max_size: 10 # GBytes
-  storage_path: storage/{name}
+  record_time: 30 # [seconds]
+  snapshot_time: 5 # [seconds] Take snapshot every <snapshot_time> seconds
+  storage_max_size: 10 # [GBytes]
+  storage_path: storage/{name}  
   filename_temp: "{storage_path}/{name}_{datetime:%H%M%S.%f}"
   filename_snapshot: "{storage_path}/snapshot.jpg"
   filename_video: "{storage_path}/{datetime:%Y-%m-%d}/{name}_{datetime:%Y%m%d_%H%M%S}.mp4"
