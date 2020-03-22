@@ -24,17 +24,18 @@ class config_reader():
     def __init__(self, filename, name_daemon=None, name_http=None, log_filename='sxvrs'):
         """ Load configuration file.
         """
+        self.logger = logging.getLogger(f"config_reader")
         try:
             with open(filename) as yaml_data_file:
                 txt_data = yaml_data_file.read()     
                 cnfg = yaml.load(txt_data, Loader=yaml.FullLoader)
         except:
-            logging.exception('Exception in reading config from YAML')
+            self.logger.exception('Exception in reading config from YAML')
             raise  
         self.data = cnfg
         # setup logger from yaml config file
         cnfg['logger'] = dict_templ_replace(cnfg['logger'], log_filename=log_filename)
-        logging.config.dictConfig(cnfg['logger'])          
+        logging.config.dictConfig(cnfg['logger'])           
         name_daemon = 'sxvrs_daemon' if name_daemon is None else name_daemon
         name_http = 'sxvrs_daemon' if name_http is None else name_http
         self.mqtt_name_daemon = cnfg['mqtt'].get('name_daemon', name_daemon)
@@ -167,9 +168,9 @@ class recorder_configuration():
         if self.is_motion_contour_detection:
             _motion_contour_detection = self.combine('contour_detection', group='motion_detector', default=[])
             # to trigger motion event, motion contour area must have minimum size
-            self.min_area = _motion_contour_detection.get('min_area', "0.5%")
+            self.motion_contour_min_area = _motion_contour_detection.get('min_area', "0.5%")
             # if changes are too big (i.e. all image is changed) then ignore it
-            self.max_area = _motion_contour_detection.get('max_area', "50%")
+            self.motion_contour_max_area = _motion_contour_detection.get('max_area', "50%")
             # if there are too many contours, than there is an interference (such as rain, snow etc..)
             self.motion_contour_max_count = _motion_contour_detection.get('max_count', '30')
         # if <contour_detection> is not enabled, then trigger detect event by difference threshold

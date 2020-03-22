@@ -20,7 +20,7 @@ __maintainer__  = "Rustem Sharipov"
 __email__       = "zebatus@gmail.com"
 __status__      = "Development"
 
-import os, sys, logging, logging.config
+import os, sys, logging
 from subprocess import Popen, PIPE, STDOUT
 import yaml
 import json
@@ -57,21 +57,20 @@ except:
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
 app_label = script_name + f'_{datetime.now():%H%M}'
-
-logger = logging.getLogger(_name)
 dt_start = datetime.now()
-logging.debug(f"> Start on: '{dt_start}'")
 
 # Load configuration files
 cnfg_daemon = config_reader(
         os.path.join('cnfg' ,'sxvrs.yaml'), 
         log_filename = f'recorder_{_name}'
     )
+logger = logging.getLogger(f"{script_name}:{_name}")
+logger.debug(f"> Start on: '{dt_start}'")
 if _name in cnfg_daemon.recorders:
     cnfg = cnfg_daemon.recorders[_name]
 else:
     msg = f"Recorder '{_name}' not found in config"
-    logging.error(msg)
+    logger.error(msg)
     raise ValueError(msg)
 
 # Mount RAM storage disk
@@ -89,6 +88,9 @@ action_manager = ActionManager(cnfg)
 while True:
     try:
         filename = storage.get_first_file(f"{ram_storage.storage_path}/{_name}_*.rec")
+        if filename is None:
+            time.sleep(1)
+            continue
         filename_wch = f"{filename[:-4]}.wch"
         os.rename(filename, filename_wch)
         is_motion = motion_detector.detect(filename_wch)
@@ -111,4 +113,4 @@ while True:
             os.remove(filename_obj_found+'.info')
             os.remove(filename_obj_found)
     except:
-        logging.exception(f"watcher '{_name}'")
+        logger.exception(f"watcher '{_name}'")

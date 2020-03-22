@@ -22,6 +22,7 @@ class vr_thread(Thread):
     def __init__(self, name, cnfg, mqtt_client):
         """Init and assigning params before run"""
         Thread.__init__(self)
+        self.logger = logging.getLogger(f"Thread:{name}")
         self.state_msg = 'stopped'
         self._stop_event = Event()
         self._record_start_event = Event()
@@ -37,19 +38,19 @@ class vr_thread(Thread):
     def record_start(self):
         """ Start recording, if it is not started yet """
         self._record_start_event.set()
-        logging.debug(f'[{self.name}] receve "record_start" event')
+        self.logger.debug(f'[{self.name}] receve "record_start" event')
 
     def record_stop(self):
         """ Stop recording, if it is not started yet """
         self._record_stop_event.set()
-        logging.debug(f'[{self.name}] receve "record_stop" event')
+        self.logger.debug(f'[{self.name}] receve "record_stop" event')
         self.state_msg = 'stopped'
         self.mqtt_status()
 
     def stop(self, timeout=None):
         """ Stop the thread. """        
         self._stop_event.set()
-        logging.debug(f'[{self.name}] receve "stop" event')
+        self.logger.debug(f'[{self.name}] receve "stop" event')
         Thread.join(self, timeout)
     
     def mqtt_status(self):
@@ -61,7 +62,7 @@ class vr_thread(Thread):
                 'latest_file': '',#self.last_recorded_filename,
                 'snapshot': self.last_snapshot
                 })
-        logging.debug(f'[{self.name}] mqtt send "status" [{payload}]')
+        self.logger.debug(f'[{self.name}] mqtt send "status" [{payload}]')
         self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),payload)
 
     def run(self):
@@ -92,27 +93,27 @@ class vr_thread(Thread):
                     try:
                         process.wait(self.cnfg.record_time)
                     except subprocess.TimeoutExpired:
-                        logging.debug(f'[{self.name}] process.wait TimeoutExpired {self.cnfg.record_time}')
+                        self.logger.debug(f'[{self.name}] process.wait TimeoutExpired {self.cnfg.record_time}')
                     duration = time.time() - start_time
                     # detect if process run too fast (unsuccessful start)
                     if duration<self.cnfg.start_error_threshold:
                         self.err_cnt += 1
-                        logging.debug(f"[{self.name}] Probably can't start recording. Finished in {duration:.2f} sec (attempt {self.err_cnt})")
+                        self.logger.debug(f"[{self.name}] Probably can't start recording. Finished in {duration:.2f} sec (attempt {self.err_cnt})")
                         if (self.err_cnt % self.cnfg.start_error_atempt_cnt)==0:
-                            logging.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.cnfg.start_error_sleep} sec')
+                            self.logger.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.cnfg.start_error_sleep} sec')
                             self.state_msg = 'error'
                             self.mqtt_status()
                             self._stop_event.wait(self.cnfg.start_error_sleep)
                     else:
                         self.err_cnt = 0
-                        logging.debug(f'[{self.name}] process execution finished in {duration:.2f} sec')
+                        self.logger.debug(f'[{self.name}] process execution finished in {duration:.2f} sec')
                     self.state_msg = 'restarting'
                     self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg}))
                 i += 1
-                logging.debug(f'[{self.name}] Running thread, iteration #{i}')
+                self.logger.debug(f'[{self.name}] Running thread, iteration #{i}')
             else:
                 i = 0
-                logging.debug(f'[{self.name}] Sleeping thread')
+                self.logger.debug(f'[{self.name}] Sleeping thread')
                 self._stop_event.wait(3)
 
 def vr_create(name, cnfg, mqtt_client):

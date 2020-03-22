@@ -15,7 +15,7 @@ __email__       = "zebatus@gmail.com"
 __status__      = "Development"
 
 
-import os, sys, logging, logging.config
+import os, sys, logging
 import yaml
 import json
 import time
@@ -59,7 +59,7 @@ def mqtt_publish_recorder(recorder_name, message):
     if isinstance(message, dict):
         message = json.dumps(message)
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), message)
-    logging.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name=recorder_name)} {message}")
+    logger.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name=recorder_name)} {message}")
 
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):
@@ -95,7 +95,7 @@ def on_mqtt_connect(client, userdata, flags, rc):
         mqtt_client.publish(mqtt_topic_pub.format(source_name='list'))
         logger.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name='list')}")
     else:
-        logging.error(f"MQTT connection failure with code={rc}")
+        logger.error(f"MQTT connection failure with code={rc}")
 
 # setup MQTT connection
 try:
@@ -141,7 +141,7 @@ def refresh_recorder_status(recorder=None):
     else:
         mqtt_publish_recorder(None, {'cmd':'status'})
         mqtt_client.publish(mqtt_topic_pub.format(source_name='list'))
-        logging.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name='list')}")
+        logger.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name='list')}")
 
 def recorder_view_data(recorder, width=None, height=None):
     """ This function prepares dictionary for displaying recorder
@@ -238,7 +238,7 @@ def page_restart(name):
             time.sleep(1)
             args = sys.argv[:]
             exe = sys.executable
-            logging.info("> "*5 + " Restarting the server " + " <"*5)
+            logger.info("> "*5 + " Restarting the server " + " <"*5)
             args.insert(0, sys.executable)
             if sys.platform == 'win32':
                 args = ['"%s"' % arg for arg in args]
@@ -300,7 +300,7 @@ def recorder_stop(recorder_name):
 
 if stored_exception==None:
     # start HTTP Server
-    logging.info(f"Starting HTTP Server on http://{cnfg.http_server_host}:{cnfg.http_server_port} Press [CTRL+C] to exit")
+    logger.info(f"Starting HTTP Server on http://{cnfg.http_server_host}:{cnfg.http_server_port} Press [CTRL+C] to exit")
     is_started = False    
     while not is_started:
         try:
@@ -312,10 +312,10 @@ if stored_exception==None:
             is_started = True
         except OSError as e:
             if e.errno == 98:
-                logging.error(f"Port {cnfg.http_server_host}:{cnfg.http_server_port} already in use. Wait 5 sec and retry..")
+                logger.error(f"Port {cnfg.http_server_host}:{cnfg.http_server_port} already in use. Wait 5 sec and retry..")
                 time.sleep(5)
             else:
-                logging.exception("Can't start HTTP Server")
+                logger.exception("Can't start HTTP Server")
                 sys.exit(1)
     mqtt_client.loop_stop()
     mqtt_client.disconnect()

@@ -19,7 +19,7 @@ __email__       = "zebatus@gmail.com"
 __status__      = "Development"
 
 
-import os, sys, logging, logging.config
+import os, sys, logging
 import json
 import time
 from datetime import datetime
@@ -34,10 +34,9 @@ from cls.misc import SelectObjectDetector
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
 app_label = script_name + f'_{datetime.now():%H%M}'
+dt_start = datetime.now()
 stored_exception=None
 vr_list = []
-
-logger = logging.getLogger(script_name)
 
 # Load configuration files
 cnfg = config_reader(
@@ -45,6 +44,8 @@ cnfg = config_reader(
         name_daemon = 'sxvrs_daemon',
         log_filename = 'daemon'
     )
+logger = logging.getLogger(f"{script_name}")
+logger.debug(f"> Start on: '{dt_start}'")
 
 # Mount RAM storage disk
 ram_storage = RAM_Storage(cnfg)
@@ -75,11 +76,11 @@ def on_mqtt_message(client, userdata, message):
         elif check_topic(message.topic, "daemon"):
             if payload.get('cmd').lower()=='restart':
                 try:
-                    logging.info("Restart command recieved")
+                    logger.info("Restart command recieved")
                     mqtt_client.disconnect()
                     args = sys.argv[:]
                     exe = sys.executable
-                    logging.info("> "*5 + " Restarting the daemon " + " <"*5)
+                    logger.info("> "*5 + " Restarting the daemon " + " <"*5)
                     args.insert(0, sys.executable)
                     if sys.platform == 'win32':
                         args = ['"%s"' % arg for arg in args]
@@ -104,7 +105,7 @@ def on_mqtt_connect(client, userdata, flags, rc):
     if rc==0:
         client.is_connected = True
     else:
-        logging.error(f"MQTT connection failure with code={rc}")
+        logger.error(f"MQTT connection failure with code={rc}")
 
 # setup MQTT connection
 try:

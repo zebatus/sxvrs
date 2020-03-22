@@ -52,21 +52,20 @@ except:
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
 app_label = script_name + f'_{datetime.now():%H%M}'
-
-logger = logging.getLogger(_name)
 dt_start = datetime.now()
-logging.debug(f"> Start on: '{dt_start}'")
 
 # Load configuration files
 cnfg_daemon = config_reader(
         os.path.join('cnfg' ,'sxvrs.yaml'), 
         log_filename = f'recorder_{_name}'
     )
+logger = logging.getLogger(f"{script_name}:{_name}")
+logger.debug(f"> Start on: '{dt_start}'")
 if _name in cnfg_daemon.recorders:
     cnfg = cnfg_daemon.recorders[_name]
 else:
     msg = f"Recorder '{_name}' not found in config"
-    logging.error(msg)
+    logger.error(msg)
     raise ValueError(msg)
 
 # Mount RAM storage disk
@@ -78,7 +77,7 @@ if _frame_width is None or _frame_height is None or _frame_dim is None:
 else:
     frame_shape = (_frame_height, _frame_width, _frame_dim)
 frame_size = frame_shape[0] * frame_shape[1] * frame_shape[2]
-logging.debug(f"frame_shape = {frame_shape}     frame_size = {frame_size}")
+logger.debug(f"frame_shape = {frame_shape}     frame_size = {frame_size}")
 
 # Maintain Storage for the recorded files:
 storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size)
@@ -90,10 +89,10 @@ filename_video = cnfg.filename_video()
 storage.force_create_file_path(filename_video)
 
 cmd_ffmpeg_read = cnfg.cmd_ffmpeg_read()
-logging.debug(f"Execute process to read frames:\n   {cmd_ffmpeg_read}")
+logger.debug(f"Execute process to read frames:\n   {cmd_ffmpeg_read}")
 ffmpeg_read = Popen(cmd_ffmpeg_read, shell=True, stdout = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=frame_shape[0], width=frame_shape[1], pixbytes=frame_shape[2]*8)
-logging.debug(f"Execute process to write frames:\n  {cmd_ffmpeg_write}")
+logger.debug(f"Execute process to write frames:\n  {cmd_ffmpeg_write}")
 ffmpeg_write = Popen(cmd_ffmpeg_write, shell=True, stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 snapshot_taken_time = 0
 i = 0
@@ -110,10 +109,10 @@ while True:
         # check for throtling
         tmp_size = storage.get_folder_size(ram_storage.storage_path, f'{cnfg.name}_*')
         if tmp_size > cnfg.throtling_max_mem_size:
-            logging.error(f"Can't save frame to temporary RAM folder. There are too many files for recorder: {cnfg.name}.\n Size occupied: {tmp_size}\n Max size: cnfg.throtling_max_mem_size")
+            logger.error(f"Can't save frame to temporary RAM folder. There are too many files for recorder: {cnfg.name}.\n Size occupied: {tmp_size}\n Max size: cnfg.throtling_max_mem_size")
         elif tmp_size > cnfg.throtling_min_mem_size:
             throtling += throtling + 1
-            logging.warning(f"Start frame throtling ({throtling}) for recorder: {cnfg.name}")
+            logger.warning(f"Start frame throtling ({throtling}) for recorder: {cnfg.name}")
         else:
             throtling = 0
         if tmp_size < cnfg.throtling_max_mem_size:
@@ -128,4 +127,4 @@ while True:
         break
     i += 1
 
-logging.debug(f"> Finish on: '{dt_end}'")
+logger.debug(f"> Finish on: '{dt_end}'")
