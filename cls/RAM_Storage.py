@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
 import os
+import logging
 from subprocess import Popen
 
 class RAM_Storage():
     """ RAM storage disk for fast file exchange between processes    
     """
-    def __init__(self, cnfg):
+    def __init__(self, cnfg, logger_name='None'):
+        self.logger = logging.getLogger(f"{logger_name}:RAM_Storage")
         self.storage_path = cnfg.temp_storage_path
         self.storage_size = cnfg.temp_storage_size
         self.cmd_mount = cnfg.temp_storage_cmd_mount

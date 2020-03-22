@@ -22,9 +22,10 @@ from cls.Painter import Painter
 class ActionManager():
     """ If object is detected, then we need to take some actions described in config file
     """
-    def __init__(self, cnfg):
+    def __init__(self, cnfg, logger_name='None'):
         self.cnfg = cnfg
         self.painter = Painter(cnfg)
+        self.logger = logging.getLogger(f"{logger_name}:ActionManager")
 
     def run(self, obj_detected_file=None, obj_detection_results=None):
         for action in self.cnfg.actions:

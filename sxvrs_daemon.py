@@ -48,10 +48,10 @@ logger = logging.getLogger(f"{script_name}")
 logger.debug(f"> Start on: '{dt_start}'")
 
 # Mount RAM storage disk
-ram_storage = RAM_Storage(cnfg)
+ram_storage = RAM_Storage(cnfg, logger_name = logger.name)
 
 # Start Object Detector
-object_detector = SelectObjectDetector(cnfg)
+object_detector = SelectObjectDetector(cnfg, logger_name = logger.name)
 if not object_detector is None:
     object_detector.start()
 

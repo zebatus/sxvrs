@@ -69,7 +69,7 @@ else:
     raise ValueError(msg)
 
 # Mount RAM storage disk
-ram_storage = RAM_Storage(cnfg_daemon)
+ram_storage = RAM_Storage(cnfg_daemon, logger_name = logger.name)
 
 # calculate frame_size
 if _frame_width is None or _frame_height is None or _frame_dim is None:
@@ -80,7 +80,7 @@ frame_size = frame_shape[0] * frame_shape[1] * frame_shape[2]
 logger.debug(f"frame_shape = {frame_shape}     frame_size = {frame_size}")
 
 # Maintain Storage for the recorded files:
-storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size)
+storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size, logger_name = logger.name)
 storage.cleanup()
 # Force create path for snapshot
 storage.force_create_file_path(cnfg.filename_snapshot())

@@ -13,12 +13,13 @@ from cls.RAM_Storage import RAM_Storage
 class ObjectDetectorBase():
     """ Base class for object detection. Must be inherited by <local> and <cloud> versions
     """
-    def __init__(self, cnfg):
+    def __init__(self, cnfg, logger_name='None'):
+        self.logger = logging.getLogger(f"{logger_name}:ObjectDetector")
         self.cnfg = cnfg
         # Mount RAM storage disk
         self.ram_storage = RAM_Storage(cnfg)
         # Create storage manager
-        self.storage = StorageManager(cnfg.temp_storage_path, cnfg.temp_storage_size)
+        self.storage = StorageManager(cnfg.temp_storage_path, cnfg.temp_storage_size, logger_name = self.logger.name)
         # Create wachdog observer for folder monitoring
         patterns = "*.obj.wait"
         ignore_patterns = "*"
@@ -31,7 +32,7 @@ class ObjectDetectorBase():
         self.observer.schedule(event_handler, f"{self.ram_storage.storage_path}/")
 
     def on_file_available(self, event):
-        logging.debug(f"Watchdog: Found file {event.src_path}")
+        self.logger.debug(f"Watchdog: Found file {event.src_path}")
         filename_wait = event.src_path
         filename_start = f"{filename_wait[:-5]}.start"
         os.rename(filename_wait, filename_start)

@@ -13,7 +13,8 @@ class StorageManager():
     This class checks if folder exist, if not, then create it
     Removes most oldest files incase the size is exceeds limits
     """
-    def __init__(self, storage_path, storage_max_size):
+    def __init__(self, storage_path, storage_max_size, logger_name='None'):
+        self.logger = logging.getLogger(f"{logger_name}:StorageManager")
         self.storage_path = storage_path
         self.storage_max_size = storage_max_size
         self.force_create_path(storage_path)
@@ -24,17 +25,17 @@ class StorageManager():
 
     def force_create_path(self, path):
         if not os.path.exists(path):
-            logging.debug(f'path not existing: {path} \n try to create it..')
+            self.logger.debug(f'path not existing: {path} \n try to create it..')
             try:
                 os.makedirs(path)
             except:
-                logging.exception(f'Can''t create path: {path}')
+                self.logger.exception(f'Can''t create path: {path}')
 
     def cleanup(self):
         """function removes old files in Camera folder. This gives ability to write files in neverending loop, when old records are rewritedby new ones"""
         try:            
             max_size = self.storage_max_size*1024*1024*1024
-            logging.debug(f"Start storage cleanup on path: {self.storage_path} (Max size: {max_size/1024/1024/1024:.2f} GB)")            
+            self.logger.debug(f"Start storage cleanup on path: {self.storage_path} (Max size: {max_size/1024/1024/1024:.2f} GB)")            
             self.folder_size = self.get_folder_size(self.storage_path)
             if self.folder_size < self.storage_max_size:
                 return
@@ -48,7 +49,7 @@ class StorageManager():
                 item['cumsum'] = cumsum
                 if(cumsum > max_size):
                     i = i + 1               
-                    logging.info(f"[{self.name}] Removing file {i}: {item['file']}")
+                    self.logger.info(f"[{self.name}] Removing file {i}: {item['file']}")
                     os.remove(item['file'])
                     self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name)
                         , json.dumps({
@@ -61,11 +62,11 @@ class StorageManager():
                 if _files or _dirs: continue # skip remove
                 try:
                     os.rmdir(_path)
-                    logging.debug(f'Remove empty folder: {_path}')
+                    self.logger.debug(f'Remove empty folder: {_path}')
                 except OSError:
-                    logging.exception(' Folder not empty :')
+                    self.logger.exception(' Folder not empty :')
         except:
-            logging.exception(f"Storage Cleanup Error")
+            self.logger.exception(f"Storage Cleanup Error")
 
     def get_folder_size(self, path='.', file_pattern='*'):
         total = 0

@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
-import os, sys, logging, logging.config
+import os, sys, logging
 import json
 import argparse
 import cv2
 import numpy as np
 
 class Painter():
-    def __init__(self, cnfg):
+    def __init__(self, cnfg, logger_name='None'):
+        self.logger = logging.getLogger(f"{logger_name}:Painter")
         self.cnfg = cnfg
         self.img_height = None
         self.img_width = None

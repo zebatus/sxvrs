@@ -74,16 +74,16 @@ else:
     raise ValueError(msg)
 
 # Mount RAM storage disk
-ram_storage = RAM_Storage(cnfg_daemon)
+ram_storage = RAM_Storage(cnfg_daemon, logger_name = logger.name)
 
 # Create storage manager
-storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size)
+storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size, logger_name = logger.name)
 
 # Create MotionDetector
-motion_detector = MotionDetector(cnfg)
+motion_detector = MotionDetector(cnfg, logger_name = logger.name)
 
 # Create ActionManager to run actions on files with detected objects
-action_manager = ActionManager(cnfg)
+action_manager = ActionManager(cnfg, logger_name = logger.name)
 
 while True:
     try:

@@ -11,7 +11,8 @@ import imutils
 class MotionDetector():
     """ Loads frames and compares them for motion detection
     """
-    def __init__(self, cnfg):
+    def __init__(self, cnfg, logger_name='None'):
+        self.logger = logging.getLogger(f"{logger_name}:MotionDetector")
         self.cnfg = cnfg
         self.scale = None
         self.contour_min_area = None
@@ -75,10 +76,10 @@ class MotionDetector():
                     cv2.CHAIN_APPROX_SIMPLE)
                 contours = imutils.grab_contours(contours)            
                 if len(contours)>self.cnfg.motion_contour_max_count:
-                    logging.debug(f"Too many counturs found: '{len(contours) > self.cnfg.motion_contour_max_count}'. Skipping..")
+                    self.logger.debug(f"Too many counturs found: '{len(contours)} > {self.cnfg.motion_contour_max_count}'. Skipping..")
                     return None
                 else:
-                    logging.debug(f"Counturs found: '{len(contours)}'")
+                    self.logger.debug(f"Counturs found: '{len(contours)}'")
                 # loop over all contours                            
                 max_area = 0
                 for contour in contours:
@@ -100,9 +101,9 @@ class MotionDetector():
                 self.cnt_frames_changed += 1
                 self.cnt_frames_static = 0
                 if self.cnfg.is_motion_contour_detection:
-                    logging.debug(f"frames_changed= {self.cnt_frames_changed}[{self.cnfg.motion_min_frames_changes}] area= {max_area}[{self.cnfg.motion_contour_min_area}, {self.cnfg.motion_contour_max_area}]")
+                    self.logger.debug(f"frames_changed= {self.cnt_frames_changed}[{self.cnfg.motion_min_frames_changes}] area= {max_area}[{self.cnfg.motion_contour_min_area}, {self.cnfg.motion_contour_max_area}]")
                 else:
-                    logging.debug(f"frames_changed= {self.cnt_frames_changed}[{self.cnfg.motion_min_frames_changes}] dev= {dev_delta}")
+                    self.logger.debug(f"frames_changed= {self.cnt_frames_changed}[{self.cnfg.motion_min_frames_changes}] dev= {dev_delta}")
                 is_motion_detected = (self.cnt_frames_changed >= self.cnfg.motion_min_frames_changes)
             else:
                 self.cnt_frames_static += 1

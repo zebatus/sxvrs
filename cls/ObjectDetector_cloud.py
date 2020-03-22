@@ -8,8 +8,8 @@ from cls.ObjectDetectorBase import ObjectDetectorBase
 class ObjectDetector_cloud(ObjectDetectorBase):
     """ Object Detection using remote cloud server. Can be used if there is no enought local CPU/GPU power available
     """
-    def __init__(self, cnfg):
-        ObjectDetectorBase.__init__(self, cnfg)
+    def __init__(self, cnfg, logger_name='None'):
+        ObjectDetectorBase.__init__(self, cnfg, logger_name)
 
     def detect(self, filename):
         """ Publish image for object detection into cloud. Using separate thread.
