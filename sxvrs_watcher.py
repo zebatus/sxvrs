@@ -96,7 +96,7 @@ while True:
         filename_wch = f"{filename[:-4]}.wch"
         os.rename(filename, filename_wch)
         is_motion = motion_detector.detect(filename_wch)
-        if cnfg._object_detector:
+        if cnfg_daemon.is_object_detector:
             if is_motion:
                 os.rename(filename_wch, f"{filename[:-4]}.obj.wait")
             else:

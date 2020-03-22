@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import yaml
+import sys
 import logging, logging.config
 from datetime import datetime
 
@@ -68,7 +69,6 @@ class config_reader():
             self.object_detector_cloud_timeout = cnfg['object_detector_cloud'].get('timeout', 300) # in seconds
         self.is_object_detector_local = 'object_detector_local' in cnfg
         if self.is_object_detector_local:
-
             self._object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', 'models/{model_name}/frozen_inference_graph.pb')
             self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', 'not_defined')
             self.object_detector_local_gpu = cnfg['object_detector_local'].get('timeout', 0) # 0 means dissable GPU
@@ -93,6 +93,9 @@ class config_reader():
         return self._object_detector_local_model_path.format(model_name=self.object_detector_local_model_name)
     def cmd_watcher(self, **kwargs):
         return self._cmd_watcher.format(**kwargs)
+    @property
+    def is_object_detection(self):
+        return self.is_object_detector_cloud or (self.is_object_detector_local and 'tensorflow' in sys.modules)
 
 class recorder_configuration():
     """ Combines global and local parameter for given redcorder record
@@ -188,8 +191,8 @@ class recorder_configuration():
         # if set debug filename, then write snapshots there
         self._filename_debug = self.combine('filename_debug', group='motion_detector')
         ### ObjectDetection block ###
-        _object_detector = self.combine('object_detector', default=[])  
-        self.is_object_detection = (not _object_detector is None) and len(_object_detector)>0
+        #_object_detector = self.combine('object_detector', default=[])  
+        #self.is_object_detection = (not _object_detector is None) and len(_object_detector)>0  > move to entire configuration
         ### Action block ###
         self.actions = {}
         for action in self.combine('actions', default=[]):
