@@ -166,7 +166,8 @@ if stored_exception==None:
         logger.debug(f"   stoping instance: {vr.name}")
     mqtt_client.loop_stop()
     mqtt_client.disconnect()
-    object_detector.stop()
+    if not object_detector is None:
+        object_detector.stop()
     logger.info('# Script terminated')
 
 if stored_exception and stored_exception[0]!=KeyboardInterrupt:

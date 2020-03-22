@@ -47,13 +47,13 @@ class ObjectDetector_local(ObjectDetectorBase):
 
     def load_image(self, filename):    
         if os.path.isfile(filename):
-            self.logger.debug(f"ObjectDetector: open file '{filename}' ({self.frame_width}, {self.frame_height})")
+            self.logger.debug(f"ObjectDetector: open file '{filename}'")
             try:
                 self.image = cv2.imread(filename)
                 self.original_height, self.original_width, self.original_channels = self.image.shape
                 return True
             except Exception as ex:
-                self.logger.exception(f"Error in ObjectDetector: can't open image '{filename}' ({self.frame_width}, {self.frame_height}) \n {cmd}")
+                self.logger.exception(f"Error in ObjectDetector: can't open image '{filename}'")
                 raise ex
         else:
             self.logger.error(f"Can't find file: '{filename}'")
@@ -62,34 +62,33 @@ class ObjectDetector_local(ObjectDetectorBase):
     def detect(self, filename):
         """ Object Detection using CPU or GPU
         """
+        result = []
         if self.load_image(filename):
             # Expand dimensions since the trained_model expects images to have shape: [1, None, None, 3]
             image_np_expanded = np.expand_dims(self.image, axis=0)
-            # Actual detection.
             start_time = time.time()
             (boxes, scores, classes, num) = self.tf_sess.run(
                 [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
                 feed_dict={self.image_tensor: image_np_expanded})
-            #im_height, im_width,_ = self.image.shape
             scores = scores[0].tolist()
             classes = [int(x) for x in classes[0].tolist()]            
             for i in range(len(boxes)):
-                # Class 1 represents human
-                #if classes[i] == 1 and scores[i] > threshold:
-                if scores[i] > self.threshold:
-                    self.logger.debug(f'Object detected! class:{classes[i]} score:{scores[i]}')
-                    box =  (int(boxes[0,i,0] * self.original_height),
-                            int(boxes[0,i,1] * self.original_width),
-                            int(boxes[0,i,2] * self.original_height),
-                            int(boxes[0,i,3] * self.original_width))
-                    result.append({
-                        'box': box,
-                        'score': scores[i],
-                        'class': labels[classes[i]],
-                        'num': int(num[0])
-                    })
+                self.logger.debug(f'Object detected! class:{classes[i]} score:{scores[i]}')
+                box =  (int(boxes[0,i,0] * self.original_height),
+                        int(boxes[0,i,1] * self.original_width),
+                        int(boxes[0,i,2] * self.original_height),
+                        int(boxes[0,i,3] * self.original_width))
+                result.append({
+                    'box': box,
+                    'score': scores[i],
+                    'class': self.labels[classes[i]],
+                    'num': int(num[0])
+                })
             result['elapsed'] = time.time() - start_time         
             self.logger.debug(f"ObjectDetector Elapsed Time:{result['elapsed']} : \n {result}", )
-            #self.tf_sess.close() ! DO NOT CLOSE SESSION
-            #self.detection_graph.close()        
         return result   
+    
+    def close(self):
+        """ Close tensorflow session """
+        self.tf_sess.close()
+        self.logger.debug('Tensorflow session close')      
