@@ -44,7 +44,6 @@ def get_frame_shape(source):
     ffprobe_cmd = " ".join([
         'ffprobe',
         '-v', 'panic',
-#        '-rtsp_transport', 'tcp'
         '-show_error',
         '-show_streams',
         '-of',
