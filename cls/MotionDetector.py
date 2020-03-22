@@ -44,8 +44,10 @@ class MotionDetector():
             height = math.floor(height*self.scale)
             width = math.floor(width*self.scale)
             frame = cv2.resize(frame_orig, (width, height))
+        else:
+            frame = frame_orig
         # Prepare image for comparing
-        img_new = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img_new = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #img_new = cv2.GaussianBlur(img_new, (self.blur_size, self.blur_size), 0)
         # remember new image for background, and delete oldest background image
         self.images_bg.append(img_new)
@@ -64,8 +66,8 @@ class MotionDetector():
             if self.cnfg.is_motion_contour_detection:
                 # Calculate min/max area only for the first frame
                 if self.contour_min_area is None or self.contour_max_area is None:
-                    self.contour_min_area = self.define_minmax_area(self.cnfg.motion_min_area, height, width)
-                    self.contour_max_area = self.define_minmax_area(self.cnfg.motion_max_area, height, width)
+                    self.contour_min_area = self.define_minmax_area(self.cnfg.motion_contour_min_area, height, width)
+                    self.contour_max_area = self.define_minmax_area(self.cnfg.motion_contour_max_area, height, width)
                 # dilate the thresholded image to fill in holes, then find contours
                 # on thresholded image
                 img_thresh = cv2.dilate(img_thresh, None, iterations=1)
@@ -97,10 +99,10 @@ class MotionDetector():
                 # count number of changed frames                
                 self.cnt_frames_changed += 1
                 self.cnt_frames_static = 0
-                if self.cnfg.detect_by_countur_changes:
-                    logging.debug(f"frames_changed= {self.cnt_frames_changed}[{self.cnfg.min_frames_changes}] area= {max_area}[{self.contour_min_area}, {self.contour_max_area}]")
+                if self.cnfg.is_motion_contour_detection:
+                    logging.debug(f"frames_changed= {self.cnt_frames_changed}[{self.cnfg.motion_min_frames_changes}] area= {max_area}[{self.cnfg.motion_contour_min_area}, {self.cnfg.motion_contour_max_area}]")
                 else:
-                    logging.debug(f"frames_changed= {self.cnt_frames_changed}[{self.cnfg.min_frames_changes}] dev= {dev_delta}")
+                    logging.debug(f"frames_changed= {self.cnt_frames_changed}[{self.cnfg.motion_min_frames_changes}] dev= {dev_delta}")
                 is_motion_detected = (self.cnt_frames_changed >= self.cnfg.motion_min_frames_changes)
             else:
                 self.cnt_frames_static += 1
@@ -121,7 +123,7 @@ class MotionDetector():
         _, dev_delta = cv2.meanStdDev(img_delta)
         discard_background = dev_delta > self.cnfg.detect_by_diff_threshold
         if discard_background:
-            images_bg = images_bg[:-1]
+            self.images_bg = self.images_bg[:-1]
             return False
         else:
             img_blank = np.zeros(img_delta.shape, np.uint8)

@@ -2,6 +2,7 @@
 
 import os, logging
 import glob
+from operator import itemgetter
 try:
     from os import scandir
 except ImportError:
@@ -80,7 +81,7 @@ class StorageManager():
                             }
                     self.file_list.append(row)
             elif entry.is_dir(follow_symlinks=False):
-                total += self.folder_size(entry.path)
+                total += self.get_folder_size(entry.path, file_pattern=file_pattern)
         return total
 
 
