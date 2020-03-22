@@ -159,7 +159,7 @@ class recorder_configuration():
         self.throtling_min_mem_size = self.combine('throtling_min_mem_size', default=5)*1024*1024
         # if total size of files exceeds maximum value, then dissable frame saving to RAM folder
         self.throtling_max_mem_size = self.combine('throtling_max_mem_size', default=10)*1024*1024
-        ### watcher params ###
+        ### watcher params ###        
         # before motion detection, we can resize image to reduce calculations
         self.motion_detector_max_image_height = self.combine('max_image_height', group='motion_detector', default=300)
         self.motion_detector_max_image_width = self.combine('max_image_width', group='motion_detector', default=300)
@@ -169,6 +169,7 @@ class recorder_configuration():
         self.motion_detector_threshold = self.combine('motion_detector_threshold', group='motion_detector', default=15)
         # If defined <contour_detection> then it will try to detect motion by detecting contours inside the frame (slightly cpu expensive operation)
         _motion_detector = self.combine('motion_detector', default=[])  
+        self.is_motion_detection =  len(_motion_detector)>0
         self.is_motion_contour_detection = 'contour_detection' in _motion_detector
         if self.is_motion_contour_detection:
             _motion_contour_detection = self.combine('contour_detection', group='motion_detector', default=[])
@@ -186,6 +187,9 @@ class recorder_configuration():
         self.motion_max_frames_static = self.combine('max_frames_static', group='motion_detector', default=5)
         # if set debug filename, then write snapshots there
         self._filename_debug = self.combine('filename_debug', group='motion_detector')
+        ### ObjectDetection block ###
+        _object_detector = self.combine('object_detector', default=[])  
+        self.is_object_detection = (not _object_detector is None) and len(_object_detector)>0
         ### Action block ###
         self.actions = {}
         for action in self.combine('actions', default=[]):

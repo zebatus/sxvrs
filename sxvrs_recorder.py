@@ -105,7 +105,7 @@ while True:
         cv2.imwrite(cnfg.filename_snapshot(), frame_np)
         snapshot_taken_time = time()
     # process frame in RAM folder
-    if i % (cnfg.frame_skip + throtling) == 0:
+    if cnfg.is_motion_detection and (i % (cnfg.frame_skip + throtling) == 0):
         # check for throtling
         tmp_size = storage.get_folder_size(ram_storage.storage_path, f'{cnfg.name}_*')
         if tmp_size > cnfg.throtling_max_mem_size:

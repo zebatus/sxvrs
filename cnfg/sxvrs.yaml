@@ -68,6 +68,7 @@ global:
     min_frames_changes: 3 # min_frames_changes: 4 - how many frames must be changed, before triggering for the montion start
     max_frames_static: 2 # max_frames_static: 2 - how many frames must be static, before assume that there is no motion anymore
     #filename_debug:
+  object_detector:
   actions: 
     draw_boxes_1:
       type: painter

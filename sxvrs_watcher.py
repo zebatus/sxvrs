@@ -96,24 +96,28 @@ while True:
         filename_wch = f"{filename[:-4]}.wch"
         os.rename(filename, filename_wch)
         is_motion = motion_detector.detect(filename_wch)
-        if is_motion:
-            os.rename(filename_wch, f"{filename[:-4]}.obj.wait")
-        else:
+        if cnfg._object_detector:
+            if is_motion:
+                os.rename(filename_wch, f"{filename[:-4]}.obj.wait")
+            else:
+                os.remove(filename_wch)
+            # look for all files where object detection is complete
+            obj_none_list = storage.get_file_list(f"{ram_storage.storage_path}/{_name}_*.obj.none")
+            for filename_obj_none in obj_none_list:
+                os.remove(filename_obj_none)
+            obj_found_list = storage.get_file_list(f"{ram_storage.storage_path}/{_name}_*.obj.found")
+            for filename_obj_found in obj_found_list:
+                # Read info file
+                with open(filename_obj_found+'.info') as f:
+                    info = json.load(f)
+                # Take actions on image where objects was found
+                action_manager.run(filename_obj_found, info) 
+                # Remove temporary file
+                os.remove(filename_obj_found+'.info')
+                os.remove(filename_obj_found)
+        else: # in case if object detection is dissabled
+            # TODO: notify recorder that object detected
             os.remove(filename_wch)
-        # look for all files where object detection is complete
-        obj_none_list = storage.get_file_list(f"{ram_storage.storage_path}/{_name}_*.obj.none")
-        for filename_obj_none in obj_none_list:
-            os.remove(filename_obj_none)
-        obj_found_list = storage.get_file_list(f"{ram_storage.storage_path}/{_name}_*.obj.found")
-        for filename_obj_found in obj_found_list:
-            # Read info file
-            with open(filename_obj_found+'.info') as f:
-                info = json.load(f)
-            # Take actions on image where objects was found
-            action_manager.run(filename_obj_found, info) 
-            # Remove temporary file
-            os.remove(filename_obj_found+'.info')
-            os.remove(filename_obj_found)
     except (KeyboardInterrupt, SystemExit):
         logger.info("[CTRL+C detected]")
         break
