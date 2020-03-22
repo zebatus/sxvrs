@@ -34,9 +34,9 @@ class StorageManager():
         try:            
             max_size = self.storage_max_size*1024*1024*1024
             logging.debug(f"Start storage cleanup on path: {self.storage_path} (Max size: {max_size/1024/1024/1024:.2f} GB)")            
-            #self.folder_size = self.get_folder_size(self.storage_path)
-            #if self.folder_size < self.storage_max_size:
-            #    return
+            self.folder_size = self.get_folder_size(self.storage_path)
+            if self.folder_size < self.storage_max_size:
+                return
             # sort list of files by datetime value (DESC)
             self.file_list = sorted(self.file_list, key=itemgetter('dt'), reverse=True)
             # calculate cumulative size
