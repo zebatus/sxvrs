@@ -89,7 +89,9 @@ while True:
     try:
         filename = storage.get_first_file(f"{ram_storage.storage_path}/{_name}_*.rec")
         if filename is None:
-            time.sleep(1)
+            sleep_time = 1
+            logger.debug(f'No new files for motion detection. Sleep {sleep_time} sec')
+            time.sleep(sleep_time)
             continue
         filename_wch = f"{filename[:-4]}.wch"
         os.rename(filename, filename_wch)
@@ -112,5 +114,8 @@ while True:
             # Remove temporary file
             os.remove(filename_obj_found+'.info')
             os.remove(filename_obj_found)
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("[CTRL+C detected]")
+        break
     except:
         logger.exception(f"watcher '{_name}'")
