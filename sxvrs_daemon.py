@@ -24,6 +24,7 @@ import json
 import time
 from datetime import datetime
 import paho.mqtt.client as mqtt
+from subprocess import Popen, PIPE
 
 from sxvrs_thread import vr_create
 from cls.config_reader import config_reader
@@ -49,6 +50,10 @@ logger.debug(f"> Start on: '{dt_start}'")
 
 # Mount RAM storage disk
 ram_storage = RAM_Storage(cnfg, logger_name = logger.name)
+
+# Start Watchers for each recorder instance
+for recorder in cnfg.recorders:
+    ffmpeg_read = Popen(cnfg.cmd_watcher(recorder = recorder), shell=True)
 
 # Start Object Detector
 object_detector = SelectObjectDetector(cnfg, logger_name = logger.name)

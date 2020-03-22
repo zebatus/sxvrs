@@ -19,6 +19,8 @@ temp_storage_path: /dev/shm/sxvrs # folder where RAM disk will be mounted
 temp_storage_size: 128 # Size of the RAM disk in MB
 temp_storage_cmd_mount: mkdir {temp_storage_path}; mount -t tmpfs -o size={temp_storage_size}m tmpfs {temp_storage_path}
 temp_storage_cmd_unmount: umount {path}
+cmd:
+  watcher: 'python sxvrs_watcher.py --name "{recorder}"'
 
 # if defined <object_detector_cloud> then object detection will be done on a remote cloud server 
 # (files are encrypted with individual key, and not stored anywere on cloud server, even while processing)

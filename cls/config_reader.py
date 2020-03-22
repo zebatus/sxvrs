@@ -79,6 +79,9 @@ class config_reader():
         else:
             self.http_server_host = '0.0.0.0'
             self.http_server_port = '8282'
+        self._cmd_watcher = 'python sxvrs_watcher.py --name "{recorder}"'
+        if 'cmd' in self.data:
+            self._cmd_watcher = cnfg['cmd'].get('watcher', 'python sxvrs_watcher.py --name "{recorder}"')
     @property
     def temp_storage_cmd_mount(self):
         return self._temp_storage_cmd_mount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)
@@ -88,6 +91,8 @@ class config_reader():
     @property
     def object_detector_local_model_filename(self):
         return self._object_detector_local_model_path.format(model_name=self.object_detector_local_model_name)
+    def cmd_watcher(self, **kwargs):
+        return self._cmd_watcher.format(**kwargs)
 
 class recorder_configuration():
     """ Combines global and local parameter for given redcorder record
