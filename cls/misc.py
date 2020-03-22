@@ -41,7 +41,7 @@ def SelectObjectDetector(cnfg, logger_name='None'):
         logging.warning('Object detection is not defined. Skipping..')
 
 def get_frame_shape(source):
-    ffprobe_cmd = f"ffprobe -v panic -show_error -show_streams -of json "{source}"'
+    ffprobe_cmd = f'ffprobe -v panic -show_error -show_streams -of json "{source}"'
     logging.debug(ffprobe_cmd)
     p = sp.Popen(ffprobe_cmd, stdout=sp.PIPE, shell=True)
     (output, err) = p.communicate()
