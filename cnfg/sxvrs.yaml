@@ -51,7 +51,7 @@ global:
   start_error_atempt_cnt: 10 # If process will not able to start for this number attempts, then it will go to sleep
   start_error_threshold: 10 # Minimum number of seconds, to understand that process is started normally
   start_error_sleep: 600 # Number of seconds to sleep on error
-  frame_skip: 5 # How many frames will be scipped between motion detection
+  frame_skip: 5 # How many frames will be skipped between motion detection
   throtling_min_mem_size: 9 # [MB] if there are too many files on RAM disk, then start to increase frame skiping (throtling) (means that motion_detection or object detection are not fast enoght to process files)
   throtling_max_mem_size: 10 # [MB] if total size of files exceeds maximum value, then dissable frame saving to RAM folder (means that there is no processing of frames)
   motion_detector:    

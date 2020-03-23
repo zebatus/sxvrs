@@ -157,7 +157,7 @@ class recorder_configuration():
         self.start_error_sleep = self.combine('start_error_sleep', default=600)
         # ffmpeg buffer frame count
         self.ffmpeg_buffer_frames = self.combine('ffmpeg_buffer_frames', default=16)
-        # How many frames will be scipped between motion detection
+        # How many frames will be skipped between motion detection
         self.frame_skip = self.combine('frame_skip', default=5)
         # if on RAM disk there will be too many files, then start to increase frame skiping
         self.throtling_min_mem_size = self.combine('throtling_min_mem_size', default=5)*1024*1024
