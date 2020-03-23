@@ -147,6 +147,13 @@ def recorder_view_data(recorder, width=None, height=None):
     """ This function prepares dictionary for displaying recorder
     """
     res = {
+        "name": recorder.name,
+        "error_cnt": recorder.error_cnt,
+        "status": recorder.status,
+        "latest_file": recorder.latest_file,
+        "widget_err": '_',
+        "widget_status": '_',
+        "widget_latest_file": '_',
         "width": width,
         "height": height
     }
@@ -183,7 +190,7 @@ def page_index():
     refresh_recorder_status()
     recorder_dict_list = []
     for recorder_name in recorders:
-        recorder_dict_list.append(recorder_view_data(recorders[recorder_name], width=200, height=150))
+        recorder_dict_list.append(recorder_view_data(recorders[recorder_name], width=400, height=300))
     content = {
         "title": "SXVRS"
     }
@@ -251,8 +258,11 @@ def page_restart(name):
 def recorder_snapshot(recorder_name, width=None, height=None):
     # get snapshot name for the recorder
     filename = cnfg.recorders[recorder_name].filename_snapshot()
-    #TODO: need to resize image
-    return send_file(filename)
+    if os.path.isfile(filename):
+        #TODO: need to resize image    
+        return send_file(filename)
+    else:
+        return send_file('/static/novideo.gif')
 
 @app.route('/recorder/<recorder_name>')
 def view_recorder(recorder_name):
