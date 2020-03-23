@@ -109,7 +109,7 @@ while True:
         # check for throtling
         tmp_size = storage.get_folder_size(ram_storage.storage_path, f'{cnfg.name}_*')
         if tmp_size > cnfg.throtling_max_mem_size:
-            logger.error(f"Can't save frame to temporary RAM folder. There are too many files for recorder: {cnfg.name}.\n Size occupied: {tmp_size}\n Max size: cnfg.throtling_max_mem_size")
+            logger.error(f"Can't save frame to temporary RAM folder. There are too many files for recorder: {cnfg.name}.\n Size occupied: {tmp_size}\n Max size: {cnfg.throtling_max_mem_size}")
         elif tmp_size > cnfg.throtling_min_mem_size:
             throtling += throtling + 1
             logger.warning(f"Start frame throtling ({throtling}) for recorder: {cnfg.name}")
