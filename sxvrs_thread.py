@@ -68,10 +68,11 @@ class vr_thread(Thread):
     def run(self):
         """Starting main thread loop"""
         # calculate frame_shape
-        frame_shape = get_frame_shape(self.cnfg.stream_url())
-        frame_height = frame_shape[0]
-        frame_width = frame_shape[1]
-        frame_dim = frame_shape[2]
+        if self.cnfg.record_autostart:
+            frame_shape = get_frame_shape(self.cnfg.stream_url())
+            frame_height = frame_shape[0]
+            frame_width = frame_shape[1]
+            frame_dim = frame_shape[2]
         i = 0 
         while not self._stop_event.isSet():     
             if self.cnfg.record_autostart or self._record_start_event.isSet():
