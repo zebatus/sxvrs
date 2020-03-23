@@ -259,8 +259,13 @@ def recorder_snapshot(recorder_name, width=None, height=None):
     # get snapshot name for the recorder
     filename = cnfg.recorders[recorder_name].filename_snapshot()
     if os.path.isfile(filename):
-        #TODO: need to resize image    
-        return send_file(filename)
+        # resize image
+        new_filename = f'{filename}.{width}x{height}.jpg'
+        cmd = f'convert {filename} -resize {width}x{height}\> {new_filename}'
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
+        process.wait(20)
+        filename = new_filename    
+        return send_file(new_filename)
     else:
         return send_file('/static/novideo.gif')
 
