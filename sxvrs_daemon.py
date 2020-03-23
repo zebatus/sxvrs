@@ -51,15 +51,6 @@ logger.debug(f"> Start on: '{dt_start}'")
 # Mount RAM storage disk
 ram_storage = RAM_Storage(cnfg, logger_name = logger.name)
 
-# Start Watchers for each recorder instance
-for recorder in cnfg.recorders:
-    ffmpeg_read = Popen(cnfg.cmd_watcher(recorder = recorder), shell=True)
-
-# Start Object Detector
-object_detector = SelectObjectDetector(cnfg, logger_name = logger.name)
-if not object_detector is None:
-    object_detector.start()
-
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):
     """Provides reaction on all events received from MQTT broker"""
@@ -153,7 +144,15 @@ if stored_exception==None:
     for recorder, configuration in cnfg.recorders.items():
         vr_list.append(vr_create(recorder, configuration, mqtt_client))
         cnt_instanse += 1
-
+        # Start Watchers for each recorder instance
+        Popen(cnfg.cmd_watcher(recorder = recorder), shell=True)
+    # Start Object Detector
+    object_detector = SelectObjectDetector(cnfg, logger_name = logger.name)
+    if not object_detector is None:
+        object_detector.start()
+    # Start HTTP web server
+    if cnfg.is_http_server:
+        Popen(cnfg.cmd_http_server(), shell=True)
     # Main loop start
     while True:
         try:
