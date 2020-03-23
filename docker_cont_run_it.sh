@@ -9,4 +9,4 @@ docker run -it \
   -v /opt/sxvrs/cnfg:/opt/sxvrs/cnfg \
   -v /opt/sxvrs/storage:/opt/sxvrs/storage \
   -v /opt/sxvrs/logs:/opt/sxvrs/logs \
-  sxvrs:latest
+  bugsmart/sxvrs:alpha
