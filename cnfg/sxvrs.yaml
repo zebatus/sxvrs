@@ -1,7 +1,7 @@
 mqtt:
   name_daemon: sxvrs_daemon
   name_http: sxvrs_http
-  server_host: 127.0.0.1
+  server_host: 172.17.0.1
   server_port: 1883
   server_keepalive: 60
   login:
