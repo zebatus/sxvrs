@@ -270,7 +270,7 @@ def view_recorder(recorder_name):
         enc = sys.getfilesystemencoding()
         # get recorder by name
         recorder = get_recorder_by_name(recorder_name)
-        recorder_dict = recorder_view_data(recorder, width=400, height=300)
+        recorder_dict = recorder_view_data(recorder, width=800, height=600)
         #show log for selected recorder
         logs_path = os.path.dirname(cnfg.data['logger']['handlers']['info_file_handler']['filename'])
         logs_file = 'sxvrs_daemon.log'
