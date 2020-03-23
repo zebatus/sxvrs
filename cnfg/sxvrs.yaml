@@ -46,7 +46,7 @@ global:
   filename_temp: "{storage_path}/{name}_{datetime:%H%M%S.%f}"
   filename_snapshot: "{storage_path}/snapshot.jpg"
   filename_video: "{storage_path}/{datetime:%Y-%m-%d}/{name}_{datetime:%Y%m%d_%H%M%S}.mp4"
-  cmd_ffmpeg_read: "ffmpeg -hide_banner -nostdin -nostats -rtsp_transport tcp -fflags nobuffer -flags low_delay -fflags +genpts+discardcorrupt -y -i {stream_url} -f rawvideo -pix_fmt rgb24 pipe:"
+  cmd_ffmpeg_read: "ffmpeg -hide_banner -nostdin -nostats -rtsp_transport tcp -flags low_delay -fflags +genpts+discardcorrupt -y -i {stream_url} -f rawvideo -pix_fmt rgb24 pipe:"
   cmd_ffmpeg_write: 'ffmpeg -hide_banner -nostdin -nostats -y -f rawvideo -vcodec rawvideo -s {width}x{height} -pix_fmt rgb{pixbytes} -r {pixbytes} -i - -an -vcodec mpeg4 "{filename}"'
   start_error_atempt_cnt: 10 # If process will not able to start for this number attempts, then it will go to sleep
   start_error_threshold: 10 # Minimum number of seconds, to understand that process is started normally
