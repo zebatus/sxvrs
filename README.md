@@ -1,8 +1,14 @@
 # SxVRS - Simple eXtendable Video Recording Script
 
-The main purpose of this script is to record rtsp stream from ip camera into a local file with goal to be as lightweight as possible.
-Actually, it runs shell commands in the loop to start such applications like ffmpeg (openrtsp, vlc, etc..)
-Keeps and maintains available disk space. Creates snapshots from files, run shell scripts etc..
+The main purpose of this application is to record rtsp stream from ip camera into a local file with goal to be as lightweight as possible, with providing high customization capabilities via YAML config file.
+
+Application can do:
+- Keeps and maintains available disk space. 
+- Creates snapshots from video source
+- Run motion detection
+- Run object detection
+- Send messages to mqtt broker
+- Implemented simple GUI via flask web server
 Each recording runs in separate thread, communications between threads are done by Mosquitto MQTT Server.
 
 To run this script you need:
