@@ -73,12 +73,11 @@ class config_reader():
             self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', 'not_defined')
             self.object_detector_local_gpu = cnfg['object_detector_local'].get('timeout', 0) # 0 means dissable GPU
         # HTTP Server configs
-        if 'http_server' in cnfg:
+        self.is_http_server = 'http_server' in cnfg
+        if self.is_http_server:
             self.http_server_host = cnfg['http_server'].get('host', '0.0.0.0')
             self.http_server_port = cnfg['http_server'].get('port', '8282')
-        else:
-            self.http_server_host = '0.0.0.0'
-            self.http_server_port = '8282'
+            self._http_server_cmd = cnfg['http_server'].get('cmd', 'python sxvrs_http.py')
         self._cmd_watcher = 'python sxvrs_watcher.py --name "{recorder}"'
         if 'cmd' in self.data:
             self._cmd_watcher = cnfg['cmd'].get('watcher', 'python sxvrs_watcher.py --name "{recorder}"')
@@ -91,11 +90,13 @@ class config_reader():
     @property
     def object_detector_local_model_filename(self):
         return self._object_detector_local_model_path.format(model_name=self.object_detector_local_model_name)
-    def cmd_watcher(self, **kwargs):
-        return self._cmd_watcher.format(**kwargs)
     @property
     def is_object_detection(self):
         return self.is_object_detector_cloud or (self.is_object_detector_local and 'tensorflow' in sys.modules)
+    def cmd_http_server(self, **kwargs):
+        return self._http_server_cmd.format(**kwargs)
+    def cmd_watcher(self, **kwargs):
+        return self._cmd_watcher.format(**kwargs)
 
 class recorder_configuration():
     """ Combines global and local parameter for given redcorder record
