@@ -103,7 +103,7 @@ global:
 
 
 recorders:
-  camera_1: #Source name
+  camera_1: 
     record_autostart: True
     ip: 192.168.1.10
     storage_max_size: 1 #GB

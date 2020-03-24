@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import yaml
-import sys
+import os, sys, shutil
 import logging, logging.config
 from datetime import datetime
 
@@ -27,6 +27,10 @@ class config_reader():
         """
         self.logger = logging.getLogger(f"config_reader")
         try:
+            # if there is no configuration file then create new one
+            if not os.path.isfile(filename):
+                shutil.copy('misc/default_config.yaml','cnfg')
+                os.rename('cnfg/default_config.yaml', filename) 
             with open(filename) as yaml_data_file:
                 txt_data = yaml_data_file.read()     
                 cnfg = yaml.load(txt_data, Loader=yaml.FullLoader)
@@ -148,7 +152,7 @@ class recorder_configuration():
         # shell command for recorder start (used in daemon thread)
         self._cmd_recorder_start = self.combine('cmd_recorder_start', 'python sxvrs_recorder.py -n {name}')
         # shell command to start ffmpeg and read frames (used inside recorder subprocess)
-        self._cmd_ffmpeg_read = self.combine('cmd_ffmpeg_read', default='ffmpeg -hide_banner -nostdin -nostats -fflags nobuffer -flags low_delay -fflags +genpts+discardcorrupt -y -i "{stream_url}" -f rawvideo -pix_fmt rgb24 pipe:')
+        self._cmd_ffmpeg_read = self.combine('cmd_ffmpeg_read', default='ffmpeg -hide_banner -nostdin -nostats -flags low_delay -fflags +genpts+discardcorrupt -y -i "{stream_url}" -f rawvideo -pix_fmt rgb24 pipe:')
         # shell command to start ffmpeg and write video from collected frames (used inside recorder subprocess)
         self._cmd_ffmpeg_write = self.combine('cmd_ffmpeg_write', default='ffmpeg -hide_banner -nostdin -nostats -y -f rawvideo -vcodec rawvideo -s {width}x{height} -pix_fmt rgb{pixbytes} -r {pixbytes} -i - -an -vcodec mpeg4 "{filename}"')
         # if there is too many errors to connect to video source, then try to sleep some time before new attempts
