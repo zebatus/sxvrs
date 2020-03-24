@@ -57,7 +57,7 @@ Available pages:
     - this link sends MQTT message {cmd:restart} to sxvrs_daemon script
 
   * http://localhost:8282/static/[filename]
-    - it is possible to provide files located in folder: /templates/static/* *(currently supported extensions are: 'jpeg','jpg','png','gif', 'css')*
+    - it is possible to provide files located in folder: /templates/static/* 
 
   * http://localhost:8282/recorder/[name]/snapshot/[width]/[height]
     - this link provides snapshot from the camera.
