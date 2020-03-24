@@ -267,7 +267,7 @@ def recorder_snapshot(recorder_name, width=None, height=None):
         filename = new_filename    
         return send_file(new_filename)
     else:
-        return send_file('/static/novideo.gif')
+        return send_file('templates/static/novideo.gif')
 
 @app.route('/recorder/<recorder_name>')
 def view_recorder(recorder_name):
