@@ -2,10 +2,13 @@ FROM python:3.7-slim
 WORKDIR /opt/sxvrs
 RUN mkdir -p logs
 RUN mkdir -p storage
+RUN mkdir cnfg
+#COPY cnfg cnfg
+RUN mkdir misc
+COPY misc/default_config.yaml misc/default_config.yaml
+COPY misc/kill.sh misc/kill.sh
 COPY cls cls
-COPY cnfg cnfg
 COPY templates templates
-COPY kill.sh kill.sh
 COPY README.md README.md
 COPY sxvrs_daemon.py sxvrs_daemon.py
 COPY sxvrs_http.py sxvrs_http.py
