@@ -39,7 +39,7 @@ Available mqtt messages:
     - returns complete informations about current status of the [instance]
 
 ******************************************************************************************
-## sxvrs_simplehttpserver.py
+## sxvrs_http.py
 This script is needed only when you whant to view your cameras from web browser. Actually it was created only for using inside HomeAssistant
 
 run:`env/bin/python sxvrs_http.py`
