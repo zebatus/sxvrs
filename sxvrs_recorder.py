@@ -122,11 +122,12 @@ while True:
             cv2.imwrite(f'{temp_frame_file}.bmp', frame_np)
             os.rename(f'{temp_frame_file}.bmp', f'{temp_frame_file}.rec')
     # save frame to video file
-    if not cmd_ffmpeg_write is None:
+    if not ffmpeg_write is None:
         ffmpeg_write.stdin.write(frame_np.tostring())
     dt_end = datetime.now()
     if (dt_end - dt_start).total_seconds() >= cnfg.record_time:
         break
     i += 1
-
+if not ffmpeg_write is None:
+    ffmpeg_write.stdin.flash()
 logger.debug(f"> Finish on: '{dt_end}'")
