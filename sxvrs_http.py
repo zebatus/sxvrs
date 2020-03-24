@@ -297,7 +297,7 @@ def view_recorder(recorder_name):
                 "title" : f"Camera: recorder_name",
                 "log_box" : log_box
             }
-            return render_template('restart.html', content=content, recorder=recorder_dict)
+            return render_template('recorder.html', content=content, recorder=recorder_dict)
 
 
 

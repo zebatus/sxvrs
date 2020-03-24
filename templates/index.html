@@ -9,7 +9,7 @@
         <h1>{{ content.title }} - Simply eXtandable Video Recording System</h1>
         {% if recorders  %}
             {% for recorder in recorders %}
-            <div class="vr_box"><div class="vr_link"><a href="{{ recorder.name }}">{{ recorder.name }}</a></div>
+            <div class="vr_box"><div class="vr_link"><a href="recorder/{{ recorder.name }}">{{ recorder.name }}</a></div>
             {% include 'recorder_widget.html' %}
             </div>
             {% endfor %}  
