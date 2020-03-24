@@ -25,3 +25,5 @@ typed-ast==1.4.1
 watchdog==0.10.2
 Werkzeug==1.0.0
 wrapt==1.11.2
+gevent==1.4.0
+greenlet==0.4.15
