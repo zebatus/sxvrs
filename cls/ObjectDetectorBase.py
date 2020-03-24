@@ -15,6 +15,7 @@ class ObjectDetectorBase():
     """
     def __init__(self, cnfg, logger_name='None'):
         self.logger = logging.getLogger(f"{logger_name}:ObjectDetector")
+        logging.getLogger("watchdog").setLevel(logging.ERROR)
         self.cnfg = cnfg
         # Mount RAM storage disk
         self.ram_storage = RAM_Storage(cnfg)
