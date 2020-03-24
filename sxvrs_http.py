@@ -319,11 +319,14 @@ if stored_exception==None:
     is_started = False    
     while not is_started:
         try:
-            app.run(
-                    host = cnfg.http_server_host, 
-                    port = cnfg.http_server_port, 
-                    #debug = True
-                )        
+            #app.run(
+            #        host = cnfg.http_server_host, 
+            #        port = cnfg.http_server_port, 
+            #        #debug = True
+            #    )
+            from gevent.pywsgi import WSGIServer
+            http_server = WSGIServer((cnfg.http_server_host, cnfg.http_server_port), app)
+            http_server.serve_forever()       
             is_started = True
         except OSError as e:
             if e.errno == 98:
