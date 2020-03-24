@@ -92,8 +92,9 @@ cmd_ffmpeg_read = cnfg.cmd_ffmpeg_read()
 logger.debug(f"Execute process to read frames:\n   {cmd_ffmpeg_read}")
 ffmpeg_read = Popen(cmd_ffmpeg_read, shell=True, stdout = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=frame_shape[0], width=frame_shape[1], pixbytes=frame_shape[2]*8)
-logger.debug(f"Execute process to write frames:\n  {cmd_ffmpeg_write}")
-ffmpeg_write = Popen(cmd_ffmpeg_write, shell=True, stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
+if not cmd_ffmpeg_write is None:
+    logger.debug(f"Execute process to write frames:\n  {cmd_ffmpeg_write}")
+    ffmpeg_write = Popen(cmd_ffmpeg_write, shell=True, stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 snapshot_taken_time = 0
 i = 0
 throtling = 0
@@ -109,7 +110,7 @@ while True:
         # check for throtling
         tmp_size = storage.get_folder_size(ram_storage.storage_path, f'{cnfg.name}_*')
         if tmp_size > cnfg.throtling_max_mem_size:
-            logger.error(f"Can't save frame to temporary RAM folder. There are too many files for recorder: {cnfg.name}.\n Size occupied: {tmp_size}\n Max size: cnfg.throtling_max_mem_size")
+            logger.error(f"Can't save frame to temporary RAM folder. There are too many files for recorder: {cnfg.name}.\n Size occupied: {tmp_size}\n Max size: {cnfg.throtling_max_mem_size}")
         elif tmp_size > cnfg.throtling_min_mem_size:
             throtling += throtling + 1
             logger.warning(f"Start frame throtling ({throtling}) for recorder: {cnfg.name}")
@@ -121,7 +122,8 @@ while True:
             cv2.imwrite(f'{temp_frame_file}.bmp', frame_np)
             os.rename(f'{temp_frame_file}.bmp', f'{temp_frame_file}.rec')
     # save frame to video file
-    ffmpeg_write.stdin.write(frame_np.tostring())
+    if not cmd_ffmpeg_write is None:
+        ffmpeg_write.stdin.write(frame_np.tostring())
     dt_end = datetime.now()
     if (dt_end - dt_start).total_seconds() >= cnfg.record_time:
         break

@@ -1,6 +1,8 @@
 __pycache__/
 logs/*
 storage/*
+models/*
+cnfg/*
 .vscode/*
 extra/*
 env/*

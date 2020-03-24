@@ -147,6 +147,13 @@ def recorder_view_data(recorder, width=None, height=None):
     """ This function prepares dictionary for displaying recorder
     """
     res = {
+        "name": recorder.name,
+        "error_cnt": recorder.error_cnt,
+        "status": recorder.status,
+        "latest_file": recorder.latest_file,
+        "widget_err": '_',
+        "widget_status": '_',
+        "widget_latest_file": '_',
         "width": width,
         "height": height
     }
@@ -183,7 +190,7 @@ def page_index():
     refresh_recorder_status()
     recorder_dict_list = []
     for recorder_name in recorders:
-        recorder_dict_list.append(recorder_view_data(recorders[recorder_name], width=200, height=150))
+        recorder_dict_list.append(recorder_view_data(recorders[recorder_name], width=400, height=300))
     content = {
         "title": "SXVRS"
     }
@@ -251,8 +258,16 @@ def page_restart(name):
 def recorder_snapshot(recorder_name, width=None, height=None):
     # get snapshot name for the recorder
     filename = cnfg.recorders[recorder_name].filename_snapshot()
-    #TODO: need to resize image
-    return send_file(filename)
+    if os.path.isfile(filename):
+        # resize image
+        new_filename = f'{filename}.{width}x{height}.jpg'
+        cmd = f'convert {filename} -resize {width}x{height}\> {new_filename}'
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
+        process.wait(20)
+        filename = new_filename    
+        return send_file(new_filename)
+    else:
+        return send_file('/static/novideo.gif')
 
 @app.route('/recorder/<recorder_name>')
 def view_recorder(recorder_name):
@@ -260,7 +275,7 @@ def view_recorder(recorder_name):
         enc = sys.getfilesystemencoding()
         # get recorder by name
         recorder = get_recorder_by_name(recorder_name)
-        recorder_dict = recorder_view_data(recorder, width=400, height=300)
+        recorder_dict = recorder_view_data(recorder, width=800, height=600)
         #show log for selected recorder
         logs_path = os.path.dirname(cnfg.data['logger']['handlers']['info_file_handler']['filename'])
         logs_file = 'sxvrs_daemon.log'
@@ -304,11 +319,14 @@ if stored_exception==None:
     is_started = False    
     while not is_started:
         try:
-            app.run(
-                    host = cnfg.http_server_host, 
-                    port = cnfg.http_server_port, 
-                    #debug = True
-                )        
+            #app.run(
+            #        host = cnfg.http_server_host, 
+            #        port = cnfg.http_server_port, 
+            #        #debug = True
+            #    )
+            from gevent.pywsgi import WSGIServer
+            http_server = WSGIServer((cnfg.http_server_host, cnfg.http_server_port), app)
+            http_server.serve_forever()       
             is_started = True
         except OSError as e:
             if e.errno == 98:
