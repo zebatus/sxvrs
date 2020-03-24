@@ -62,7 +62,7 @@ dt_start = datetime.now()
 # Load configuration files
 cnfg_daemon = config_reader(
         os.path.join('cnfg' ,'sxvrs.yaml'), 
-        log_filename = f'recorder_{_name}'
+        log_filename = f'watcher_{_name}'
     )
 logger = logging.getLogger(f"{script_name}:{_name}")
 logger.debug(f"> Start on: '{dt_start}'")
