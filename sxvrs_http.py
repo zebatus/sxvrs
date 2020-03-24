@@ -301,12 +301,14 @@ def view_recorder(recorder_name):
 
 
 
+@app.route('/recorder/<recorder_name>/Start')
 @app.route('/recorder/<recorder_name>/start')
 def recorder_start(recorder_name):
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'start'}))
     time.sleep(2) # sleep before refresh, to give time to update data
     redirect(url_for(view_recorder))
 
+@app.route('/recorder/<recorder_name>/Stop')
 @app.route('/recorder/<recorder_name>/stop')
 def recorder_stop(recorder_name):
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'stop'}))
