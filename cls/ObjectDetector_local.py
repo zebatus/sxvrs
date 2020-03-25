@@ -2,13 +2,14 @@
 
 import os, sys, logging
 import numpy as np
-import tensorflow as tf
 import cv2
 import time
-
+try:
+    import tensorflow as tf
+    logging.info('Loaded tensorflow version: '+ tf.__version__)
+except:
+    logging.warning('tensorflow is not installed')
 from cls.ObjectDetectorBase import ObjectDetectorBase
-
-logging.info('Loaded tensorflow version: '+ tf.__version__)
 
 class ObjectDetector_local(ObjectDetectorBase):
     """ Object Detection using local CPU or GPU. Make sure that you have enought CPU/GPU available, otherwice use cloud detection
