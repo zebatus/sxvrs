@@ -23,7 +23,7 @@ class ObjectDetectorBase():
         self.storage = StorageManager(cnfg.temp_storage_path, cnfg.temp_storage_size, logger_name = self.logger.name)
         # Create wachdog observer for folder monitoring
         patterns = "*.obj.wait"
-        ignore_patterns = "*"
+        ignore_patterns = ""
         ignore_directories = True
         case_sensitive = True
         event_handler = PatternMatchingEventHandler(patterns, ignore_patterns, ignore_directories, case_sensitive)
