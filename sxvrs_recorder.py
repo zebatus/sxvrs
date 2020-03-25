@@ -100,6 +100,9 @@ i = 0
 throtling = 0
 while True:
     frame_bytes = ffmpeg_read.stdout.read(frame_size)
+    if len(frame_bytes)==0:
+        logging.error("Received zero length frame. exiting recording loop..")
+        break
     frame_np = (np.frombuffer(frame_bytes, np.uint8).reshape(frame_shape)) 
     # take snapshot
     if time() - snapshot_taken_time > cnfg.snapshot_time:
