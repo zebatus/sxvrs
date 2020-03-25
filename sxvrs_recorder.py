@@ -129,6 +129,4 @@ while True:
     if (dt_end - dt_start).total_seconds() >= cnfg.record_time:
         break
     i += 1
-if not ffmpeg_write is None:
-    ffmpeg_write.stdin.flash()
 logger.debug(f"> Finish on: '{dt_end}'")
