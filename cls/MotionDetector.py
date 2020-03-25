@@ -77,7 +77,7 @@ class MotionDetector():
                     cv2.CHAIN_APPROX_SIMPLE)
                 contours = imutils.grab_contours(contours)            
                 if len(contours)>self.cnfg.motion_contour_max_count:                    
-                    self.logger.debug(f"Too many counturs found: '{len(contours)} > {self.cnfg.motion_contour_max_count}'. Skipping..")
+                    self.logger.warning(f"Too many counturs found: '{len(contours)} > {self.cnfg.motion_contour_max_count}'. Skipping..")
                     return None
                 else:
                     self.logger.debug(f"Counturs found: '{len(contours)}'")
