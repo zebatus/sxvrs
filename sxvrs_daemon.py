@@ -50,6 +50,7 @@ logger.debug(f"> Start on: '{dt_start}'")
 
 # Mount RAM storage disk
 ram_storage = RAM_Storage(cnfg, logger_name = logger.name)
+ram_storage.clear()
 
 # MQTT event listener
 def on_mqtt_message(client, userdata, message):

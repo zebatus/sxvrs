@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import shutil
 import logging
 from subprocess import Popen
 
@@ -22,5 +23,9 @@ class RAM_Storage():
     def unmount(self):
         if os.path.isdir(self.storage_path):
             Popen(self.cmd_unmount, shell=True)
+    
+    def clear(self):
+        if os.path.isdir(self.storage_path):
+            shutil.rmtree(self.storage_path, ignore_errors=False)
 
     
