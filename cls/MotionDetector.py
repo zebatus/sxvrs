@@ -76,6 +76,7 @@ class MotionDetector():
                     cv2.CHAIN_APPROX_SIMPLE)
                 contours = imutils.grab_contours(contours)            
                 if len(contours)>self.cnfg.motion_contour_max_count:
+                    self.save_debug_img(img_new, img_prev, img_delta, img_thresh, filename = '/dev/shm/debug.jpg')
                     self.logger.debug(f"Too many counturs found: '{len(contours)} > {self.cnfg.motion_contour_max_count}'. Skipping..")
                     return None
                 else:
@@ -95,8 +96,7 @@ class MotionDetector():
                 # remove image from background list if it is not static
                 self.background_check()
                 # save image for debug
-                if not self.cnfg._filename_debug is None:
-                    self.save_debug_img(img_new, img_prev, img_delta, img_thresh, filename = self.cnfg.filename_debug())
+                self.save_debug_img(img_new, img_prev, img_delta, img_thresh, filename = self.cnfg.filename_debug())
                 # count number of changed frames                
                 self.cnt_frames_changed += 1
                 self.cnt_frames_static = 0
@@ -143,15 +143,17 @@ class MotionDetector():
             return int(value.strip())
 
     def save_debug_img(self, img_new, img_prev, img_delta, img_thresh, filename=None):
-        """Function needed just for debugging and tuning motion detection. It saves: comparing frames and their substraction"""
-        if 'filename_debug' in self.cnfg['snapshot_detector']:
-            if filename is None:
+        """Function needed just for debugging and tuning motion detection. It saves: comparing frames and their substraction"""        
+        if filename is None:
+            if not self.cnfg._filename_debug is None:
                 filename = self.cnfg.filename_debug()
-            # create path if it is not exists
-            path = os.path.dirname(filename)
-            if not os.path.exists(path):
-                os.makedirs(path)
-            im_1 = np.concatenate((img_prev, img_new), axis=1)
-            im_2 = np.concatenate((img_delta, img_thresh), axis=1)
-            im_debug = np.concatenate((im_1, im_2), axis=0)
-            cv2.imwrite(filename, im_debug)
+            else:
+                return
+        # create path if it is not exists
+        path = os.path.dirname(filename)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        im_1 = np.concatenate((img_prev, img_new), axis=1)
+        im_2 = np.concatenate((img_delta, img_thresh), axis=1)
+        im_debug = np.concatenate((im_1, im_2), axis=0)
+        cv2.imwrite(filename, im_debug)
