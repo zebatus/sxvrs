@@ -24,6 +24,10 @@ class Recorder():
         if 'latest_file' in values:
             self.latest_file = values['latest_file']
 
+def check_package_is_installed(name='tensorflow'):
+    import importlib
+    return importlib.util.find_spec(name) is not None
+
 def SelectObjectDetector(cnfg, logger_name='None'):
     """ This function selects required ObjectDetector based on config value 
     """
@@ -31,7 +35,7 @@ def SelectObjectDetector(cnfg, logger_name='None'):
         from cls.ObjectDetector_cloud import ObjectDetector_cloud
         return ObjectDetector_cloud(cnfg, logger_name)
     elif cnfg.is_object_detector_local:
-        if 'tensorflow' in sys.modules:
+        if check_package_is_installed('tensorflow'):
             from cls.ObjectDetector_local import ObjectDetector_local
             return ObjectDetector_local(cnfg, logger_name)
         else:
