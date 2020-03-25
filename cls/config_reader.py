@@ -164,13 +164,13 @@ class recorder_configuration():
         # How many frames will be skipped between motion detection
         self.frame_skip = self.combine('frame_skip', default=5)
         # if on RAM disk there will be too many files, then start to increase frame skiping
-        self.throtling_min_mem_size = self.combine('throtling_min_mem_size', default=5)*1024*1024
+        self.throtling_min_mem_size = self.combine('throtling_min_mem_size', default=16)*1024*1024
         # if total size of files exceeds maximum value, then dissable frame saving to RAM folder
-        self.throtling_max_mem_size = self.combine('throtling_max_mem_size', default=10)*1024*1024
+        self.throtling_max_mem_size = self.combine('throtling_max_mem_size', default=32)*1024*1024
         ### watcher params ###        
         # before motion detection, we can resize image to reduce calculations
-        self.motion_detector_max_image_height = self.combine('max_image_height', group='motion_detector', default=300)
-        self.motion_detector_max_image_width = self.combine('max_image_width', group='motion_detector', default=300)
+        self.motion_detector_max_image_height = self.combine('max_image_height', group='motion_detector', default=128)
+        self.motion_detector_max_image_width = self.combine('max_image_width', group='motion_detector', default=128)
         # number of frames to remember for the background (selected randomly)
         self.motion_detector_bg_frame_count = self.combine('bg_frame_count', group='motion_detector', default=5)
         # threshold for binarizing image difference in motion detector
@@ -186,7 +186,7 @@ class recorder_configuration():
             # if changes are too big (i.e. all image is changed) then ignore it
             self.motion_contour_max_area = _motion_contour_detection.get('max_area', "50%")
             # if there are too many contours, than there is an interference (such as rain, snow etc..)
-            self.motion_contour_max_count = _motion_contour_detection.get('max_count', '30')
+            self.motion_contour_max_count = _motion_contour_detection.get('max_count', '100')
         # if <contour_detection> is not enabled, then trigger detect event by difference threshold
         self.detect_by_diff_threshold = self.combine('detect_by_diff_threshold', group='motion_detector', default=1.5)
         # min_frames_changes: 4 - how many frames must be changed, before triggering for the montion start
