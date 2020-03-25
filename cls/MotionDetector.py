@@ -32,11 +32,11 @@ class MotionDetector():
         # Calculate scale coefitient only once, in case it is not defined yet
         if self.scale is None:
             if height > self.cnfg.motion_detector_max_image_height:
-                scale_height = height > self.cnfg.motion_detector_max_image_height
+                scale_height = self.cnfg.motion_detector_max_image_height / height
             else:
                 scale_height = 1
             if width > self.cnfg.motion_detector_max_image_width:
-                scale_width = width > self.cnfg.motion_detector_max_image_width
+                scale_width = self.cnfg.motion_detector_max_image_width / width
             else:
                 scale_width = 1
             self.scale = min(scale_height, scale_width)
@@ -47,6 +47,7 @@ class MotionDetector():
             frame = cv2.resize(frame_orig, (width, height))
         else:
             frame = frame_orig
+        self.logger.debug(f"height:{height} width:{width} | {self.cnfg.motion_detector_max_image_height}")
         # Prepare image for comparing
         img_new = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #img_new = cv2.GaussianBlur(img_new, (self.blur_size, self.blur_size), 0)
@@ -75,8 +76,7 @@ class MotionDetector():
                 contours = cv2.findContours(img_thresh.copy(), cv2.RETR_EXTERNAL,
                     cv2.CHAIN_APPROX_SIMPLE)
                 contours = imutils.grab_contours(contours)            
-                if len(contours)>self.cnfg.motion_contour_max_count:
-                    self.save_debug_img(img_new, img_prev, img_delta, img_thresh, filename = '/dev/shm/debug.jpg')
+                if len(contours)>self.cnfg.motion_contour_max_count:                    
                     self.logger.debug(f"Too many counturs found: '{len(contours)} > {self.cnfg.motion_contour_max_count}'. Skipping..")
                     return None
                 else:
@@ -96,7 +96,7 @@ class MotionDetector():
                 # remove image from background list if it is not static
                 self.background_check()
                 # save image for debug
-                self.save_debug_img(img_new, img_prev, img_delta, img_thresh, filename = self.cnfg.filename_debug())
+                self.save_debug_img(img_new, img_prev, img_delta, img_thresh)
                 # count number of changed frames                
                 self.cnt_frames_changed += 1
                 self.cnt_frames_static = 0
