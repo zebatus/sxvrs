@@ -22,19 +22,23 @@ class ObjectDetectorBase():
         # Create storage manager
         self.storage = StorageManager(cnfg.temp_storage_path, cnfg.temp_storage_size, logger_name = self.logger.name)
         # Create wachdog observer for folder monitoring
-        patterns = "*.obj.wait"
-        ignore_patterns = ""
-        ignore_directories = True
-        case_sensitive = True
-        event_handler = PatternMatchingEventHandler(patterns, ignore_patterns, ignore_directories, case_sensitive)
-        event_handler.on_created = self.on_file_available
-        event_handler.on_moved = self.on_file_available        
+        self.event_handler = PatternMatchingEventHandler(
+                patterns = ["*.obj.wait"], 
+                #ignore_patterns=["*.rec","*.wch","*.obj.start"], 
+                ignore_directories = True, 
+                case_sensitive = True
+                )
+        #event_handler.on_created = self.on_file_available
+        #event_handler.on_any_event = self.on_file_available                
+        self.event_handler.on_moved = self.on_file_available    
         self.observer = Observer()
-        self.observer.schedule(event_handler, f"{self.ram_storage.storage_path}/")
+        self.observer.schedule(self.event_handler, f"{self.ram_storage.storage_path}/")
 
     def on_file_available(self, event):
-        self.logger.debug(f"Watchdog: Found file {event.src_path}")
-        filename_wait = event.src_path
+        if event.dest_path[-9:] != ".obj.wait":
+            return
+        self.logger.debug(f"Watchdog: Found file {event.dest_path}")
+        filename_wait = event.dest_path
         filename_start = f"{filename_wait[:-5]}.start"
         os.rename(filename_wait, filename_start)
         self.detect(filename_start)

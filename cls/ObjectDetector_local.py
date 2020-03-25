@@ -4,6 +4,7 @@ import os, sys, logging
 import numpy as np
 import cv2
 import time
+import json
 try:
     import tensorflow as tf
     logging.info('Loaded tensorflow version: '+ tf.__version__)
@@ -71,6 +72,7 @@ class ObjectDetector_local(ObjectDetectorBase):
             (boxes, scores, classes, num) = self.tf_sess.run(
                 [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
                 feed_dict={self.image_tensor: image_np_expanded})
+            time_elapsed = time.time() - start_time
             scores = scores[0].tolist()
             classes = [int(x) for x in classes[0].tolist()]            
             for i in range(len(boxes)):
@@ -83,10 +85,17 @@ class ObjectDetector_local(ObjectDetectorBase):
                     'box': box,
                     'score': scores[i],
                     'class': self.labels[classes[i]],
-                    'num': int(num[0])
-                })
-            result['elapsed'] = time.time() - start_time         
-            self.logger.debug(f"ObjectDetector Elapsed Time:{result['elapsed']} : \n {result}", )
+                    'num': int(num[0]),
+                    'elapsed': time_elapsed, 
+                }) 
+            if len(result)>0:
+                filename_obj_found = f"{filename[:-10]}.obj.found"
+                os.rename(filename, filename_obj_found)
+                with open(filename_obj_found+'.info', 'w') as f:
+                    f.write(json.dumps(result))
+            else:
+                os.rename(filename, f"{filename[:-9]}.obj.none") 
+            self.logger.debug(f"ObjectDetector Elapsed Time:{time_elapsed} : \n {result}")
         return result   
     
     def close(self):
