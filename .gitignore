@@ -7,6 +7,6 @@ cnfg/*
 extra/*
 env/*
 env36/*
-env38/*
+env*/*
 envw/*
 !.gitkeep 
