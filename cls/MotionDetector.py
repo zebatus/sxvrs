@@ -47,7 +47,6 @@ class MotionDetector():
             frame = cv2.resize(frame_orig, (width, height))
         else:
             frame = frame_orig
-        self.logger.debug(f"height:{height} width:{width} | {self.cnfg.motion_detector_max_image_height}")
         # Prepare image for comparing
         img_new = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #img_new = cv2.GaussianBlur(img_new, (self.blur_size, self.blur_size), 0)
