@@ -4,6 +4,10 @@ import yaml
 import os, sys, shutil
 import logging, logging.config
 from datetime import datetime
+import importlib
+
+import importlib
+is_tensorflow = importlib.util.find_spec("tensorflow") is not None
 
 def dict_templ_replace(dictionary, **kwargs):
     """ Function runs over dictionary keys and replace template values
@@ -96,7 +100,7 @@ class config_reader():
         return self._object_detector_local_model_path.format(model_name=self.object_detector_local_model_name)
     @property
     def is_object_detection(self):
-        return self.is_object_detector_cloud or (self.is_object_detector_local and 'tensorflow' in sys.modules)
+        return self.is_object_detector_cloud or (self.is_object_detector_local and is_tensorflow)
     def cmd_http_server(self, **kwargs):
         return self._http_server_cmd.format(**kwargs)
     def cmd_watcher(self, **kwargs):
