@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
-# dependency: pip install watchdog
-
 import os, logging
 import glob
-from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
+import time
 
 from cls.StorageManager import StorageManager
 from cls.RAM_Storage import RAM_Storage
@@ -15,33 +12,27 @@ class ObjectDetectorBase():
     """
     def __init__(self, cnfg, logger_name='None'):
         self.logger = logging.getLogger(f"{logger_name}:ObjectDetector")
-        logging.getLogger("watchdog").setLevel(logging.ERROR)
         self.cnfg = cnfg
         # Mount RAM storage disk
         self.ram_storage = RAM_Storage(cnfg)
         # Create storage manager
         self.storage = StorageManager(cnfg.temp_storage_path, cnfg.temp_storage_size, logger_name = self.logger.name)
-        # Create wachdog observer for folder monitoring
-        self.event_handler = PatternMatchingEventHandler(
-                patterns = ["*.obj.wait"], 
-                #ignore_patterns=["*.rec","*.wch","*.obj.start"], 
-                ignore_directories = True, 
-                case_sensitive = True
-                )
-        #event_handler.on_created = self.on_file_available
-        #event_handler.on_any_event = self.on_file_available                
-        self.event_handler.on_moved = self.on_file_available    
-        self.observer = Observer()
-        self.observer.schedule(self.event_handler, f"{self.ram_storage.storage_path}/")
 
-    def on_file_available(self, event):
-        if event.dest_path[-9:] != ".obj.wait":
-            return
-        self.logger.debug(f"Watchdog: Found file {event.dest_path}")
-        filename_wait = event.dest_path
-        filename_start = f"{filename_wait[:-5]}.start"
-        os.rename(filename_wait, filename_start)
-        self.detect(filename_start)
+    def run(self):
+        """ This function for running main loop: scan folder for files and start processing them
+        """
+        while True:
+            filename = self.storage.get_first_file(f"{self.ram_storage.storage_path}/*.obj.wait")
+            if filename is None:
+                sleep_time = 1
+                self.logger.debug(f'No new files for object detection. Sleep {sleep_time} sec')
+                time.sleep(sleep_time)
+                continue
+            if filename[-9:] == ".obj.wait":
+                self.logger.debug(f"ObjectDetector: Found file: {filename}")
+                filename_start = f"{filename[:-5]}.start"
+                os.rename(filename, filename_start)
+                self.detect(filename_start)
 
     def detect(self, filename):
         """ Abstract method, must be implementet inside derived classes
