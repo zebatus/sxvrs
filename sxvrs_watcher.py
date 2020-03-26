@@ -112,9 +112,12 @@ while True:
                     info = json.load(f)
                 # Take actions on image where objects was found
                 action_manager.run(filename_obj_found, info) 
-                # Remove temporary file
-                os.remove(filename_obj_found+'.info')
-                os.remove(filename_obj_found)
+                # Remove temporary files
+                try:
+                    os.remove(filename_obj_found)
+                    os.remove(filename_obj_found+'.info')
+                except:
+                    logger.exception('Can''t delete temporary files')
         else: # in case if object detection is dissabled
             # TODO: notify recorder that object detected
             os.remove(filename_wch)
