@@ -16,6 +16,7 @@ import matplotlib.path as mplPath
 import smtplib
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 from cls.Painter import Painter
 
@@ -30,22 +31,21 @@ class ActionManager():
     def run(self, obj_detected_file=None, obj_detection_results=None):
         for action in self.cnfg.actions:
             action = self.cnfg.actions[action]
-            for obj_detected in obj_detection_results:
-                if self.check_action(action_cnfg=action, data=obj_detected):
-                    if action['type']=='draw':
-                        self.draw_box(
-                            action_cnfg=action, 
-                            obj_detection_results = obj_detected,
-                            filename_in = obj_detected_file, 
-                            filename_out = obj_detected_file
-                            )
-                    elif action['type']=='mail':                    
-                        self.send_mail(obj_detected_file, config=action)
-                    elif action['type']=='copy':                    
-                        self.copy_file(
-                            action.file_source(filename=obj_detected_file), 
-                            action.file_target(name=self.cnfg.name, datetime=datetime.now())
-                            )
+            if self.check_action(action_cnfg=action, data=obj_detection_results):
+                if action.type=='draw':
+                    self.draw_box(
+                        action_cnfg=action, 
+                        obj_detection_results = obj_detection_results,
+                        filename_in = obj_detected_file, 
+                        filename_out = obj_detected_file
+                        )
+                elif action.type=='mail':                    
+                    self.send_mail(obj_detected_file, config=action)
+                elif action.type=='copy':                    
+                    self.copy_file(
+                        action.file_source(filename=obj_detected_file), 
+                        action.file_target(name=self.cnfg.name, datetime=datetime.now())
+                        )
 
     def check_action(self, action_cnfg, data):
         """Function will check if the returned data is "ok" and if it fits config params, will return True, to run further action"""
@@ -53,14 +53,10 @@ class ActionManager():
             if action_cnfg is None:
                 return True
             else:
-                tobe_detected = action_cnfg.get('objects')
-                if tobe_detected is None:
-                    tobe_detected = []
-                else:
-                    tobe_detected = list(map(str.strip, tobe_detected.split(',')))
-                score_min = action_cnfg.get('score', 0)
+                tobe_detected = action_cnfg.objects
+                score_min = action_cnfg.score
                 #score_min = 0 if score_min=='' else score_min
-                area = action_cnfg.get('area',[])
+                area = action_cnfg.area
                 found = False
                 i = 0
                 detected = data.get('objects')
@@ -103,22 +99,24 @@ class ActionManager():
         """Function will send email message with attchment of catured snapshot"""
         # Create the container (outer) email message.
         msg = MIMEMultipart()
-        msg['Subject'] = config['subject']
-        # me == the sender's email address
-        # family = the list of all recipients' email addresses
-        msg['From'] = config['from']
-        msg['To'] = config['to']
-        msg.preamble = 'Our family reunion'
-        # Open the files in binary mode.  Let the MIMEImage class automatically
-        # guess the specific image type.
+        msg['Subject'] = config.subject
+        msg['From'] = config.mail_from
+        msg['To'] = config.mail_to
+        msg.preamble = 'Object Detection'        
+        #msg.attach(MIMEText('some text here','plain'))
+        # TODO: convert into jpeg (maybe via actions)
         with open(filename, 'rb') as fp:
             img = MIMEImage(fp.read())
         msg.attach(img)
-        # Send the email via our own SMTP server.
         #s = smtplib.SMTP('localhost')
         s = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        s.login(config['user'], config['pass'])
-        s.sendmail(config['from'], [config['to']], msg.as_string())
+        #s = smtplib.SMTP("smtp.gmail.com", 587)
+        #s.ehlo()
+        #s.starttls()
+        s.login(config.user, config.password)
+        #s.send_message(msg)
+        text = msg.as_string()
+        s.sendmail(config.mail_from, [config.mail_to], text)
         s.quit()
 
     def copy_file(self, file_source, file_target):
