@@ -66,7 +66,7 @@ class ObjectDetector_local(ObjectDetectorBase):
     def detect(self, filename):
         """ Object Detection using CPU or GPU
         """
-        result = []
+        objects = []
         if self.load_image(filename):
             # Expand dimensions since the trained_model expects images to have shape: [1, None, None, 3]
             image_np_expanded = np.expand_dims(self.image, axis=0)
@@ -74,7 +74,6 @@ class ObjectDetector_local(ObjectDetectorBase):
             (boxes, scores, classes, num) = self.tf_sess.run(
                 [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
                 feed_dict={self.image_tensor: image_np_expanded})
-            time_elapsed = time.time() - start_time
             scores = scores[0].tolist()
             classes = [int(x) for x in classes[0].tolist()]            
             for i in range(len(boxes)):
@@ -83,21 +82,25 @@ class ObjectDetector_local(ObjectDetectorBase):
                         int(boxes[0,i,1] * self.original_width),
                         int(boxes[0,i,2] * self.original_height),
                         int(boxes[0,i,3] * self.original_width))
-                result.append({
+                objects.append({
                     'box': box,
                     'score': scores[i],
                     'class': self.labels[classes[i]],
-                    'num': int(num[0]),
-                    'elapsed': time_elapsed, 
+                    'num': int(num[0]),                     
                 }) 
-            if len(result)>0:
+            if len(objects)>0:
                 filename_obj_found = f"{filename[:-10]}.obj.found"
                 os.rename(filename, filename_obj_found)
+                result = {
+                    'result': 'ok',
+                    'objects': objects,
+                    'elapsed': time.time() - start_time,
+                }
                 with open(filename_obj_found+'.info', 'w') as f:
                     f.write(json.dumps(result))
             else:
                 os.rename(filename, f"{filename[:-9]}.obj.none") 
-            self.logger.debug(f"ObjectDetector Elapsed Time:{time_elapsed} : \n {result}")
+            self.logger.debug(f"ObjectDetector Elapsed Time:{result['elapsed']} : \n {result}")
         return result   
     
     def close(self):
