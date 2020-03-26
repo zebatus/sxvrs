@@ -207,13 +207,16 @@ class recorder_configuration():
             self.actions[action] = action_configuration(cnfg, recorder_name=self.name, action_name=action)
 
     def filename_debug(self, **kwargs):
-        if 'name' not in kwargs:
-            kwargs['name'] = self.name
-        if 'datetime' not in kwargs:
-            kwargs['datetime'] = datetime.now()
-        if 'storage_path' not in kwargs:
-            kwargs['storage_path'] = self.storage_path()
-        return self._filename_debug.format(**kwargs)
+        try:
+            if 'name' not in kwargs:
+                kwargs['name'] = self.name
+            if 'datetime' not in kwargs:
+                kwargs['datetime'] = datetime.now()
+            if 'storage_path' not in kwargs:
+                kwargs['storage_path'] = self.storage_path()
+            return self._filename_debug.format(**kwargs)
+        except:
+            return None
 
     def stream_url(self, **kwargs):
         if 'name' not in kwargs:
@@ -327,7 +330,7 @@ class action_configuration():
         self._file_target = self.combine('target', group='file', default='{filename}')
         #   for type = 'draw'
         # used for width of the drawing box border
-        self.draw_brush_size = self.combine('brush_size', default = 1)
+        self.brush_size = self.combine('brush_size', default = 1)
         # quality for JPEG compression
         self.jpeg_quality = self.combine('jpeg_quality', default = 90)
         #   for type = 'mail'
