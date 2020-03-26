@@ -106,10 +106,12 @@ while True:
             for filename_obj_none in obj_none_list:
                 os.remove(filename_obj_none)
             obj_found_list = storage.get_file_list(f"{ram_storage.storage_path}/{_name}_*.obj.found")
-            for filename_obj_found in obj_found_list:
-                # Read info file
-                with open(filename_obj_found+'.info') as f:
-                    info = json.load(f)
+            for filename_obj_found in obj_found_list:                
+                try: # Read info file
+                    with open(filename_obj_found+'.info') as f:
+                        info = json.loads(f.read())
+                except:
+                    logger.exception('Can''t load info file')
                 # Take actions on image where objects was found
                 action_manager.run(filename_obj_found, info) 
                 # Remove temporary files

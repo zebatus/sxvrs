@@ -30,21 +30,22 @@ class ActionManager():
     def run(self, obj_detected_file=None, obj_detection_results=None):
         for action in self.cnfg.actions:
             action = self.cnfg.actions[action]
-            if self.check_action(action_cnfg=action, data=obj_detection_results):
-                if action['type']=='draw':
-                    self.draw_box(
-                        action_cnfg=action, 
-                        obj_detection_results = obj_detection_results,
-                        filename_in = obj_detected_file, 
-                        filename_out = obj_detected_file
-                        )
-                elif action['type']=='mail':                    
-                    self.send_mail(obj_detected_file, config=action)
-                elif action['type']=='copy':                    
-                    self.copy_file(
-                        action.file_source(filename=obj_detected_file), 
-                        action.file_target(name=self.cnfg.name, datetime=datetime.now())
-                        )
+            for obj_detected in obj_detection_results:
+                if self.check_action(action_cnfg=action, data=obj_detected):
+                    if action['type']=='draw':
+                        self.draw_box(
+                            action_cnfg=action, 
+                            obj_detection_results = obj_detected,
+                            filename_in = obj_detected_file, 
+                            filename_out = obj_detected_file
+                            )
+                    elif action['type']=='mail':                    
+                        self.send_mail(obj_detected_file, config=action)
+                    elif action['type']=='copy':                    
+                        self.copy_file(
+                            action.file_source(filename=obj_detected_file), 
+                            action.file_target(name=self.cnfg.name, datetime=datetime.now())
+                            )
 
     def check_action(self, action_cnfg, data):
         """Function will check if the returned data is "ok" and if it fits config params, will return True, to run further action"""
