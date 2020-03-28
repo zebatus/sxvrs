@@ -78,7 +78,7 @@ class config_reader():
         if self.is_object_detector_local:
             self._object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', 'models/{model_name}/frozen_inference_graph.pb')
             self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', 'not_defined')
-            self.object_detector_local_gpu = cnfg['object_detector_local'].get('timeout', 0) # 0 means dissable GPU
+            self.object_detector_local_gpu = cnfg['object_detector_local'].get('gpu', 0) # 0 means dissable GPU
         # HTTP Server configs
         self.is_http_server = 'http_server' in cnfg
         if self.is_http_server:
@@ -180,7 +180,7 @@ class recorder_configuration():
         self.motion_detector_threshold = self.combine('motion_detector_threshold', group='motion_detector', default=15)
         # If defined <contour_detection> then it will try to detect motion by detecting contours inside the frame (slightly cpu expensive operation)
         _motion_detector = self.combine('motion_detector', default=[])  
-        self.is_motion_detection =  len(_motion_detector)>0
+        self.is_motion_detection =  self.combine('enabled', group='motion_detector', default=False)
         self.is_motion_contour_detection = 'contour_detection' in _motion_detector
         if self.is_motion_contour_detection:
             _motion_contour_detection = self.combine('contour_detection', group='motion_detector', default=[])

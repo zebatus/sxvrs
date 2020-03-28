@@ -31,7 +31,7 @@ object_detector_cloud:
 # If cloud server is not defined, then it is possible to use local CPU/GPU (make sure you installed thensorflow, cuda in your running environment)
 object_detector_local:
   model_name: faster_rcnn_resnet50_coco_2018_01_28
-  gpu: 0
+  gpu: 0 # 0 means dissable GPU
 
 # configure your recording instances by <global> or individual <recorders> blocks bellow
 global:
@@ -54,6 +54,8 @@ global:
   throtling_min_mem_size: 16 # [MB] if there are too many files on RAM disk, then start to increase frame skiping (throtling) (means that motion_detection or object detection are not fast enoght to process files)
   throtling_max_mem_size: 32 # [MB] if total size of files exceeds maximum value, then dissable frame saving to RAM folder (means that new frames are not added for processing if memory reaches max size)
   motion_detector:    
+    motion_detector:
+      enabled: True
     #max_image_width: 128 # If image bigger in width, it will be resized to this size. Default value is 128
     #max_image_height: 128 # If image bigger in width, it will be resized to this size. Default value is 128
     # bg_frame_count: 5 # number of frames to remember for the background (selected randomly)
