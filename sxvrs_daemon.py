@@ -149,8 +149,6 @@ if stored_exception==None:
         Popen(cnfg.cmd_watcher(recorder = recorder), shell=True)
     # Start Object Detector
     object_detector = SelectObjectDetector(cnfg, logger_name = logger.name)
-    if not object_detector is None:
-        object_detector.start()
     # Start HTTP web server
     if cnfg.is_http_server:
         Popen(cnfg.cmd_http_server(), shell=True)

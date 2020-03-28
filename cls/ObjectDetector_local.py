@@ -47,7 +47,7 @@ class ObjectDetector_local(ObjectDetectorBase):
             self.detection_classes = self.tf_sess.graph.get_tensor_by_name('detection_classes:0')
             self.num_detections = self.tf_sess.graph.get_tensor_by_name('num_detections:0')   
         # start watching folder for new incoming files and process each of them
-        self.run()
+        self.start()
 
     def load_image(self, filename):    
         if os.path.isfile(filename):

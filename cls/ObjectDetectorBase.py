@@ -13,14 +13,19 @@ class ObjectDetectorBase():
     def __init__(self, cnfg, logger_name='None'):
         self.logger = logging.getLogger(f"{logger_name}:ObjectDetector")
         self.cnfg = cnfg
+        self.is_started = False
         # Mount RAM storage disk
         self.ram_storage = RAM_Storage(cnfg)
         # Create storage manager
         self.storage = StorageManager(cnfg.temp_storage_path, cnfg.temp_storage_size, logger_name = self.logger.name)
 
-    def run(self):
+    def start(self):
         """ This function for running main loop: scan folder for files and start processing them
         """
+        if self.is_started:
+            self.logger.error('Object detector is already started')
+            return
+        self.is_started = True
         while True:
             filename = self.storage.get_first_file(f"{self.ram_storage.storage_path}/*.obj.wait")
             if filename is None:
@@ -47,11 +52,5 @@ class ObjectDetectorBase():
             filename_start = f"{filename_wait[:-5]}.start"
             os.rename(filename_wait, filename_start)
             self.detect(filename_start)
-    
-    def start(self):
-        self.observer.start()
 
-    def stop(self):
-        self.observer.stop()
-        self.observer.join()
 
