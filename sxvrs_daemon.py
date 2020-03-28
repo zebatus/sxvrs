@@ -145,8 +145,9 @@ if stored_exception==None:
     for recorder, configuration in cnfg.recorders.items():
         vr_list.append(vr_create(recorder, configuration, mqtt_client))
         cnt_instanse += 1
-        # Start Watchers for each recorder instance
-        Popen(cnfg.cmd_watcher(recorder = recorder), shell=True)
+        if configuration.is_motion_detection:
+            # Start Watchers for each recorder instance
+            Popen(cnfg.cmd_watcher(recorder = recorder), shell=True)
     # Start Object Detector
     object_detector = SelectObjectDetector(cnfg, logger_name = logger.name)
     # Start HTTP web server
