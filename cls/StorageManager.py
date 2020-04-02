@@ -14,6 +14,7 @@ class StorageManager():
     Removes most oldest files incase the size is exceeds limits
     """
     def __init__(self, storage_path, storage_max_size, logger_name='None'):
+        self.logger_name = logger_name
         self.logger = logging.getLogger(f"{logger_name}:StorageManager")
         self.storage_path = storage_path
         self.storage_max_size = storage_max_size
@@ -49,14 +50,14 @@ class StorageManager():
                 item['cumsum'] = cumsum
                 if(cumsum > max_size):
                     i = i + 1               
-                    self.logger.info(f"[{self.name}] Removing file {i}: {item['file']}")
+                    self.logger.info(f"Removing file {i}: {item['file']}")
                     os.remove(item['file'])
-                    self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name)
-                        , json.dumps({
-                                        'status': self.state_msg,
-                                        'deleted': item['file']
-                                        })
-                    )
+                    #self.mqtt_client.publish(self.cnfg['mqtt']['topic_publish'].format(source_name=self.name)
+                    #    , json.dumps({
+                    #                    'status': self.state_msg,
+                    #                    'deleted': item['file']
+                    #                    })
+                    #)
             # remove empty directories
             for (_path, _dirs, _files) in os.walk(self.storage_path, topdown=False):
                 if _files or _dirs: continue # skip remove
@@ -68,9 +69,10 @@ class StorageManager():
         except:
             self.logger.exception(f"Storage Cleanup Error")
 
-    def get_folder_size(self, path='.', file_pattern='*'):
+    def get_folder_size(self, path='.', file_pattern='*', init_list=True):
         total = 0
-        self.file_list = []
+        if init_list:
+            self.file_list = []
         for entry in scandir(path):
             if entry.is_file(follow_symlinks=False):
                 if glob.fnmatch.fnmatch(entry.name, file_pattern):
@@ -82,7 +84,7 @@ class StorageManager():
                             }
                     self.file_list.append(row)
             elif entry.is_dir(follow_symlinks=False):
-                total += self.get_folder_size(entry.path, file_pattern=file_pattern)
+                total += self.get_folder_size(entry.path, file_pattern=file_pattern, init_list=False)
         return total
 
 
