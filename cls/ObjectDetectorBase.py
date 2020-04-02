@@ -43,6 +43,11 @@ class ObjectDetectorBase():
         """ Abstract method, must be implementet inside derived classes
         """
         return NotImplemented
+    
+    def stop(self):
+        """ Abstract method, must be implementet inside derived classes
+        """
+        return True
 
     def scan_waiting_files(self):
         """ This function scans RAM folder to look for the images ready for ObjectDetection (i.e. .obj.wait extension)
