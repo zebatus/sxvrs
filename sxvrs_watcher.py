@@ -91,7 +91,10 @@ def thread_process(filename):
     global cnfg_daemon
     try:
         filename_wch = f"{filename[:-4]}.wch"
-        os.rename(filename, filename_wch)
+        try:
+            os.rename(filename, filename_wch)
+        except FileNotFoundError:
+            return
         filename = filename[:-4]
         is_motion = motion_detector.detect(filename_wch)
         if cnfg_daemon.is_object_detection:
