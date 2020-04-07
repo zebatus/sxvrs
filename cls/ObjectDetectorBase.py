@@ -3,6 +3,7 @@
 import os, logging
 import glob
 import time
+from threading import Thread
 
 from cls.StorageManager import StorageManager
 from cls.RAM_Storage import RAM_Storage
@@ -19,14 +20,10 @@ class ObjectDetectorBase():
         # Create storage manager
         self.storage = StorageManager(cnfg.temp_storage_path, cnfg.temp_storage_size, logger_name = self.logger.name)
 
-    def start(self):
-        """ This function for running main loop: scan folder for files and start processing them
+    def thread_watch(self):
+        """ Watch folder and wait for new files
         """
-        if self.is_started:
-            self.logger.error('Object detector is already started')
-            return
-        self.is_started = True
-        while True:
+        while self.is_started:
             try:
                 filename = self.storage.get_first_file(f"{self.ram_storage.storage_path}/*.obj.wait")
                 if filename is None:
@@ -40,16 +37,30 @@ class ObjectDetectorBase():
                     os.rename(filename, filename_start)
                     self.detect(filename_start)
             except:
-                self.logger.exception("Object Detection Error")
+                self.logger.exception(f"Object Detection Error: {filename}")
+
+    def start_watch(self):
+        """ This function for running main loop: scan folder for files and start processing them
+        """
+        if self.is_started:
+            self.logger.error('Object detector is already started')
+            return
+        self.is_started = True
+        self.thread = Thread(target=self.thread_watch, args=())
+        self.thread.start()
+        self.logger.debug("ObjectDetector start folder watching")
 
     def detect(self, filename):
         """ Abstract method, must be implementet inside derived classes
         """
         return NotImplemented
     
-    def stop(self):
+    def stop_watch(self):
         """ Abstract method, must be implementet inside derived classes
         """
+        self.is_started = False
+        self.thread.join()
+        self.logger.debug("ObjectDetector stop folder watching")
         return True
 
     def scan_waiting_files(self):

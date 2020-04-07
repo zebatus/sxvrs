@@ -14,12 +14,10 @@ class ObjectDetector_cloud(ObjectDetectorBase):
     def detect(self, filename):
         """ Publish image for object detection into cloud. Using separate thread.
         """
-        thread = threading.Thread(target=self.publish, args=(filename))
-        thread.daemon = True  # Daemonize thread
-        thread.start()        
+        self.publish(filename) 
 
     def publish(self, filename):
-        """ This method runs in separate thread.It encrypts file, publish it to remote server and wait for the result.
+        """ This method encrypts file, publish it to remote server and wait for the result.
         """
         # 1) Encrypt file
         # 2) Publish to remote cloud server
