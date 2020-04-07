@@ -101,12 +101,12 @@ def thread_process(filename):
                 os.remove(filename_wch)
             # wait for file where object detection is complete
             time_start = time.time()
-            while time.time()-time_start < cnfg_daemon.object_detector_timeout:
-                obj_none_list = storage.get_file_list(f"{ram_storage.storage_path}/{filename}.obj.none")
-                for filename_obj_none in obj_none_list:
+            filename_obj_none = f"{ram_storage.storage_path}/{filename}.obj.none"
+            filename_obj_found = f"{ram_storage.storage_path}/{filename}.obj.found"
+            while time.time()-time_start < cnfg_daemon.object_detector_timeout:                
+                if os.path.isfile(filename_obj_none):
                     os.remove(filename_obj_none)
-                obj_found_list = storage.get_file_list(f"{ram_storage.storage_path}/{filename}.obj.found")
-                for filename_obj_found in obj_found_list:                
+                if os.path.isfile(filename_obj_found):                
                     try: # Read info file
                         with open(filename_obj_found+'.info') as f:
                             info = json.loads(f.read())
@@ -120,6 +120,7 @@ def thread_process(filename):
                         os.remove(filename_obj_found+'.info')
                     except:
                         logger.exception('Can''t delete temporary files')
+                time.sleep(0.5)
             if time.time()-time_start >= cnfg_daemon.object_detector_timeout:
                 logger.warning(f'Timeout: {filename} {time.time()-time_start} >= {cnfg_daemon.object_detector_timeout}')
                 # remove temporary file on timeout
