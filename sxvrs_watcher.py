@@ -95,38 +95,41 @@ def thread_process(filename):
         filename = filename[:-4]
         is_motion = motion_detector.detect(filename_wch)
         if cnfg_daemon.is_object_detection:
-            if is_motion:
-                os.rename(filename_wch, f"{filename}.obj.wait")
-            else:
+            if not is_motion:
                 os.remove(filename_wch)
-            # wait for file where object detection is complete
-            time_start = time.time()
-            filename_obj_none = f"{ram_storage.storage_path}/{filename}.obj.none"
-            filename_obj_found = f"{ram_storage.storage_path}/{filename}.obj.found"
-            while time.time()-time_start < cnfg_daemon.object_detector_timeout:                
-                if os.path.isfile(filename_obj_none):
-                    os.remove(filename_obj_none)
-                if os.path.isfile(filename_obj_found):                
-                    try: # Read info file
-                        with open(filename_obj_found+'.info') as f:
-                            info = json.loads(f.read())
-                    except:
-                        logger.exception('Can''t load info file')
-                    # Take actions on image where objects was found
-                    action_manager.run(filename_obj_found, info) 
-                    # Remove temporary files
-                    try:
-                        os.remove(filename_obj_found)
-                        os.remove(filename_obj_found+'.info')
-                    except:
-                        logger.exception('Can''t delete temporary files')
-                time.sleep(0.5)
-            if time.time()-time_start >= cnfg_daemon.object_detector_timeout:
-                logger.warning(f'Timeout: {filename} {time.time()-time_start} >= {cnfg_daemon.object_detector_timeout}')
-                # remove temporary file on timeout
-                for ext in ['.wch','.obj.wait','.obj.none','.obj.found','.obj.found.info']:
-                    if os.path.isfile(filename+ext):
-                        os.remove(filename+ext)
+            else:
+                filename_obj_wait = f"{filename}.obj.wait"
+                filename_obj_none = f"{filename}.obj.none"
+                filename_obj_found = f"{filename}.obj.found"
+                os.rename(filename_wch, filename_obj_wait)
+                # wait for file where object detection is complete
+                time_start = time.time()
+                while time.time()-time_start < cnfg_daemon.object_detector_timeout:                
+                    if os.path.isfile(filename_obj_none):
+                        os.remove(filename_obj_none)
+                        break
+                    if os.path.isfile(filename_obj_found):                
+                        try: # Read info file
+                            with open(filename_obj_found+'.info') as f:
+                                info = json.loads(f.read())
+                        except:
+                            logger.exception('Can''t load info file')
+                        # Take actions on image where objects was found
+                        action_manager.run(filename_obj_found, info) 
+                        # Remove temporary files
+                        try:
+                            os.remove(filename_obj_found)
+                            os.remove(filename_obj_found+'.info')
+                        except:
+                            logger.exception('Can''t delete temporary files')
+                        break
+                    time.sleep(0.5)
+                if time.time()-time_start >= cnfg_daemon.object_detector_timeout:
+                    logger.warning(f'Timeout: {filename} {time.time()-time_start} >= {cnfg_daemon.object_detector_timeout}')
+                    # remove temporary file on timeout
+                    for ext in ['.wch','.obj.wait','.obj.none','.obj.found','.obj.found.info']:
+                        if os.path.isfile(filename+ext):
+                            os.remove(filename+ext)
         else: # in case if object detection is dissabled
             # TODO: notify recorder that object detected
             os.remove(filename_wch)
