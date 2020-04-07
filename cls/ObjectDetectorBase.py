@@ -27,17 +27,20 @@ class ObjectDetectorBase():
             return
         self.is_started = True
         while True:
-            filename = self.storage.get_first_file(f"{self.ram_storage.storage_path}/*.obj.wait")
-            if filename is None:
-                sleep_time = 1
-                self.logger.debug(f'No new files for object detection. Sleep {sleep_time} sec')
-                time.sleep(sleep_time)
-                continue
-            if filename[-9:] == ".obj.wait":
-                self.logger.debug(f"ObjectDetector: Found file: {filename}")
-                filename_start = f"{filename[:-5]}.start"
-                os.rename(filename, filename_start)
-                self.detect(filename_start)
+            try:
+                filename = self.storage.get_first_file(f"{self.ram_storage.storage_path}/*.obj.wait")
+                if filename is None:
+                    sleep_time = 1
+                    self.logger.debug(f'No new files for object detection. Sleep {sleep_time} sec')
+                    time.sleep(sleep_time)
+                    continue
+                if filename[-9:] == ".obj.wait":
+                    self.logger.debug(f"ObjectDetector: Found file: {filename}")
+                    filename_start = f"{filename[:-5]}.start"
+                    os.rename(filename, filename_start)
+                    self.detect(filename_start)
+            except:
+                self.logger.exception("Object Detection Error")
 
     def detect(self, filename):
         """ Abstract method, must be implementet inside derived classes
