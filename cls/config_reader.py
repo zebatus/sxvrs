@@ -73,12 +73,13 @@ class config_reader():
         if self.is_object_detector_cloud:
             self.object_detector_cloud_url = cnfg['object_detector_cloud'].get('url') # url of the cloud API
             self.object_detector_cloud_key = cnfg['object_detector_cloud'].get('key') # obtain your personal key from cloud server
-            self.object_detector_cloud_timeout = cnfg['object_detector_cloud'].get('timeout', 300) # in seconds
+            self.object_detector_timeout = cnfg['object_detector_cloud'].get('timeout', 300) # in seconds
         self.is_object_detector_local = 'object_detector_local' in cnfg
         if self.is_object_detector_local:
             self._object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', 'models/{model_name}/frozen_inference_graph.pb')
             self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', 'not_defined')
             self.object_detector_local_gpu = cnfg['object_detector_local'].get('gpu', 0) # 0 means dissable GPU
+            self.object_detector_timeout = cnfg['object_detector_local'].get('timeout', 30) # in seconds
         # HTTP Server configs
         self.is_http_server = 'http_server' in cnfg
         if self.is_http_server:

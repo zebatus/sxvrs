@@ -85,6 +85,53 @@ motion_detector = MotionDetector(cnfg, logger_name = logger.name)
 # Create ActionManager to run actions on files with detected objects
 action_manager = ActionManager(cnfg, logger_name = logger.name)
 
+def thread_process(filename): 
+    """ Processing of each snapshot file must be done in separate thread
+    """
+    global cnfg
+    try:
+        filename_wch = f"{filename[:-4]}.wch"
+        os.rename(filename, filename_wch)
+        filename = filename[:-4]
+        is_motion = motion_detector.detect(filename_wch)
+        if cnfg_daemon.is_object_detection:
+            if is_motion:
+                os.rename(filename_wch, f"{filename}.obj.wait")
+            else:
+                os.remove(filename_wch)
+            # wait for file where object detection is complete
+            time_start = time.time()
+            while time.time()-time_start < cnfg.object_detector_timeout:
+                obj_none_list = storage.get_file_list(f"{ram_storage.storage_path}/{filename}.obj.none")
+                for filename_obj_none in obj_none_list:
+                    os.remove(filename_obj_none)
+                obj_found_list = storage.get_file_list(f"{ram_storage.storage_path}/{filename}.obj.found")
+                for filename_obj_found in obj_found_list:                
+                    try: # Read info file
+                        with open(filename_obj_found+'.info') as f:
+                            info = json.loads(f.read())
+                    except:
+                        logger.exception('Can''t load info file')
+                    # Take actions on image where objects was found
+                    action_manager.run(filename_obj_found, info) 
+                    # Remove temporary files
+                    try:
+                        os.remove(filename_obj_found)
+                        os.remove(filename_obj_found+'.info')
+                    except:
+                        logger.exception('Can''t delete temporary files')
+            if time.time()-time_start >= cnfg.object_detector_timeout:
+                logger.warning(f'Timeout: {filename} {time.time()-time_start} >= {cnfg.object_detector_timeout}')
+                # remove temporary file on timeout
+                for ext in ['.wch','.obj.wait','.obj.none','.obj.found','.obj.found.info']:
+                    if os.path.isfile(filename+ext):
+                        os.remove(filename+ext)
+        else: # in case if object detection is dissabled
+            # TODO: notify recorder that object detected
+            os.remove(filename_wch)
+    except:
+        logger.exception(f'Watch: {filename} failed')
+
 while True:
     try:
         filename = storage.get_first_file(f"{ram_storage.storage_path}/{_name}_*.rec")
@@ -93,36 +140,8 @@ while True:
             logger.debug(f'No new files for motion detection. Sleep {sleep_time} sec')
             time.sleep(sleep_time)
             continue
-        filename_wch = f"{filename[:-4]}.wch"
-        os.rename(filename, filename_wch)
-        is_motion = motion_detector.detect(filename_wch)
-        if cnfg_daemon.is_object_detection:
-            if is_motion:
-                os.rename(filename_wch, f"{filename[:-4]}.obj.wait")
-            else:
-                os.remove(filename_wch)
-            # look for all files where object detection is complete
-            obj_none_list = storage.get_file_list(f"{ram_storage.storage_path}/{_name}_*.obj.none")
-            for filename_obj_none in obj_none_list:
-                os.remove(filename_obj_none)
-            obj_found_list = storage.get_file_list(f"{ram_storage.storage_path}/{_name}_*.obj.found")
-            for filename_obj_found in obj_found_list:                
-                try: # Read info file
-                    with open(filename_obj_found+'.info') as f:
-                        info = json.loads(f.read())
-                except:
-                    logger.exception('Can''t load info file')
-                # Take actions on image where objects was found
-                action_manager.run(filename_obj_found, info) 
-                # Remove temporary files
-                try:
-                    os.remove(filename_obj_found)
-                    os.remove(filename_obj_found+'.info')
-                except:
-                    logger.exception('Can''t delete temporary files')
-        else: # in case if object detection is dissabled
-            # TODO: notify recorder that object detected
-            os.remove(filename_wch)
+        thread = Thread(target=thread_process, args=(filename))
+        thread.start()
     except (KeyboardInterrupt, SystemExit):
         logger.info("[CTRL+C detected]")
         break
