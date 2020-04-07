@@ -88,7 +88,7 @@ action_manager = ActionManager(cnfg, logger_name = logger.name)
 def thread_process(filename): 
     """ Processing of each snapshot file must be done in separate thread
     """
-    global cnfg
+    global cnfg_daemon
     try:
         filename_wch = f"{filename[:-4]}.wch"
         os.rename(filename, filename_wch)
@@ -101,7 +101,7 @@ def thread_process(filename):
                 os.remove(filename_wch)
             # wait for file where object detection is complete
             time_start = time.time()
-            while time.time()-time_start < cnfg.object_detector_timeout:
+            while time.time()-time_start < cnfg_daemon.object_detector_timeout:
                 obj_none_list = storage.get_file_list(f"{ram_storage.storage_path}/{filename}.obj.none")
                 for filename_obj_none in obj_none_list:
                     os.remove(filename_obj_none)
@@ -120,8 +120,8 @@ def thread_process(filename):
                         os.remove(filename_obj_found+'.info')
                     except:
                         logger.exception('Can''t delete temporary files')
-            if time.time()-time_start >= cnfg.object_detector_timeout:
-                logger.warning(f'Timeout: {filename} {time.time()-time_start} >= {cnfg.object_detector_timeout}')
+            if time.time()-time_start >= cnfg_daemon.object_detector_timeout:
+                logger.warning(f'Timeout: {filename} {time.time()-time_start} >= {cnfg_daemon.object_detector_timeout}')
                 # remove temporary file on timeout
                 for ext in ['.wch','.obj.wait','.obj.none','.obj.found','.obj.found.info']:
                     if os.path.isfile(filename+ext):
@@ -140,8 +140,9 @@ while True:
             logger.debug(f'No new files for motion detection. Sleep {sleep_time} sec')
             time.sleep(sleep_time)
             continue
-        thread = Thread(target=thread_process, args=(filename))
-        thread.start()
+        if os.path.isfile(filename):
+            thread = Thread(target=thread_process, args=(filename,))
+            thread.start()
     except (KeyboardInterrupt, SystemExit):
         logger.info("[CTRL+C detected]")
         break
