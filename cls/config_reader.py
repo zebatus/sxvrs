@@ -192,7 +192,7 @@ class recorder_configuration():
             # if there are too many contours, than there is an interference (such as rain, snow etc..)
             self.motion_contour_max_count = _motion_contour_detection.get('max_count', '100')
         # if <contour_detection> is not enabled, then trigger detect event by difference threshold
-        self.detect_by_diff_threshold = self.combine('detect_by_diff_threshold', group='motion_detector', default=1.5)
+        self.detect_by_diff_threshold = self.combine('detect_by_diff_threshold', group='motion_detector', default=5)
         # min_frames_changes: 4 - how many frames must be changed, before triggering for the montion start
         self.motion_min_frames_changes = self.combine('min_frames_changes', group='motion_detector', default=5)
         # max_frames_static: 2 - how many frames must be static, before assume that there is no motion anymore

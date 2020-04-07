@@ -88,7 +88,8 @@ class MotionDetector():
                 is_motion_detected = max_area >= self.contour_min_area and max_area <= self.contour_max_area
             else:
                 _, dev_delta = cv2.meanStdDev(img_delta)
-                is_motion_detected = dev_delta > self.cnfg.detect_by_diff_threshold                       
+                #is_motion_detected = dev_delta > self.cnfg.detect_by_diff_threshold
+                is_motion_detected = any(i >= self.cnfg.detect_by_diff_threshold for i in dev_delta)                    
 
             # if significant changes detected
             if is_motion_detected:
