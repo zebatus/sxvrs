@@ -197,6 +197,8 @@ class recorder_configuration():
         self.motion_min_frames_changes = self.combine('min_frames_changes', group='motion_detector', default=5)
         # max_frames_static: 2 - how many frames must be static, before assume that there is no motion anymore
         self.motion_max_frames_static = self.combine('max_frames_static', group='motion_detector', default=5)
+        # blur_size: 15 - blur image before compaing with background
+        self.motion_blur_size = self.combine('blur_size', group='motion_detector', default=15)
         # if set debug filename, then write snapshots there
         self._filename_debug = self.combine('filename_debug', group='motion_detector')
         ### ObjectDetection block ###

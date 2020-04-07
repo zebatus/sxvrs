@@ -49,7 +49,7 @@ class MotionDetector():
             frame = frame_orig
         # Prepare image for comparing
         img_new = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        #img_new = cv2.GaussianBlur(img_new, (self.blur_size, self.blur_size), 0)
+        img_new = cv2.GaussianBlur(img_new, (self.cnfg.motion_blur_size, self.cnfg.motion_blur_size), 0)
         # remember new image for background, and delete oldest background image
         self.images_bg.append(img_new)
         while len(self.images_bg) > self.cnfg.motion_detector_bg_frame_count:
@@ -106,9 +106,10 @@ class MotionDetector():
                 is_motion_detected = (self.cnt_frames_changed >= self.cnfg.motion_min_frames_changes)
             else:
                 self.cnt_frames_static += 1
+                self.logger.debug(f"Cooldown: cnt_frames_static={self.cnt_frames_static}")
                 if self.cnt_frames_static >= self.cnfg.motion_max_frames_static:
                     if self.cnt_frames_changed>0:
-                        print(f"Reset max frames_changed= {self.cnt_frames_changed}")
+                        self.logger.debug(f"Reset max frames_changed= {self.cnt_frames_changed}")
                         self.cnt_frames_changed = 0
         return is_motion_detected
 
