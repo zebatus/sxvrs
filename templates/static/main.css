@@ -104,19 +104,19 @@ a{text-decoration: #242424;color: #bbbbbb; }
     cursor: pointer; 
 }
 
-.tabs {
+.panel {
     margin:  0;
     padding: 0;
     list-style: none;
     display: table; 
     table-layout: fixed; 
-    width: 100%; 
-    text-align: center;
+    width: 20%; 
+    float: left;
+    text-align: left;
     overflow: hidden;
 }
 
-.tabs ul li {display: table-cell;}
-.tabs ul li a {
+.panel ul li a {
     display: block;
     padding: 7px 20px;
     background-color: rgb(48, 48, 48);
@@ -124,6 +124,9 @@ a{text-decoration: #242424;color: #bbbbbb; }
     font-weight: bold;
     text-decoration: none;
 }
-.tabs ul li a:hover {background-color: rgb(53, 53, 53);}
-.log_box{padding: 20px 40px}
+.panel ul li a:hover {background-color: rgb(53, 53, 53);}
+.log_box{
+    width: 80%;
+    float: left;
+}
 .log_box pre{text-align: left}

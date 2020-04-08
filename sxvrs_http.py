@@ -203,14 +203,13 @@ def page_index():
 def page_logs(name=None, page = None, max_len = None):    
     logs_path = os.path.dirname(cnfg.data['logger']['handlers']['info_file_handler']['filename'])
     charset = sys.getfilesystemencoding()
-    title = f'Logs: {page}'
-    list_box = ""
+    title = f'Logs: {name}'
+    file_list = []
     for file in os.listdir(logs_path):
         if os.path.isfile(os.path.join(logs_path,file)) and file[-4:] in ['.err','.log']:
-            list_box += f'<li><a href="/logs/{file}">{file}</a></li>'
-    if page==None:
-        log_box = "Please select logs.file"
-    else:
+            file_list.append(file)
+    log_box = None
+    if not name is None:
         try:
             log_box = ""
             i = 0
@@ -218,21 +217,20 @@ def page_logs(name=None, page = None, max_len = None):
                 max_len = 500
             else:
                 max_len = int(max_len)
-            with open(os.path.join(logs_path, page), mode='r', encoding='utf-8') as f:
+            with open(os.path.join(logs_path, name), mode='r', encoding='utf-8') as f:
                 for row in reversed(f.readlines()):
                     log_box += html.escape(row)
                     i += 1
                     if i>max_len:
                         break
         except:
-            logger.exception(f'Error in opening logs file: {page}')
-            log_box = 'Error loading log file'
-    #render_template(os.path.join('templates', 'logs.html'),
+            logger.exception(f'Error in opening logs file: {name}')
     return render_template('logs.html',
             charset = charset, 
             title = title,
-            list_box = list_box,
-            log_box = log_box
+            log_filename = name,
+            log_box = log_box,
+            file_list = file_list
         )
 
 @app.route('/restart/<name>')

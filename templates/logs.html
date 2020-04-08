@@ -7,9 +7,25 @@
     </head>
     <body>
         <h1>{{ title }}</h1>
-        <div class="tabs"><ul>{{ list_box }}</ul></div>
-        <div class="log_box"><pre><code>
-{{ log_box }}
-        </code></pre></div>
+        <div class="panel">
+            {% if file_list  %}
+                <ul>
+                {% for file in file_list %}
+                    <li><a href="/logs/{{ file }}">{{ file }}</a></li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                Please select log file
+            {% endif %}            
+        </div>
+        <div class="log_box">
+            <pre><code>
+            {% if log_filename  %}
+                {{ log_box }}
+            {% else %}
+                Please select log file
+            {% endif %}            
+            </code></pre>
+        </div>
     </body>
 </html>
