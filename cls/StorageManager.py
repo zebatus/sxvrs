@@ -90,12 +90,18 @@ class StorageManager():
 
     def get_file_list(self, template):
         # Get list of files matching to template
-        filelist = sorted(glob.glob(template, recursive=True), key=os.path.getmtime)
+        try:
+            filelist = sorted(glob.glob(template, recursive=True), key=os.path.getmtime)
+        except FileNotFoundError:
+            pass
         return filelist
 
     def get_first_file(self, template):
         # Get list of files matching to template
-        filelist = sorted(glob.glob(template, recursive=True), key=os.path.getmtime)
+        try:
+            filelist = sorted(glob.glob(template, recursive=True), key=os.path.getmtime)
+        except FileNotFoundError:
+            pass
         if len(filelist)>0:
             return filelist[0]
         else:
