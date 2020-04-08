@@ -93,7 +93,7 @@ class StorageManager():
         try:
             filelist = sorted(glob.glob(template, recursive=True), key=os.path.getmtime)
         except FileNotFoundError:
-            pass
+            return []
         return filelist
 
     def get_first_file(self, template):
@@ -101,7 +101,7 @@ class StorageManager():
         try:
             filelist = sorted(glob.glob(template, recursive=True), key=os.path.getmtime)
         except FileNotFoundError:
-            pass
+            return None
         if len(filelist)>0:
             return filelist[0]
         else:
