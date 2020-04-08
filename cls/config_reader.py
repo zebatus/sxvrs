@@ -331,6 +331,8 @@ class action_configuration():
         #   for type = 'draw','copy'
         self._file_source = self.combine('source', group='file', default='{filename}')
         self._file_target = self.combine('target', group='file', default='{filename}')
+        if isinstance(self._file_source, dict) or isinstance(self._file_target, dict):
+            raise Exception('Filename must be a string. Please wrap with ""')
         #   for type = 'draw'
         # used for width of the drawing box border
         self.brush_size = self.combine('brush_size', default = 1)

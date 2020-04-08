@@ -32,17 +32,28 @@ class ActionManager():
         for action in self.cnfg.actions:
             action = self.cnfg.actions[action]
             if self.check_action(action_cnfg=action, data=obj_detection_results):
-                if action.type=='draw':
-                    self.draw_box(
+                if action.type=='painter':
+                    obj_detected_file_new = obj_detected_file[:-10]+'.jpg'
+                    self.act_draw_box(
                         action_cnfg=action, 
                         obj_detection_results = obj_detection_results,
-                        filename_in = obj_detected_file, 
-                        filename_out = obj_detected_file
+                        filename_in = action.file_source(filename=obj_detected_file), 
+                        filename_out = action.file_target(filename=obj_detected_file_new)
+                        )
+                    obj_detected_file = obj_detected_file_new
+                    self.logger.info(f'draw filename:{obj_detected_file}')
+                elif action.type=='log':                    
+                    self.act_log(
+                        obj_detection_results, 
+                        action_cnfg=action
                         )
                 elif action.type=='mail':                    
-                    self.send_mail(obj_detected_file, config=action)
+                    self.act_send_mail(
+                        action.file_source(filename=obj_detected_file),
+                        config=action
+                        )
                 elif action.type=='copy':                    
-                    self.copy_file(
+                    self.act_copy_file(
                         action.file_source(filename=obj_detected_file), 
                         action.file_target(name=self.cnfg.name, datetime=datetime.now())
                         )
@@ -86,7 +97,7 @@ class ActionManager():
                 return found
         return False
 
-    def draw_box(self, action_cnfg, obj_detection_results, filename_in, filename_out):
+    def act_draw_box(self, action_cnfg, obj_detection_results, filename_in, filename_out):
         """Function draws boxes arround each detected objects"""
         self.painter.paint(
                 action_cnfg = action_cnfg,
@@ -95,31 +106,26 @@ class ActionManager():
                 filename_out = filename_out
             )
 
-    def send_mail(self, filename, config):
+    def act_send_mail(self, filename, config):
         """Function will send email message with attchment of catured snapshot"""
         # Create the container (outer) email message.
         msg = MIMEMultipart()
         msg['Subject'] = config.subject
-        msg['From'] = config.mail_from
+        msg['From'] =  config.mail_from
         msg['To'] = config.mail_to
         msg.preamble = 'Object Detection'        
-        #msg.attach(MIMEText('some text here','plain'))
         # TODO: convert into jpeg (maybe via actions)
+        self.logger.info(f'act_send_mail filename:{filename}')
         with open(filename, 'rb') as fp:
             img = MIMEImage(fp.read())
         msg.attach(img)
-        #s = smtplib.SMTP('localhost')
         s = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        #s = smtplib.SMTP("smtp.gmail.com", 587)
-        #s.ehlo()
-        #s.starttls()
         s.login(config.user, config.password)
-        #s.send_message(msg)
         text = msg.as_string()
         s.sendmail(config.mail_from, [config.mail_to], text)
         s.quit()
 
-    def copy_file(self, file_source, file_target):
+    def act_copy_file(self, file_source, file_target):
         """Function copies the file, with forcing of creation required directories"""
         try:
             path = os.path.dirname(file_target)
@@ -128,3 +134,16 @@ class ActionManager():
             shutil.copy2(file_source, file_target)
         except:
             logging.exception('Error on file copy: {file_source} -> {file_target}')
+    
+    def act_log(self, data, action_cnfg):
+        """Action to log object detection JSON data into file"""
+        try:
+            filename = action_cnfg.file_target()
+            if isinstance(data, dict):
+                data = json.dumps(data)
+            self.logger.info(f'act_log filename:{filename}')
+            with open(filename, 'a+') as fp:
+                fp.write(data)
+                fp.write("\n")
+        except:
+            logging.exception(f'Can''t log to file: {filename}')

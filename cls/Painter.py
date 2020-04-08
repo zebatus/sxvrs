@@ -45,7 +45,9 @@ class Painter():
         self.drawDetectionArea(action_cnfg, img)  
         # Loop over all detected objects and draw boxes around them 
         i = 0
-        detected_objects = json.loads(obj_detection_results)['objects']
+        if not isinstance(obj_detection_results, dict):
+            obj_detection_results = json.loads(obj_detection_results)
+        detected_objects = obj_detection_results['objects']
         for detected in detected_objects:
             self.drawBox(action_cnfg, i, img, detected)
         # save image to output file
