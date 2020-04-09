@@ -35,6 +35,7 @@ from cls.StorageManager import StorageManager
 from cls.RAM_Storage import RAM_Storage
 from cls.MotionDetector import MotionDetector
 from cls.ActionManager import ActionManager
+from cls.WatcherMemory import WatcherMemory
 
 # Get command line arguments
 parser = argparse.ArgumentParser()
@@ -85,6 +86,9 @@ motion_detector = MotionDetector(cnfg, logger_name = logger.name)
 # Create ActionManager to run actions on files with detected objects
 action_manager = ActionManager(cnfg, logger_name = logger.name)
 
+# Remember detected objects, to avvoid triggering duplicate acctions
+watcher_memory = WatcherMemory(cnfg, name = logger.name)
+
 def thread_process(filename): 
     """ Processing of each snapshot file must be done in separate thread
     """
@@ -117,8 +121,9 @@ def thread_process(filename):
                                 info = json.loads(f.read())
                         except:
                             logger.exception('Can''t load info file')
-                        # Take actions on image where objects was found
-                        action_manager.run(filename_obj_found, info) 
+                        if watcher_memory.add(info):
+                            # Take actions on image where objects was found
+                            action_manager.run(filename_obj_found, info) 
                         # Remove temporary files
                         try:
                             os.remove(filename_obj_found)

@@ -201,6 +201,8 @@ class recorder_configuration():
         self.motion_blur_size = self.combine('blur_size', group='motion_detector', default=15)
         # if set debug filename, then write snapshots there
         self._filename_debug = self.combine('filename_debug', group='motion_detector')
+        self.memory_remember_time = self.combine('remember_time', group='memory', default=600)
+        self.memory_move_threshold = self.combine('move_threshold', group='memory', default=0.5)
         ### ObjectDetection block ###
         #_object_detector = self.combine('object_detector', default=[])  
         #self.is_object_detection = (not _object_detector is None) and len(_object_detector)>0  > move to entire configuration
