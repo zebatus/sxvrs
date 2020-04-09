@@ -28,7 +28,7 @@ class ObjectDetector_local(ObjectDetectorBase):
         else:
             def get_frozen_graph(graph_file):
                 """Read Frozen Graph file from disk."""
-                with tf.gfile.GFile(graph_file, "rb") as f:
+                with tf.io.gfile.GFile(graph_file, "rb") as f:
                     graph_def = tf.compat.v1.GraphDef()
                     graph_def.ParseFromString(f.read())
                 return graph_def            
