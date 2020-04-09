@@ -33,15 +33,14 @@ class ActionManager():
             action = self.cnfg.actions[action]
             if self.check_action(action_cnfg=action, data=obj_detection_results):
                 if action.type=='painter':
-                    obj_detected_file_new = obj_detected_file[:-10]+'.jpg'
+                    obj_detected_file_new = action.file_target(filename=obj_detected_file[:-10]+'.jpg')
                     self.act_draw_box(
                         action_cnfg=action, 
                         obj_detection_results = obj_detection_results,
                         filename_in = action.file_source(filename=obj_detected_file), 
-                        filename_out = action.file_target(filename=obj_detected_file_new)
+                        filename_out = obj_detected_file_new
                         )
                     obj_detected_file = obj_detected_file_new
-                    self.logger.info(f'draw filename:{obj_detected_file}')
                 elif action.type=='log':                    
                     self.act_log(
                         obj_detection_results, 
@@ -54,6 +53,11 @@ class ActionManager():
                         )
                 elif action.type=='copy':                    
                     self.act_copy_file(
+                        action.file_source(filename=obj_detected_file), 
+                        action.file_target(name=self.cnfg.name, datetime=datetime.now())
+                        )
+                elif action.type=='move':                    
+                    self.act_move_file(
                         action.file_source(filename=obj_detected_file), 
                         action.file_target(name=self.cnfg.name, datetime=datetime.now())
                         )
@@ -114,8 +118,6 @@ class ActionManager():
         msg['From'] =  config.mail_from
         msg['To'] = config.mail_to
         msg.preamble = 'Object Detection'        
-        # TODO: convert into jpeg (maybe via actions)
-        self.logger.info(f'act_send_mail filename:{filename}')
         with open(filename, 'rb') as fp:
             img = MIMEImage(fp.read())
         msg.attach(img)
@@ -126,7 +128,7 @@ class ActionManager():
         s.quit()
 
     def act_copy_file(self, file_source, file_target):
-        """Function copies the file, with forcing of creation required directories"""
+        """Action to copies file, with forced of creation required directories"""
         try:
             path = os.path.dirname(file_target)
             if not os.path.exists(path):
@@ -134,14 +136,23 @@ class ActionManager():
             shutil.copy2(file_source, file_target)
         except:
             logging.exception('Error on file copy: {file_source} -> {file_target}')
-    
+
+    def act_move_file(self, file_source, file_target):
+        """Action to move file, with forced of creation required directories"""
+        try:
+            path = os.path.dirname(file_target)
+            if not os.path.exists(path):
+                os.makedirs(path)
+            shutil.move(file_source, file_target)
+        except:
+            logging.exception('Error on file move: {file_source} -> {file_target}')
+
     def act_log(self, data, action_cnfg):
         """Action to log object detection JSON data into file"""
         try:
             filename = action_cnfg.file_target()
             if isinstance(data, dict):
                 data = json.dumps(data)
-            self.logger.info(f'act_log filename:{filename}')
             with open(filename, 'a+') as fp:
                 fp.write(data)
                 fp.write("\n")
