@@ -97,7 +97,7 @@ if not cmd_ffmpeg_write is None:
     ffmpeg_write = Popen(cmd_ffmpeg_write, shell=True, stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 snapshot_taken_time = 0
 i = 0
-throtling = 0
+throttling = 0
 while True:
     frame_bytes = ffmpeg_read.stdout.read(frame_size)
     if len(frame_bytes)==0:
@@ -109,18 +109,18 @@ while True:
         cv2.imwrite(cnfg.filename_snapshot(), frame_np)
         snapshot_taken_time = time()
     # process frame in RAM folder
-    if cnfg.is_motion_detection and (i % (cnfg.frame_skip + throtling) == 0):
-        # check for throtling
+    if cnfg.is_motion_detection and (i % (cnfg.frame_skip + throttling) == 0):
+        # check for throttling
         tmp_size = storage.get_folder_size(ram_storage.storage_path, f'{cnfg.name}_*')
-        if tmp_size > cnfg.throtling_max_mem_size:
-            throtling += throtling + 5
-            logger.error(f"Can't save frame to temporary RAM folder. There are too many files for recorder: {cnfg.name}.\n Size occupied: {tmp_size}\n Max size: {cnfg.throtling_max_mem_size}")
-        elif tmp_size > cnfg.throtling_min_mem_size:
-            throtling += throtling + 2
-            logger.warning(f"Start frame throtling ({throtling}) for recorder: {cnfg.name}")
+        if tmp_size > cnfg.throttling_max_mem_size:
+            throttling += throttling + 5
+            logger.error(f"Can't save frame to temporary RAM folder. There are too many files for recorder: {cnfg.name}.\n Size occupied: {tmp_size}\n Max size: {cnfg.throttling_max_mem_size}")
+        elif tmp_size > cnfg.throttling_min_mem_size:
+            throttling += throttling + 2
+            logger.warning(f"Start frame throttling ({throttling}) for recorder: {cnfg.name}")
         else:
-            throtling = 0
-        if tmp_size < cnfg.throtling_max_mem_size:
+            throttling = 0
+        if tmp_size < cnfg.throttling_max_mem_size:
             # save frame into RAM snapshot file
             temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path)
             cv2.imwrite(f'{temp_frame_file}.bmp', frame_np)
