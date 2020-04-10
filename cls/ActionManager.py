@@ -23,15 +23,17 @@ from cls.Painter import Painter
 class ActionManager():
     """ If object is detected, then we need to take some actions described in config file
     """
-    def __init__(self, cnfg, logger_name='None'):
+    def __init__(self, cnfg, name='None'):
         self.cnfg = cnfg
+        self.name = name
         self.painter = Painter(cnfg)
-        self.logger = logging.getLogger(f"{logger_name}:ActionManager")
+        self.logger = logging.getLogger(f"{name}:ActionManager")
 
     def run(self, obj_detected_file=None, obj_detection_results=None):
         for action in self.cnfg.actions:
             action = self.cnfg.actions[action]
             if self.check_action(action_cnfg=action, data=obj_detection_results):
+                self.logger.debug(f'action cnfg={action} data={obj_detection_results}')
                 if action.type=='painter':
                     obj_detected_file_new = action.file_target(filename=obj_detected_file[:-10]+'.jpg')
                     self.act_draw_box(
@@ -49,7 +51,8 @@ class ActionManager():
                 elif action.type=='mail':                    
                     self.act_send_mail(
                         action.file_source(filename=obj_detected_file),
-                        config=action
+                        config=action,
+                        obj_detection_results = obj_detection_results
                         )
                 elif action.type=='copy':                    
                     self.act_copy_file(
@@ -78,8 +81,7 @@ class ActionManager():
                 for obj in detected:
                     if len(tobe_detected)==0 or obj['class'] in tobe_detected:
                         found = True
-                    if found and obj['score']*100 >= score_min:
-                        found = True
+                    found = found and obj['score']*100 >= score_min
                     # check if box points are inside detection polygon area
                     if len(area) >= 3:
                         pts = np.array(area, np.int32)
@@ -110,22 +112,33 @@ class ActionManager():
                 filename_out = filename_out
             )
 
-    def act_send_mail(self, filename, config):
+    def act_send_mail(self, filename, config, obj_detection_results):
         """Function will send email message with attchment of catured snapshot"""
         # Create the container (outer) email message.
-        msg = MIMEMultipart()
+        msg = MIMEMultipart('related')
         msg['Subject'] = config.subject
         msg['From'] =  config.mail_from
         msg['To'] = config.mail_to
-        msg.preamble = 'Object Detection'        
+        msg.preamble = 'Object Detection'
+        
+        msgAlternative = MIMEMultipart('alternative')
+        msg.attach(msgAlternative)
+
+        msgText = MIMEText(f'Object detected on {self.name} \n {obj_detection_results}')
+        msgAlternative.attach(msgText)
+        msgText = MIMEText(f'Object detected on <b>{self.name}</b><br>{obj_detection_results}<br><img src="cid:image1"><br>Nifty!', 'html')
+        msgAlternative.attach(msgText)
+
         with open(filename, 'rb') as fp:
-            img = MIMEImage(fp.read())
-        msg.attach(img)
+            msgImage = MIMEImage(fp.read())
+        msgImage.add_header('Content-ID', '<image1>')          
+        msg.attach(msgImage)
+
         s = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         s.login(config.user, config.password)
-        text = msg.as_string()
-        s.sendmail(config.mail_from, [config.mail_to], text)
+        s.sendmail(config.mail_from, [config.mail_to], msg.as_string())
         s.quit()
+        self.logger.debug('email sent')        
 
     def act_copy_file(self, file_source, file_target):
         """Action to copies file, with forced of creation required directories"""
@@ -135,7 +148,7 @@ class ActionManager():
                 os.makedirs(path)
             shutil.copy2(file_source, file_target)
         except:
-            logging.exception('Error on file copy: {file_source} -> {file_target}')
+            self.logger.exception('Error on file copy: {file_source} -> {file_target}')
 
     def act_move_file(self, file_source, file_target):
         """Action to move file, with forced of creation required directories"""
@@ -145,7 +158,7 @@ class ActionManager():
                 os.makedirs(path)
             shutil.move(file_source, file_target)
         except:
-            logging.exception('Error on file move: {file_source} -> {file_target}')
+            self.logger.exception('Error on file move: {file_source} -> {file_target}')
 
     def act_log(self, data, action_cnfg):
         """Action to log object detection JSON data into file"""
@@ -157,4 +170,4 @@ class ActionManager():
                 fp.write(data)
                 fp.write("\n")
         except:
-            logging.exception(f'Can''t log to file: {filename}')
+            self.logger.exception(f'Can''t log to file: {filename}')
