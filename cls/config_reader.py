@@ -170,9 +170,9 @@ class recorder_configuration():
         # How many frames will be skipped between motion detection
         self.frame_skip = self.combine('frame_skip', default=5)
         # if on RAM disk there will be too many files, then start to increase frame skiping
-        self.throtling_min_mem_size = self.combine('throtling_min_mem_size', default=16)*1024*1024
+        self.throttling_min_mem_size = self.combine('throttling_min_mem_size', default=16)*1024*1024
         # if total size of files exceeds maximum value, then dissable frame saving to RAM folder
-        self.throtling_max_mem_size = self.combine('throtling_max_mem_size', default=32)*1024*1024
+        self.throttling_max_mem_size = self.combine('throttling_max_mem_size', default=32)*1024*1024
         ### watcher params ###        
         # before motion detection, we can resize image to reduce calculations
         self.motion_detector_max_image_height = self.combine('max_image_height', group='motion_detector', default=128)
@@ -203,6 +203,10 @@ class recorder_configuration():
         self.motion_blur_size = self.combine('blur_size', group='motion_detector', default=15)
         # if set debug filename, then write snapshots there
         self._filename_debug = self.combine('filename_debug', group='motion_detector')
+        # motion detector watch folder for files with detected objects (seconds)
+        self.object_watch_delay = self.combine('object_watch_delay', group='motion_detector', default=0.5)
+        # if there are too many motiondetection events without object detection, then start throttling of object detection
+        self.object_throttling = self.combine('object_throttling', group='motion_detector', default=10)
         self.memory_remember_time = self.combine('remember_time', group='memory', default=600)
         self.memory_move_threshold = self.combine('move_threshold', group='memory', default=0.5)
         ### ObjectDetection block ###

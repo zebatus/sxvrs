@@ -29,6 +29,7 @@ from datetime import datetime
 import argparse
 import shutil
 from threading import Thread
+import math
 
 from cls.config_reader import config_reader
 from cls.StorageManager import StorageManager
@@ -59,6 +60,7 @@ except:
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
 app_label = script_name + f'_{datetime.now():%H%M}'
 dt_start = datetime.now()
+stored_exception = None
 
 # Load configuration files
 cnfg_daemon = config_reader(
@@ -89,10 +91,11 @@ action_manager = ActionManager(cnfg, name = logger.name)
 # Remember detected objects, to avvoid triggering duplicate acctions
 watcher_memory = WatcherMemory(cnfg, name = logger.name)
 
+cnt_no_object = 0
 def thread_process(filename): 
     """ Processing of each snapshot file must be done in separate thread
     """
-    global cnfg_daemon
+    global cnfg_daemon, cnt_no_object
     try:
         filename_wch = f"{filename[:-4]}.wch"
         try:
@@ -113,9 +116,11 @@ def thread_process(filename):
                 time_start = time.time()
                 while time.time()-time_start < cnfg_daemon.object_detector_timeout:                
                     if os.path.isfile(filename_obj_none):
+                        cnt_no_object += 1
                         os.remove(filename_obj_none)
                         break
-                    if os.path.isfile(filename_obj_found):                
+                    if os.path.isfile(filename_obj_found):
+                        cnt_no_object = 0            
                         try: # Read info file
                             with open(filename_obj_found+'.info') as f:
                                 info = json.loads(f.read())
@@ -131,7 +136,7 @@ def thread_process(filename):
                         except:
                             logger.exception('Can''t delete temporary files')
                         break
-                    time.sleep(0.5)
+                    time.sleep(cnfg.object_watch_delay)
                 if time.time()-time_start >= cnfg_daemon.object_detector_timeout:
                     logger.warning(f'Timeout: {filename} {time.time()-time_start} >= {cnfg_daemon.object_detector_timeout}')
                     # remove temporary file on timeout
@@ -144,8 +149,10 @@ def thread_process(filename):
     except:
         logger.exception(f'Watch: {filename} failed')
 
-while True:
+i = 0
+while stored_exception==None:
     try:
+        i += 1
         filename = storage.get_first_file(f"{ram_storage.storage_path}/{_name}_*.rec")
         if filename is None:
             sleep_time = 1
@@ -153,11 +160,16 @@ while True:
             time.sleep(sleep_time)
             continue
         if os.path.isfile(filename):
+            throttling = math.ceil(cnt_no_object / cnfg.object_throttling)
+            if throttling>0:
+                if i % throttling != 0:
+                    logger.debug(f'ObjectDetector throttling')
+                    os.remove(filename)
             thread = Thread(target=thread_process, args=(filename,))
             thread.start()
     except (KeyboardInterrupt, SystemExit) as e:
         logger.info("[CTRL+C detected]")
-        raise e
+        stored_exception=sys.exc_info()
         break
     except:
         logger.exception(f"watcher '{_name}'")
