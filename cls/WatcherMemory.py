@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 
 import os, logging
-import glob
+import time
+
+class memory_obj():
+    def __init__(self, data):
+        self.data = data
+        self.time_last = time.time()
 
 class WatcherMemory():
     """ Remember and forget each detected object.
@@ -43,25 +48,28 @@ class WatcherMemory():
     def check(self, data):
         """Function to search memory for object"""
         res = False
-        data_shape = data.get('box', [0,0,0,0])
-        h0 = (data_shape[0] - data_shape[2])
-        w0 = (data_shape[1] - data_shape[3])
-        for obj in self.memory_data:
-            if obj.data.get('class') == data.get('class'):
-                obj_shape = obj.data.get('box', [0,0,0,0])
-                h1 = (obj_shape[0] - obj_shape[2])
-                w1 = (obj_shape[1] - obj_shape[3])
-                res =         (abs(h0-h1)/max(h0,h1) < self.cnfg.memory_move_threshold)
-                res = res and (abs(w0-w1)/max(w0,w1) < self.cnfg.memory_move_threshold)
-                res = res and (abs(obj_shape[0] - data_shape[0])/max(h0,h1) < self.cnfg.memory_move_threshold)
-                res = res and (abs(obj_shape[2] - data_shape[2])/max(h0,h1) < self.cnfg.memory_move_threshold)
-                res = res and (abs(obj_shape[1] - data_shape[1])/max(w0,w1) < self.cnfg.memory_move_threshold)
-                res = res and (abs(obj_shape[3] - data_shape[3])/max(w0,w1) < self.cnfg.memory_move_threshold)
-                self.logger.debug(f"Checki obj in memory: {res}: {obj.data} || {data}")
-                if res:
-                    obj.time_last = time.time() # refresh time
-                    self.logger.debug(f"Object found in memory: {data}")
-                    break
+        try:
+            data_shape = data.get('box', [0,0,0,0])
+            h0 = (data_shape[0] - data_shape[2])
+            w0 = (data_shape[1] - data_shape[3])
+            for obj in self.memory_data:
+                if obj.data.get('class') == data.get('class'):
+                    obj_shape = obj.data.get('box', [0,0,0,0])
+                    h1 = (obj_shape[0] - obj_shape[2])
+                    w1 = (obj_shape[1] - obj_shape[3])
+                    res =         (abs(h0-h1)/max(h0,h1) < self.cnfg.memory_move_threshold)
+                    res = res and (abs(w0-w1)/max(w0,w1) < self.cnfg.memory_move_threshold)
+                    res = res and (abs(obj_shape[0] - data_shape[0])/max(h0,h1) < self.cnfg.memory_move_threshold)
+                    res = res and (abs(obj_shape[2] - data_shape[2])/max(h0,h1) < self.cnfg.memory_move_threshold)
+                    res = res and (abs(obj_shape[1] - data_shape[1])/max(w0,w1) < self.cnfg.memory_move_threshold)
+                    res = res and (abs(obj_shape[3] - data_shape[3])/max(w0,w1) < self.cnfg.memory_move_threshold)
+                    self.logger.debug(f"Checki obj in memory: {res}: {obj.data} || {data}")
+                    if res:
+                        obj.time_last = time.time() # refresh time
+                        self.logger.debug(f"Object found in memory: {data}")
+                        break
+        except ZeroDivisionError:
+            self.logger.debug(f"ZeroDivisionError: {data}")
         return res
 
     def cleanup(self):
