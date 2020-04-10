@@ -82,12 +82,13 @@ class ObjectDetector_local(ObjectDetectorBase):
                         int(boxes[0,i,1] * self.original_width),
                         int(boxes[0,i,2] * self.original_height),
                         int(boxes[0,i,3] * self.original_width))
-                objects.append({
-                    'box': box,
-                    'score': scores[i],
-                    'class': self.labels[classes[i]],
-                    'num': int(num[0]),                     
-                }) 
+                if scores[i]*100 >= self.cnfg.object_detector_min_score:
+                    objects.append({
+                        'box': box,
+                        'score': scores[i],
+                        'class': self.labels[classes[i]],
+                        'num': int(num[0]),                     
+                    }) 
             if len(objects)>0:
                 filename_obj_found = f"{filename[:-10]}.obj.found"
                 os.rename(filename, filename_obj_found)

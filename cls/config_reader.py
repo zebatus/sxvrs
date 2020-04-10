@@ -74,12 +74,14 @@ class config_reader():
             self.object_detector_cloud_url = cnfg['object_detector_cloud'].get('url') # url of the cloud API
             self.object_detector_cloud_key = cnfg['object_detector_cloud'].get('key') # obtain your personal key from cloud server
             self.object_detector_timeout = cnfg['object_detector_cloud'].get('timeout', 300) # in seconds
+            self.object_detector_min_score = cnfg['object_detector_cloud'].get('min_score', 30) # min score from 0..100
         self.is_object_detector_local = 'object_detector_local' in cnfg
         if self.is_object_detector_local:
             self._object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', 'models/{model_name}/frozen_inference_graph.pb')
             self.object_detector_local_model_name = cnfg['object_detector_local'].get('model_name', 'not_defined')
             self.object_detector_local_gpu = cnfg['object_detector_local'].get('gpu', 0) # 0 means dissable GPU
             self.object_detector_timeout = cnfg['object_detector_local'].get('timeout', 30) # in seconds
+            self.object_detector_min_score = cnfg['object_detector_local'].get('min_score', 30) # min score from 0..100
         # HTTP Server configs
         self.is_http_server = 'http_server' in cnfg
         if self.is_http_server:
@@ -88,7 +90,7 @@ class config_reader():
             self._http_server_cmd = cnfg['http_server'].get('cmd', 'python sxvrs_http.py')
         self._cmd_watcher = 'python sxvrs_watcher.py --name "{recorder}"'
         if 'cmd' in self.data:
-            self._cmd_watcher = cnfg['cmd'].get('watcher', 'python sxvrs_watcher.py --name "{recorder}"')
+            self._cmd_watcher = cnfg['cmd'].get('watcher', 'python sxvrs_watcher.py --name "{recorder}"')        
     @property
     def temp_storage_cmd_mount(self):
         return self._temp_storage_cmd_mount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)
