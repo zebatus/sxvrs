@@ -84,7 +84,7 @@ storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size, logger_name
 motion_detector = MotionDetector(cnfg, logger_name = logger.name)
 
 # Create ActionManager to run actions on files with detected objects
-action_manager = ActionManager(cnfg, logger_name = logger.name)
+action_manager = ActionManager(cnfg, name = logger.name)
 
 # Remember detected objects, to avvoid triggering duplicate acctions
 watcher_memory = WatcherMemory(cnfg, name = logger.name)
@@ -155,8 +155,9 @@ while True:
         if os.path.isfile(filename):
             thread = Thread(target=thread_process, args=(filename,))
             thread.start()
-    except (KeyboardInterrupt, SystemExit):
+    except (KeyboardInterrupt, SystemExit) as e:
         logger.info("[CTRL+C detected]")
+        raise e
         break
     except:
         logger.exception(f"watcher '{_name}'")
