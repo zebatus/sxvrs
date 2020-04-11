@@ -91,7 +91,7 @@ action_manager = ActionManager(cnfg, name = logger.name)
 # Remember detected objects, to avvoid triggering duplicate acctions
 watcher_memory = WatcherMemory(cnfg, name = logger.name)
 
-cnt_no_object = 0
+cnt_no_object = 0 # count motion frames without objects for throttling
 def thread_process(filename): 
     """ Processing of each snapshot file must be done in separate thread
     """
@@ -124,6 +124,7 @@ def thread_process(filename):
                         try: # Read info file
                             with open(filename_obj_found+'.info') as f:
                                 info = json.loads(f.read())
+                                info['filename'] = filename_obj_found
                         except:
                             logger.exception('Can''t load info file')
                         if watcher_memory.add(info):
@@ -156,7 +157,7 @@ while stored_exception==None:
         filename = storage.get_first_file(f"{ram_storage.storage_path}/{_name}_*.rec")
         if filename is None:
             sleep_time = 1
-            logger.debug(f'No new files for motion detection. Sleep {sleep_time} sec')
+            logger.debug(f'Wait for "{_name}_*.rec" file. Sleep {sleep_time} sec')
             time.sleep(sleep_time)
             continue
         if os.path.isfile(filename):
