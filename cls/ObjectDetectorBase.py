@@ -28,7 +28,7 @@ class ObjectDetectorBase():
                 filename = self.storage.get_first_file(f"{self.ram_storage.storage_path}/*.obj.wait")
                 if filename is None:
                     sleep_time = 1
-                    self.logger.debug(f'No new files for object detection. Sleep {sleep_time} sec')
+                    self.logger.debug(f'Wait for file. Sleep {sleep_time} sec')
                     time.sleep(sleep_time)
                     continue
                 if filename[-9:] == ".obj.wait":
