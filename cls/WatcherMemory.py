@@ -70,12 +70,15 @@ class WatcherMemory():
                         break
         except ZeroDivisionError:
             self.logger.debug(f"ZeroDivisionError: {data}")
+        except Exception as e:
+            self.logger.exception(f"check() failed")
+            raise e
         return res
 
     def cleanup(self):
         """Remove(forget) all outdated objects from memory"""
         for obj in self.memory_data:
             if time.time() - obj.time_last > self.cnfg.memory_remember_time:
-                self.objects.remove(obj)
+                self.memory_data.remove(obj)
                 self.logger.debug(f"Forget object: '{obj}'")
 
