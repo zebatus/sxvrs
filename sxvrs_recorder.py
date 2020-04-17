@@ -106,6 +106,7 @@ while True:
     frame_np = (np.frombuffer(frame_bytes, np.uint8).reshape(frame_shape)) 
     # take snapshot
     if time() - snapshot_taken_time > cnfg.snapshot_time:
+        frame_np = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
         cv2.imwrite(cnfg.filename_snapshot(), frame_np)
         snapshot_taken_time = time()
     # process frame in RAM folder
