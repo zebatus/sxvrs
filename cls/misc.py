@@ -52,18 +52,25 @@ def get_frame_shape(source):
     p_status = p.wait()
     info = json.loads(output)
     logging.debug(info)
+    if 'error' in info:
+        logging.warning(f'Can''t open {source}: {info}')
+        raise Exception(f'Can''t open {source}')
+    else:
+        video_info = [s for s in info['streams'] if s['codec_type'] == 'video'][0]
 
-    video_info = [s for s in info['streams'] if s['codec_type'] == 'video'][0]
-
-    if video_info['height'] != 0 and video_info['width'] != 0:
-        return (video_info['height'], video_info['width'], 3)
-    
-    # fallback to using opencv if ffprobe didnt succeed
-    video = cv2.VideoCapture(source)
-    ret, frame = video.read()
-    frame_shape = frame.shape
-    video.release()
-    return frame_shape
+        if video_info['height'] != 0 and video_info['width'] != 0:
+            return (video_info['height'], video_info['width'], 3)
+        
+        # fallback to using opencv if ffprobe didnt succeed
+        try:
+            video = cv2.VideoCapture(source)
+            ret, frame = video.read()
+            frame_shape = frame.shape
+            video.release()
+            return frame_shape
+        except Exception as e:
+            logging.warning(f'OpenCPV Can''t get frame shape: source= {source}')
+            raise e
 
 def check_topic(topic, value):
     return topic.lower().endswith(f"/{value}")
