@@ -101,6 +101,11 @@ class ObjectDetector_local(ObjectDetectorBase):
                     f.write(json.dumps(result))
             else:
                 os.rename(filename, f"{filename[:-10]}.obj.none") 
+                result = {
+                    'result': 'ok',
+                    'objects': [],
+                    'elapsed': time.time() - start_time,
+                }
             self.logger.debug(f"ObjectDetector Elapsed Time:{result['elapsed']} : \n {result}")
         return result   
     
