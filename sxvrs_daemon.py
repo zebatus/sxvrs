@@ -138,36 +138,48 @@ except :
     logger.exception(f"Can't connect to MQTT broker at address: {cnfg.mqtt_server_host}:{cnfg.mqtt_server_port}")
     stored_exception=sys.exc_info()    
 
+_old_excepthook = sys.excepthook
+def myexcepthook(exctype, value, traceback):
+    global stored_exception
+    if exctype == KeyboardInterrupt:
+        stored_exception=sys.exc_info()
+    _old_excepthook(exctype, value, traceback)
+sys.excepthook = myexcepthook
+
 if stored_exception==None:
     logger.info(f'! Script started: "{script_name}" Press [CTRL+C] to exit')
     # create and start all instances from config
     cnt_instanse = 0
+    watchers = []
     for recorder, configuration in cnfg.recorders.items():
         vr_list.append(vr_create(recorder, configuration, mqtt_client))
         cnt_instanse += 1
         if configuration.is_motion_detection:
             # Start Watchers for each recorder instance
-            Popen(cnfg.cmd_watcher(recorder = recorder), shell=True)
+            proc = Popen(cnfg.cmd_watcher(recorder = recorder), shell=True)
+            watchers.append(proc)
     # Start Object Detector
     object_detector = SelectObjectDetector(cnfg, logger_name = logger.name)
     # Start HTTP web server
     if cnfg.is_http_server:
         Popen(cnfg.cmd_http_server(), shell=True)
     # Main loop start
-    while True:
+    while stored_exception==None:
         try:
             print(f'\r{datetime.now()}: recording {cnt_instanse}     ', end = '\r')
             time.sleep(2)
             if stored_exception:
                 break        
         except (KeyboardInterrupt, SystemExit):
-            logger.info("[CTRL+C detected]")
+            logger.info("[CTRL+C detected] MainLoop")
             stored_exception=sys.exc_info()
 
     # Stop all instances
     for vr in vr_list:
         vr.stop()
         logger.debug(f"   stoping instance: {vr.name}")
+    for proc in watchers:
+        proc.kill()
     mqtt_client.loop_stop()
     mqtt_client.disconnect()
     if not object_detector is None:
