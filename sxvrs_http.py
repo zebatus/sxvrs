@@ -277,7 +277,7 @@ def view_recorder(recorder_name):
         recorder_dict = recorder_view_data(recorder, width=800, height=600)
         #show log for selected recorder
         logs_path = os.path.dirname(cnfg.data['logger']['handlers']['info_file_handler']['filename'])
-        logs_file = 'sxvrs_daemon.log'
+        logs_file = 'daemon.log'
         try:
             log_box = ""
             i = 0
@@ -290,13 +290,13 @@ def view_recorder(recorder_name):
                             break
         except:
             logger.exception(f'Error in opening logs file: {logs_file}')
-            log_box = 'Error loading log file'
-            content = {
-                "charset" : enc,
-                "title" : f"Camera: recorder_name",
-                "log_box" : log_box
-            }
-            return render_template('recorder.html', content=content, recorder=recorder_dict)
+            log_box = f'Error loading log file: {logs_file}'
+        content = {
+            "charset" : enc,
+            "title" : f"Camera: {recorder_name}",
+            "log_box" : log_box
+        }
+        return render_template('recorder.html', content=content, recorder=recorder_dict)
 
 
 
