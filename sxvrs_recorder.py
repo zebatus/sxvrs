@@ -123,6 +123,7 @@ while True:
             throttling = 0
         if tmp_size < cnfg.throttling_max_mem_size:
             # save frame into RAM snapshot file
+            frame_np = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
             temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path)
             cv2.imwrite(f'{temp_frame_file}.bmp', frame_np)
             os.rename(f'{temp_frame_file}.bmp', f'{temp_frame_file}.rec')
