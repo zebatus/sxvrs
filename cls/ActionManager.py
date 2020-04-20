@@ -126,7 +126,10 @@ class ActionManager():
 
         msgText = MIMEText(f'Object detected on {self.name} \n {obj_detection_results}')
         msgAlternative.attach(msgText)
-        msgText = MIMEText(f'Object detected on <b>{self.name}</b><br>class: <b>{obj_detection_results.get("class")}</b><br>score: <b>{obj_detection_results.get("score")}</b><br><img src="cid:image1"><br>{obj_detection_results}<i></i>', 'html')
+        strObjects = ''
+        for obj in obj_detection_results.get('objects'):
+            strObjects += f'detected: <b>{obj.get("class")}</b>&nbsp;({obj.get("score")})<br>'
+        msgText = MIMEText(f'Object detected on <b>{self.name}</b><br>{strObjects}<img src="cid:image1"><br>{obj_detection_results}<i></i>', 'html')
         msgAlternative.attach(msgText)
 
         with open(filename, 'rb') as fp:
