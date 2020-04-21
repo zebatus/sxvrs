@@ -3,7 +3,7 @@
 import os, logging
 import glob
 import time
-from threading import Thread
+from threading import Thread, Event
 
 from cls.StorageManager import StorageManager
 from cls.RAM_Storage import RAM_Storage

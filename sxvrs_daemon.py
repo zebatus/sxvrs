@@ -183,7 +183,7 @@ if stored_exception==None:
     mqtt_client.loop_stop()
     mqtt_client.disconnect()
     if not object_detector is None:
-        object_detector.stop()
+        object_detector.stop_watch()
     logger.info('# Script terminated')
 
 if stored_exception and stored_exception[0]!=KeyboardInterrupt:
