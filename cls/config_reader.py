@@ -28,6 +28,7 @@ class config_reader():
     def __init__(self, filename, name_daemon=None, name_http=None, log_filename='sxvrs'):
         """ Load configuration file.
         """
+        self.tensorflow_is_installed = check_package_is_installed('tensorflow')
         self.logger = logging.getLogger(f"config_reader")
         try:
             # if there is no configuration file then create new one
@@ -102,7 +103,7 @@ class config_reader():
         return self._object_detector_local_model_path.format(model_name=self.object_detector_local_model_name)
     @property
     def is_object_detection(self):
-        return self.is_object_detector_cloud or (self.is_object_detector_local and check_package_is_installed('tensorflow'))
+        return self.is_object_detector_cloud or (self.is_object_detector_local and self.tensorflow_is_installed)
     def cmd_http_server(self, **kwargs):
         return self._http_server_cmd.format(**kwargs)
     def cmd_watcher(self, **kwargs):

@@ -35,7 +35,7 @@ def SelectObjectDetector(cnfg, logger_name='None'):
         from cls.ObjectDetector_cloud import ObjectDetector_cloud
         return ObjectDetector_cloud(cnfg, logger_name)
     elif cnfg.is_object_detector_local:
-        if check_package_is_installed('tensorflow'):
+        if cnfg.tensorflow_is_installed:
             from cls.ObjectDetector_local import ObjectDetector_local
             return ObjectDetector_local(cnfg, logger_name)
         else:
@@ -54,7 +54,7 @@ def get_frame_shape(source):
     logging.debug(info)
     if 'error' in info:
         logging.warning(f'Can''t open {source}: {info}')
-        raise Exception(f'Can''t open {source}')
+        #raise Exception(f'Can''t open {source}')
     else:
         video_info = [s for s in info['streams'] if s['codec_type'] == 'video'][0]
 
