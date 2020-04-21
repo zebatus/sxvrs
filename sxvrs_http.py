@@ -176,7 +176,7 @@ def recorder_view_data(recorder, width=None, height=None):
         elif recorder.status in ['snapshot','restarting']:
             res['state_img'] = 'state.gif'
             res['widget_status'] = 'widget_status'
-        elif recorder.status == 'error':
+        elif recorder.status in ['error','inactive'] :
             res['state_img'] = 'err.gif'
             res['widget_status'] = 'widget_status_err'
     if recorder.error_cnt>0:
@@ -219,7 +219,7 @@ def page_logs(name=None, page = None, max_len = None):
                 max_len = int(max_len)
             with open(os.path.join(logs_path, name), mode='r', encoding='utf-8') as f:
                 for row in reversed(f.readlines()):
-                    log_box += html.escape(row)
+                    log_box += row
                     i += 1
                     if i>max_len:
                         break
@@ -255,18 +255,20 @@ def page_restart(name):
 
 @app.route('/recorder/<recorder_name>/snapshot/<width>/<height>')
 def recorder_snapshot(recorder_name, width=None, height=None):
+    recorder = get_recorder_by_name(recorder_name)
+    str_param = "-brightness-contrast -50x-70" if recorder.status=="inactive" else "" 
     # get snapshot name for the recorder
-    filename = cnfg.recorders[recorder_name].filename_snapshot()
+    filename = cnfg.recorders[recorder_name].filename_snapshot()        
     if os.path.isfile(filename):
         # resize image
         new_filename = f'{filename[:-4]}.{width}x{height}.jpg'
-        cmd = f'convert {filename} -resize {width}x{height}\> {new_filename}'
+        cmd = f'convert {filename} -resize {width}x{height} {str_param}\> {new_filename}'
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
         process.wait(20)
         filename = new_filename    
         return send_file(new_filename)
     else:
-        return send_file('templates/static/novideo.gif')
+        return send_file('templates/static/nosnapshot.gif')
 
 @app.route('/recorder/<recorder_name>')
 def view_recorder(recorder_name):
@@ -284,7 +286,7 @@ def view_recorder(recorder_name):
             with open(os.path.join(logs_path, logs_file), mode='r', encoding='utf-8') as f:
                 for row in reversed(f.readlines()):
                     if recorder.name in row:
-                        log_box += html.escape(row)
+                        log_box += row #html.escape(row)
                         i += 1
                         if i>500:
                             break
@@ -305,14 +307,14 @@ def view_recorder(recorder_name):
 def recorder_start(recorder_name):
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'start'}))
     time.sleep(2) # sleep before refresh, to give time to update data
-    redirect(url_for(view_recorder))
+    return redirect(url_for('view_recorder', recorder_name=recorder_name))
 
 @app.route('/recorder/<recorder_name>/Stop')
 @app.route('/recorder/<recorder_name>/stop')
 def recorder_stop(recorder_name):
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'stop'}))
     time.sleep(2) # sleep before refresh, to give time to update data
-    redirect(url_for(view_recorder))
+    return redirect(url_for("view_recorder", recorder_name=recorder_name))
 
 if stored_exception==None:
     # start HTTP Server
