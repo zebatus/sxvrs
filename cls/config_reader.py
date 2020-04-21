@@ -143,6 +143,8 @@ class recorder_configuration():
         self.record_autostart = self.combine('record_autostart', default=False)
         # the duration of the recording into one file
         self.record_time = self.combine('record_time', default=600)
+        # If recording not started, thread will sleep for recorder_sleep_time sec. Increase of this value, will cause in delay for response when changing state frop rec stopped to rec started
+        self.recorder_sleep_time = self.combine('recorder_sleep_time', default=5)
         # Take snapshot every <snapshot_time> seconds
         self.snapshot_time = self.combine('snapshot_time', default=5)
         # maximum storage folder size in GB. If it exceeds, then the oldes files will be removed

@@ -74,48 +74,59 @@ class vr_thread(Thread):
             frame_width = frame_shape[1]
             frame_dim = frame_shape[2]
         i = 0 
-        while not self._stop_event.isSet():     
-            if self.cnfg.record_autostart or self._record_start_event.isSet():
-                self.recording = True
-                self._record_start_event.clear()
-            if self._record_stop_event.isSet():
-                self.recording = False
-                self._record_stop_event.clear()
-            if self.recording:
-                # run cmd_recorder_start
-                cmd_recorder_start = self.cnfg.cmd_recorder_start() + f' -fh {frame_height} -fw {frame_width} -fd {frame_dim}'
-                if cmd_recorder_start == '':
-                    raise ValueError(f"Config value: 'cmd_recorder_start' is not defined")                    
-                if (not self._stop_event.isSet()):
-                    process = process = subprocess.Popen(cmd_recorder_start, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
-                    self.state_msg = 'started'
-                    self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg }))
-                    start_time = time.time()
-                    try:
-                        process.wait(self.cnfg.record_time)
-                    except subprocess.TimeoutExpired:
-                        self.logger.debug(f'[{self.name}] process.wait TimeoutExpired {self.cnfg.record_time}')
-                    duration = time.time() - start_time
-                    # detect if process run too fast (unsuccessful start)
-                    if duration<self.cnfg.start_error_threshold:
-                        self.err_cnt += 1
-                        self.logger.debug(f"[{self.name}] Probably can't start recording. Finished in {duration:.2f} sec (attempt {self.err_cnt})")
-                        if (self.err_cnt % self.cnfg.start_error_atempt_cnt)==0:
-                            self.logger.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.cnfg.start_error_sleep} sec')
-                            self.state_msg = 'error'
-                            self.mqtt_status()
-                            self._stop_event.wait(self.cnfg.start_error_sleep)
-                    else:
-                        self.err_cnt = 0
-                        self.logger.debug(f'[{self.name}] process execution finished in {duration:.2f} sec')
-                    self.state_msg = 'restarting'
-                    self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg}))
-                i += 1
-                self.logger.debug(f'[{self.name}] Running thread, iteration #{i}')
-            else:
-                i = 0
-                self.logger.debug(f'[{self.name}] Sleeping thread')
-                self._stop_event.wait(3)
+        while not self._stop_event.isSet(): 
+            try:
+                if subprocess.run(["ping","-c","1", self.cnfg.ip]).returncode == 0:
+                    self.state_msg = 'active'
+                else:
+                    self.state_msg = 'inactive'
+                if self.cnfg.record_autostart or self._record_start_event.isSet():
+                    self.recording = True
+                    self._record_start_event.clear()
+                if self._record_stop_event.isSet():
+                    self.recording = False
+                    self._record_stop_event.clear()
+                if self.recording and self.state_msg == 'active':                
+                    # run cmd_recorder_start
+                    cmd_recorder_start = self.cnfg.cmd_recorder_start() + f' -fh {frame_height} -fw {frame_width} -fd {frame_dim}'
+                    if cmd_recorder_start == '':
+                        raise ValueError(f"Config value: 'cmd_recorder_start' is not defined")                    
+                    if (not self._stop_event.isSet()):
+                        process = subprocess.Popen(cmd_recorder_start, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
+                        self.state_msg = 'started'
+                        self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg }))
+                        start_time = time.time()
+                        try:
+                            process.wait(self.cnfg.record_time)
+                        except subprocess.TimeoutExpired:
+                            self.logger.debug(f'[{self.name}] process.wait TimeoutExpired {self.cnfg.record_time}')
+                        except (KeyboardInterrupt, SystemExit):
+                            self.logger.debug(f'[{self.name}] Catch KeyboardInterrupt or SystemExit')
+                            self._stop_event.set()                            
+                        duration = time.time() - start_time
+                        # detect if process run too fast (unsuccessful start)
+                        if duration<self.cnfg.start_error_threshold:
+                            self.err_cnt += 1
+                            self.logger.debug(f"[{self.name}] Probably can't start recording. Finished in {duration:.2f} sec (attempt {self.err_cnt})")
+                            if (self.err_cnt % self.cnfg.start_error_atempt_cnt)==0:
+                                self.logger.debug(f'[{self.name}] Too many attempts to start with no success ({self.err_cnt}). Going to sleep for {self.cnfg.start_error_sleep} sec')
+                                self.state_msg = 'error'
+                                self.mqtt_status()
+                                self._stop_event.wait(self.cnfg.start_error_sleep)
+                        else:
+                            self.err_cnt = 0
+                            self.logger.debug(f'[{self.name}] process execution finished in {duration:.2f} sec')
+                        self.state_msg = 'restarting'
+                        self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg}))
+                    i += 1
+                    self.logger.debug(f'[{self.name}] Running thread, iteration #{i}')
+                else:
+                    i = 0
+                    self.logger.debug(f'[{self.name}] Sleeping thread')
+                    self._stop_event.wait(self.cnfg.recorder_sleep_time)
+            except (KeyboardInterrupt, SystemExit):
+                self.logger.debug(f'[{self.name}] Catch KeyboardInterrupt or SystemExit')
+                self._stop_event.set()
 
 def vr_create(name, cnfg, mqtt_client):
     vr = vr_thread(name, cnfg, mqtt_client)
