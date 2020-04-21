@@ -76,7 +76,7 @@ class vr_thread(Thread):
         i = 0 
         while not self._stop_event.isSet(): 
             try:
-                if subprocess.run(["ping","-c","1", self.cnfg.ip]).returncode == 0:
+                if subprocess.run(["ping","-c","1", self.cnfg.ip, ">","/dev/NULL","2>&1"]).returncode == 0:
                     self.state_msg = 'active'
                 else:
                     self.state_msg = 'inactive'
@@ -86,7 +86,7 @@ class vr_thread(Thread):
                 if self._record_stop_event.isSet():
                     self.recording = False
                     self._record_stop_event.clear()
-                if self.recording and self.state_msg == 'active':                
+                if self.recording:                
                     # run cmd_recorder_start
                     cmd_recorder_start = self.cnfg.cmd_recorder_start() + f' -fh {frame_height} -fw {frame_width} -fd {frame_dim}'
                     if cmd_recorder_start == '':
