@@ -29,7 +29,7 @@ class CameraThread(Thread):
     def __init__(self, name, cnfg_daemon, cnfg_recorder, mqtt_client):
         """Init and assigning params before run"""
         Thread.__init__(self)
-        self.logger = logging.getLogger(f"Thread:{name}")
+        self.logger = logging.getLogger(f"{name}:CameraThread")
         self.state_msg = 'stopped'
         self._stop_event = Event()
         self._record_start_event = Event()

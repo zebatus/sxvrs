@@ -19,7 +19,7 @@ class WatcherMemory():
         self.cnfg = cnfg
         self.name = name # name of the instance
         self.memory_data = []
-        self.logger = logging.getLogger(f"WatcherMemory")
+        self.logger = logging.getLogger(f"{name}:WatcherMemory")
 
     def add(self, data):
         """Function to add new object into memory. It checks if such object already exists. 
