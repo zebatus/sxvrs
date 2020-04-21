@@ -176,8 +176,11 @@ def recorder_view_data(recorder, width=None, height=None):
         elif recorder.status in ['snapshot','restarting']:
             res['state_img'] = 'state.gif'
             res['widget_status'] = 'widget_status'
-        elif recorder.status in ['error','inactive'] :
+        elif recorder.status in ['error'] :
             res['state_img'] = 'err.gif'
+            res['widget_status'] = 'widget_status_err'
+        elif recorder.status in ['inactive'] :
+            res['state_img'] = 'nointernet.png'
             res['widget_status'] = 'widget_status_err'
     if recorder.error_cnt>0:
         res['widget_err'] = 'widget_err' 
@@ -296,6 +299,7 @@ def view_recorder(recorder_name):
         content = {
             "charset" : enc,
             "title" : f"Camera: {recorder_name}",
+            "recorder_name": recorder_name,
             "log_box" : log_box
         }
         return render_template('recorder.html', content=content, recorder=recorder_dict)

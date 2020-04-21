@@ -6,7 +6,7 @@
         <link rel="stylesheet" type="text/css" href="/static/main.css" />
     </head>
     <body>
-        <h1>{{ content.title }} - Simply eXtendable Video Recording System</h1>
+        <h1><a href="/">{{ content.title }}</a> - Simply eXtendable Video Recording System</h1>
         {% if recorders  %}
             {% for recorder in recorders %}
             <div class="vr_box"><div class="vr_link"><a href="recorder/{{ recorder.name }}">{{ recorder.name }}</a></div>
