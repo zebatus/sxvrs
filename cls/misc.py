@@ -74,3 +74,10 @@ def get_frame_shape(source):
 
 def check_topic(topic, value):
     return topic.lower().endswith(f"/{value}")
+
+def ping_ip(ip):
+    try:
+        sp.check_output(["ping", "-c", "1", ip])
+        return True                      
+    except sp.CalledProcessError:
+        return False
