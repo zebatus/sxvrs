@@ -14,16 +14,20 @@ class ObjectDetectorBase():
     def __init__(self, cnfg, logger_name='None'):
         self.logger = logging.getLogger(f"{logger_name}:ObjectDetector")
         self.cnfg = cnfg
-        self.is_started = False
+        self._stop_event = Event()
+        self._stop_event.set()
         # Mount RAM storage disk
         self.ram_storage = RAM_Storage(cnfg)
         # Create storage manager
         self.storage = StorageManager(cnfg.temp_storage_path, cnfg.temp_storage_size, logger_name = self.logger.name)
 
+    def is_started(self):
+        return not self._stop_event.is_set()
+
     def thread_watch(self):
         """ Watch folder and wait for new files
         """
-        while self.is_started:
+        while not self._stop_event.is_set():
             try:
                 filename = self.storage.get_first_file(f"{self.ram_storage.storage_path}/*.obj.wait")
                 if filename is None:
@@ -42,10 +46,10 @@ class ObjectDetectorBase():
     def start_watch(self):
         """ This function for running main loop: scan folder for files and start processing them
         """
-        if self.is_started:
+        if not self._stop_event.is_set():
             self.logger.error('Object detector is already started')
             return
-        self.is_started = True
+        self._stop_event.clear()
         self.thread = Thread(target=self.thread_watch, args=())
         self.thread.start()
         self.logger.debug("ObjectDetector start folder watching")
@@ -58,7 +62,7 @@ class ObjectDetectorBase():
     def stop_watch(self):
         """ Abstract method, must be implementet inside derived classes
         """
-        self.is_started = False
+        self._stop_event.set()
         self.thread.join()
         self.logger.debug("ObjectDetector stop folder watching")
         return True
