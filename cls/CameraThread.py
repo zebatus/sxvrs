@@ -87,7 +87,8 @@ class CameraThread(Thread):
                 'status': self.state_msg, 
                 'error_cnt': self.err_cnt,
                 'latest_file': '',#self.last_recorded_filename,
-                'snapshot': self.last_snapshot
+                'snapshot': self.last_snapshot,
+                'watcher': self.is_watching()
                 })
         self.logger.debug(f'mqtt send "status" [{payload}]')
         self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),payload)
@@ -115,7 +116,9 @@ class CameraThread(Thread):
                 self.get_camera_info()
             else:
                 # watcher running in separate thread (start only once)
-                if self.cnfg.is_motion_detection and self.watcher_thread is None:
+                if self.cnfg.is_motion_detection:
+                    self._watcher_started_event.set()
+                if self.watcher_thread is None:
                     self.watcher_thread = Thread(target=self.run_watcher_thread, args=()) 
                     self.watcher_thread.start()
                 # recorder loop running in main thread

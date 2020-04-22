@@ -54,10 +54,10 @@ a{text-decoration: #242424;color: #bbbbbb; }
     animation: blink normal 1.5s infinite ease-in-out; /* Opera and prob css3 final iteration */
 }
 .widget_mark {
-        z-index: 2; 
-    position: absolute; 
+    /*    z-index: 2; 
+    position: absolute; */
     top:0px; left:0px; 
-    height:40px; width:40px;
+    height:32px; width:32px;
 }
 .widget {
     position: relative; 
@@ -87,17 +87,23 @@ a{text-decoration: #242424;color: #bbbbbb; }
 .widget_status_err{color: red;}
 .widget_status{color: orangered;}
 
-.widget_btn{
+.widget_btn_bar{
     z-index: 2; 
     position: absolute;  
-    top:7px; left:45px;    
+    top:3px; left:3px;
+    height:36px;
+    width: 120px;
+}
+.widget_btn{
+    /*z-index: 2; 
+    position: absolute;  
+    top:7px; left:45px;    */
     background-color: rgba(55, 55, 56, 0.445);
     float:left; 
     color: honeydew;
     text-align: center;
     vertical-align: middle;
-    padding:4px 10px;
-    font-size: 80%;
+    padding:0px;
 }
 .widget_btn:hover{
     background-color: rgba(44, 44, 44, 0.63);

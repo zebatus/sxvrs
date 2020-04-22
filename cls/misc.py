@@ -13,12 +13,15 @@ class Recorder():
         self.status = 'None'
         self.error_cnt = 0 
         self.latest_file = ''
+        self.watcher = False
     
     def update(self, values):
         """ Function updates recorder values according on dictionary
         """
         if 'status' in values:
             self.status = values['status']
+        if 'watcher' in values:
+            self.watcher = values['watcher']
         if 'error_cnt' in values:
             self.error_cnt = values['error_cnt']
         if 'latest_file' in values:

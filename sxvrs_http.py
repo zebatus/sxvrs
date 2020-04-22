@@ -151,6 +151,7 @@ def recorder_view_data(recorder, width=None, height=None):
         "name": recorder.name,
         "error_cnt": recorder.error_cnt,
         "status": recorder.status,
+        "watcher": recorder.watcher,
         "latest_file": recorder.latest_file,
         "widget_err": '_',
         "widget_status": '_',
@@ -164,29 +165,31 @@ def recorder_view_data(recorder, width=None, height=None):
     res['title'] = f'Camera: {recorder.name}'
     res['blink'] = ''
     if recorder.status == 'stopped':
-        res['btn_name'] = 'Start'
-        res['state_img'] = 'stop.gif'
+        res['btn_rec_name'] = 'Start Recording'
+        res['btn_rec_cmd'] = 'start'
+        res['btn_rec_img'] = 'stop.gif'
         res['widget_status'] = 'widget_status_ok'
     else:
-        res['btn_name'] = 'Stop'
+        res['btn_rec_name'] = 'Stop Recording'
+        res['btn_rec_cmd'] = 'stop'
         if recorder.status == 'started':
             res['blink'] = 'blink'
-            res['state_img'] = 'rec.gif'
+            res['btn_rec_img'] = 'rec.gif'
             res['widget_status'] = 'widget_status_ok'
         elif recorder.status in ['snapshot','restarting']:
-            res['state_img'] = 'state.gif'
+            res['btn_rec_img'] = 'state.gif'
             res['widget_status'] = 'widget_status'
         elif recorder.status in ['error'] :
-            res['state_img'] = 'err.gif'
+            res['btn_rec_img'] = 'err.gif'
             res['widget_status'] = 'widget_status_err'
         elif recorder.status in ['inactive'] :
-            res['state_img'] = 'nointernet.png'
+            res['btn_rec_img'] = 'nointernet.png'
             res['widget_status'] = 'widget_status_err'
     if recorder.error_cnt>0:
         res['widget_err'] = 'widget_err' 
     else:
         res['widget_err'] = ''
-    res['state_img'] = '/static/' + res['state_img']
+    res['btn_rec_img'] = '/static/' + res['btn_rec_img']
     return res
 
 @app.route('/')

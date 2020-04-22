@@ -94,6 +94,10 @@ def on_mqtt_message(client, userdata, message):
                         camera.record_stop()
                     elif payload.get('cmd').lower()=='status':
                         camera.mqtt_status()
+                    elif payload.get('cmd').lower()=='watcher_start':
+                        camera.watcher_start()
+                    elif payload.get('cmd').lower()=='watcher_stop':
+                        camera.watcher_stop()
     except:
         logger.exception(f'Error on_mqtt_message() topic: {message.topic} msg_len={len(message.payload)}')
 
