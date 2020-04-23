@@ -138,6 +138,9 @@ app = Flask(__name__, static_url_path='/static', static_folder='templates/static
 
 def refresh_recorder_status(recorder=None):
     """This function is for running of refreshment of the status for all cam"""
+    if len(recorders)==0:
+        mqtt_client.publish(mqtt_topic_pub.format(source_name='list'))
+        logger.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name='list')}")        
     if recorder is None:
         for recorder_name in recorders:
             mqtt_publish_recorder(recorder_name, {'cmd':'status'})
