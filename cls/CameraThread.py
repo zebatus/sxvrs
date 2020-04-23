@@ -213,12 +213,12 @@ class CameraThread(Thread):
         self._watcher_started_event.clear()
         self.logger.debug(f'receve "watcher_stop" event')
 
-    def log_to_file(self, filename, data, marker=''):
+    def log_to_file(self, filename, data, label=''):
         """ Function to write data into file """
         if isinstance(data, dict):
             data = json.dumps(data)
         with open(filename, "a") as f:
-            f.write(f'{marker}/t{data}\n')
+            f.write(f'{label}\t{data}\n')
 
     def run_watcher_thread(self):
         """
@@ -254,12 +254,13 @@ class CameraThread(Thread):
                 except FileNotFoundError:
                     return
                 filename = filename[:-4]
+                label = filename[filename.rindex('_')+1:]
                 is_motion = motion_detector.detect(filename_wch)
                 if self.cnfg_daemon.is_object_detection:
                     if not is_motion:
                         os.remove(filename_wch)
                     else:
-                        self.log_to_file(self.latest_recorded_filename+".motion.log", '', filename)
+                        self.log_to_file(self.latest_recorded_filename+".motion.log", '', label)
                         filename_obj_wait = f"{filename}.obj.wait"
                         filename_obj_none = f"{filename}.obj.none"
                         filename_obj_found = f"{filename}.obj.found"
@@ -279,7 +280,7 @@ class CameraThread(Thread):
                                         info['filename'] = filename_obj_found
                                 except:
                                     self.logger.exception('Can''t load info file')
-                                self.log_to_file(self.latest_recorded_filename+".object.log", info, filename)
+                                self.log_to_file(self.latest_recorded_filename+".object.log", info, label)
                                 self.object_detected += 1
                                 if watcher_memory.add(info):
                                     # Take actions on image where objects was found
