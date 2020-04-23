@@ -273,7 +273,8 @@ def recorder_snapshot(recorder_name, width=None, height=None):
     filename = cnfg.recorders[recorder_name].filename_snapshot()        
     if os.path.isfile(filename):
         # resize image
-        new_filename = f'{filename[:-4]}.{width}x{height}.jpg'
+        #new_filename = f'{filename[:-4]}.{width}x{height}.jpg'
+        new_filename = f'{cnfg.temp_storage_path}/http_img.jpg'
         cmd = f'convert {filename} -resize {width}x{height} {str_param}\> {new_filename}'
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
         process.wait(20)
