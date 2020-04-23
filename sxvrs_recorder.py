@@ -27,6 +27,7 @@ from subprocess import Popen, PIPE
 from datetime import datetime
 from time import time
 import signal
+import shlex
 
 from cls.config_reader import config_reader
 from cls.misc import get_frame_shape
@@ -89,14 +90,15 @@ storage.force_create_file_path(cnfg.filename_snapshot())
 # Force create path for video file
 filename_video = cnfg.filename_video()
 storage.force_create_file_path(filename_video)
+logger.info(f'Start record filename: <{filename_video}>')
 
 cmd_ffmpeg_read = cnfg.cmd_ffmpeg_read()
 logger.debug(f"Execute process to read frames:\n   {cmd_ffmpeg_read}")
-ffmpeg_read = Popen(cmd_ffmpeg_read, shell=True, stdout = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
+ffmpeg_read = Popen(shlex.split(cmd_ffmpeg_read), stdout = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=frame_shape[0], width=frame_shape[1], pixbytes=frame_shape[2]*8)
 if not cmd_ffmpeg_write is None:
     logger.debug(f"Execute process to write frames:\n  {cmd_ffmpeg_write}")
-    ffmpeg_write = Popen(cmd_ffmpeg_write, shell=True, stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
+    ffmpeg_write = Popen(shlex.split(cmd_ffmpeg_write), stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 try:
     snapshot_taken_time = 0
     i = 0
@@ -109,8 +111,10 @@ try:
         frame_np = (np.frombuffer(frame_bytes, np.uint8).reshape(frame_shape)) 
         # take snapshot
         if time() - snapshot_taken_time > cnfg.snapshot_time:
-            frame_np = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
-            cv2.imwrite(cnfg.filename_snapshot(), frame_np)
+            frame_np_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
+            filename_snapshot = cnfg.filename_snapshot()
+            logger.info(f'Snapshot filename: <{filename_snapshot}>')
+            cv2.imwrite(filename_snapshot, frame_np_rgb)
             snapshot_taken_time = time()
         # process frame in RAM folder
         if cnfg.is_motion_detection and (i % (cnfg.frame_skip + throttling) == 0):
@@ -132,8 +136,8 @@ try:
                 os.rename(f'{temp_frame_file}.bmp', f'{temp_frame_file}.rec')
         # save frame to video file
         if not ffmpeg_write is None:
-            ffmpeg_write.stdin.write(frame_np.tostring())
-        dt_end = datetime.now()
+            ffmpeg_write.stdin.write(frame_np.tostring())       
+        dt_end = datetime.now() 
         if (dt_end - dt_start).total_seconds() >= cnfg.record_time:
             break
         i += 1
@@ -141,4 +145,5 @@ except (KeyboardInterrupt, SystemExit):
     logger.info("[CTRL+C detected] MainLoop")
     ffmpeg_read.send_signal(signal.SIGINT)
     ffmpeg_write.send_signal(signal.SIGINT)
+dt_end = datetime.now()
 logger.debug(f"> Finish on: '{dt_end}'")
