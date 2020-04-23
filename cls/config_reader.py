@@ -68,7 +68,7 @@ class config_reader():
         # set config for each recorder
         self.recorders = {}
         for recorder in cnfg['recorders']:
-            self.recorders[recorder] = recorder_configuration(cnfg, recorder)        
+            self.recorders[recorder] = recorder_configuration(self, cnfg, recorder)        
         # Object Detectors
         self.is_object_detector_cloud = 'object_detector_cloud' in cnfg
         if self.is_object_detector_cloud:
@@ -131,7 +131,8 @@ class recorder_configuration():
                     return self.data['global'][group][param]
                 else:
                     return default
-    def __init__(self, cnfg, name):
+    def __init__(self, parent, cnfg, name):
+        self.parent = parent
         self.data = cnfg
         self.mqtt_topic_recorder_publish = cnfg['mqtt'].get('topic_publish', 'sxvrs/clients/{source_name}')
         self.mqtt_topic_recorder_subscribe = cnfg['mqtt'].get('topic_subscribe', 'sxvrs/daemon/{source_name}')
@@ -221,7 +222,7 @@ class recorder_configuration():
         ### Action block ###
         self.actions = {}
         for action in self.combine('actions', default=[]):
-            self.actions[action] = action_configuration(cnfg, recorder_name=self.name, action_name=action)
+            self.actions[action] = action_configuration(self, cnfg, recorder_name=self.name, action_name=action)
 
     def filename_debug(self, **kwargs):
         try:
@@ -330,7 +331,8 @@ class action_configuration():
                     return self.data['global']['actions'][self.name][group][param]
                 else:
                     return default
-    def __init__(self, cnfg, recorder_name, action_name):
+    def __init__(self, parent, cnfg, recorder_name, action_name):
+        self.parent = parent
         self.data = cnfg
         self.recorder_name = recorder_name
         self.name = action_name
@@ -360,6 +362,10 @@ class action_configuration():
         self.mail_to = self.combine('mail_to')
 
     def file_source(self, **kwargs):
+        if 'name' not in kwargs:
+            kwargs['name'] = self.parent.name
+        if 'storage_path' not in kwargs:
+            kwargs['storage_path'] = self.parent.storage_path()
         if 'recorder_name' not in kwargs:
             kwargs['name'] = self.recorder_name
         if 'datetime' not in kwargs:
@@ -367,6 +373,10 @@ class action_configuration():
         return self._file_source.format(**kwargs)
 
     def file_target(self, **kwargs):
+        if 'name' not in kwargs:
+            kwargs['name'] = self.parent.name
+        if 'storage_path' not in kwargs:
+            kwargs['storage_path'] = self.parent.storage_path()
         if 'recorder_name' not in kwargs:
             kwargs['name'] = self.recorder_name
         if 'datetime' not in kwargs:

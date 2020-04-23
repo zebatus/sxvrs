@@ -54,16 +54,22 @@ class ActionManager():
                         config=action,
                         obj_detection_results = obj_detection_results
                         )
-                elif action.type=='copy':                    
-                    self.act_copy_file(
-                        action.file_source(filename=obj_detected_file), 
-                        action.file_target(name=self.cnfg.name, datetime=datetime.now())
-                        )
+                elif action.type=='copy':
+                    for obj in obj_detection_results.get('objects'):  
+                        obj_class = obj.get('class')
+                        if not obj_class is None:                  
+                            self.act_copy_file(
+                                action.file_source(filename=obj_detected_file), 
+                                action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
+                                )
                 elif action.type=='move':                    
-                    self.act_move_file(
-                        action.file_source(filename=obj_detected_file), 
-                        action.file_target(name=self.cnfg.name, datetime=datetime.now())
-                        )
+                    for obj in obj_detection_results.get('objects'):  
+                        obj_class = obj.get('class')
+                        if not obj_class is None:                  
+                            self.act_move_file(
+                                action.file_source(filename=obj_detected_file), 
+                                action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
+                                )
 
     def check_action(self, action_cnfg, data):
         """Function will check if the returned data is "ok" and if it fits config params, will return True, to run further action"""
