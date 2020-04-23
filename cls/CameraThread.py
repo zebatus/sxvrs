@@ -13,6 +13,8 @@ import subprocess
 from operator import itemgetter
 import math
 import signal
+import shlex
+import re
 
 from cls.misc import get_frame_shape, ping_ip
 from cls.config_reader import config_reader
@@ -40,8 +42,8 @@ class CameraThread(Thread):
         self.cnfg_daemon = cnfg_daemon
         self.cnfg = cnfg_recorder
         self.mqtt_client = mqtt_client
-        self.last_recorded_filename = '' # in this variable I will keep the latest recorded filename 
-        self.last_snapshot = ''
+        self.latest_recorded_filename = '' # in this variable I will keep the latest recorded filename 
+        self.latest_snapshot = ''
         self.err_cnt = 0
         self.event_timeout = 5
         self.frame_width = None
@@ -49,6 +51,10 @@ class CameraThread(Thread):
         self.frame_dim = None
         self.watcher_thread = None
         self.proc_recorder = None
+        self.motion_throttling = ''
+        self.motion_detected = 0
+        self.object_detected = 0
+        self.cnt_no_object = 0
 
     
     def is_watching(self):
@@ -86,9 +92,13 @@ class CameraThread(Thread):
                 'name': self.name,
                 'status': self.state_msg, 
                 'error_cnt': self.err_cnt,
-                'latest_file': '',#self.last_recorded_filename,
-                'snapshot': self.last_snapshot,
-                'watcher': self.is_watching()
+                'latest_file': self.latest_recorded_filename,
+                'snapshot': self.latest_snapshot,
+                'watcher': self.is_watching(),
+                'object throttling': math.ceil(self.cnt_no_object / self.cnfg.object_throttling),
+                'object detected': self.object_detected,
+                'motion throttling': self.motion_throttling,
+                'motion detected': self.motion_detected
                 })
         self.logger.debug(f'mqtt send "status" [{payload}]')
         self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),payload)
@@ -126,8 +136,8 @@ class CameraThread(Thread):
 
     def run_recorder_loop(self):
         """ Function to run in a loop:
-        1) ping if IP is active
-        2) execute {cmd_recorder_start} to record file and take snapshots
+        - execute {cmd_recorder_start} for start recording into file and take snapshots
+        - parse execution output to get required variable values
         """
         i = 0 
         while not self._stop_event.is_set(): 
@@ -135,22 +145,43 @@ class CameraThread(Thread):
                 i = 0
                 self.logger.debug(f'Recording stopped. Sleeping..')
                 self._recorder_started_event.wait(self.event_timeout)
-            elif self.state_msg not in ('inactive'):               
+            elif self.state_msg not in ('inactive'):                               
                 # run cmd_recorder_start
                 cmd_recorder_start = self.cnfg.cmd_recorder_start() + f' -fh {self.frame_height} -fw {self.frame_width} -fd {self.frame_dim}'
                 if cmd_recorder_start == '':
                     raise ValueError(f"Config value: 'cmd_recorder_start' is not defined")                    
                 if (not self._stop_event.is_set()):
                     self.logger.debug(f'process run:> {cmd_recorder_start}')
-                    self.proc_recorder = subprocess.Popen(cmd_recorder_start, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
+                    #self.proc_recorder = subprocess.Popen(cmd_recorder_start, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
+                    self.proc_recorder = subprocess.Popen(shlex.split(cmd_recorder_start), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
                     self.state_msg = 'started'
                     self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg }))
                     start_time = time.time()
-                    try:
-                        self.proc_recorder.wait(self.cnfg.record_time)
-                    except subprocess.TimeoutExpired:
-                        self.logger.debug(f'process.wait TimeoutExpired {self.cnfg.record_time}')
-                    duration = time.time() - start_time
+                    self.object_detected = 0
+                    self.motion_detected = 0
+                    # need to parse sxvrs_recorder execution output, to catch required variables 
+                    pattern_videofile = re.compile(r".*Start record filename: \<(.*)\>.*")
+                    pattern_snapshotfile = re.compile(r".*Snapshot filename: \<(.*)\>.*")
+                    pattern_motion_throttling = re.compile(r".*Start frame throttling \((.*)\) for recorder.*")
+                    def parse_output(output, pattern, var):
+                        found = re.search(pattern, output)
+                        if not found is None:
+                            var = found.groups()[0]
+                        return var
+                    self.motion_throttling
+                    while not self._stop_event.is_set():
+                        output = self.proc_recorder.stdout.readline()
+                        if output == b'' and self.proc_recorder.poll() is not None:
+                            break
+                        if output:
+                            output = output.decode("utf-8") 
+                            self.logger.debug(output.strip()) # log output. maybe need to dissable this
+                            self.latest_recorded_filename = parse_output(output, pattern_videofile, self.latest_recorded_filename)
+                            self.latest_snapshot = parse_output(output, pattern_snapshotfile, self.latest_snapshot)
+                            self.motion_throttling = parse_output(output, pattern_motion_throttling, self.motion_throttling)
+                        duration = time.time() - start_time
+                    rc = self.proc_recorder.poll()
+                    
                     # detect if process run too fast (unsuccessful start)
                     if duration<self.cnfg.start_error_threshold:
                         self.err_cnt += 1
@@ -182,6 +213,13 @@ class CameraThread(Thread):
         self._watcher_started_event.clear()
         self.logger.debug(f'receve "watcher_stop" event')
 
+    def log_to_file(self, filename, data, marker=''):
+        """ Function to write data into file """
+        if isinstance(data, dict):
+            data = json.dumps(data)
+        with open(filename, "a") as f:
+            f.write(f'{marker}/t{data}\n')
+
     def run_watcher_thread(self):
         """
         1) Monitor provided RAM folder for newly taken frames
@@ -205,11 +243,10 @@ class CameraThread(Thread):
         # Remember detected objects, to avvoid triggering duplicate acctions
         watcher_memory = WatcherMemory(self.cnfg, name = self.name)
 
-        cnt_no_object = 0 # count motion frames without objects for throttling
+        self.cnt_no_object = 0 # count motion frames without objects for throttling
         def thread_process(filename): 
             """ Processing of each snapshot file must be done in separate thread
             """
-            global cnt_no_object
             try:
                 filename_wch = f"{filename[:-4]}.wch"
                 try:
@@ -222,6 +259,7 @@ class CameraThread(Thread):
                     if not is_motion:
                         os.remove(filename_wch)
                     else:
+                        self.log_to_file(self.latest_recorded_filename+".motion.log", '', filename)
                         filename_obj_wait = f"{filename}.obj.wait"
                         filename_obj_none = f"{filename}.obj.none"
                         filename_obj_found = f"{filename}.obj.found"
@@ -230,17 +268,19 @@ class CameraThread(Thread):
                         time_start = time.time()
                         while time.time()-time_start < self.cnfg_daemon.object_detector_timeout:                
                             if os.path.isfile(filename_obj_none):
-                                cnt_no_object += 1
+                                self.cnt_no_object += 1
                                 os.remove(filename_obj_none)
                                 break
                             if os.path.isfile(filename_obj_found):
-                                cnt_no_object = 0            
+                                self.cnt_no_object = 0            
                                 try: # Read info file
                                     with open(filename_obj_found+'.info') as f:
                                         info = json.loads(f.read())
                                         info['filename'] = filename_obj_found
                                 except:
                                     self.logger.exception('Can''t load info file')
+                                self.log_to_file(self.latest_recorded_filename+".object.log", info, filename)
+                                self.object_detected += 1
                                 if watcher_memory.add(info):
                                     # Take actions on image where objects was found
                                     action_manager.run(filename_obj_found, info) 
@@ -278,7 +318,7 @@ class CameraThread(Thread):
                         time.sleep(sleep_time)
                         continue
                     if os.path.isfile(filename):
-                        throttling = math.ceil(cnt_no_object / self.cnfg.object_throttling)
+                        throttling = math.ceil(self.cnt_no_object / self.cnfg.object_throttling)
                         if throttling>0:
                             if i % throttling != 0:
                                 self.logger.debug(f'ObjectDetector throttling')
