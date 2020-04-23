@@ -89,6 +89,7 @@ class config_reader():
             self.http_server_host = cnfg['http_server'].get('host', '0.0.0.0')
             self.http_server_port = cnfg['http_server'].get('port', '8282')
             self._http_server_cmd = cnfg['http_server'].get('cmd', 'python sxvrs_http.py')
+            self.http_refresh_img_speed= cnfg['http_server'].get('refresh_img_speed', 30) # image refresh speed (in seconds)
         self._cmd_watcher = 'python sxvrs_watcher.py --name "{recorder}"'
         if 'cmd' in self.data:
             self._cmd_watcher = cnfg['cmd'].get('watcher', 'python sxvrs_watcher.py --name "{recorder}"')        

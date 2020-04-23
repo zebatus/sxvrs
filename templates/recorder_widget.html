@@ -23,7 +23,7 @@
     {% endif %}
     </div>
     
-    <div><img src="{{ recorder.snapshot }}" style="width:100%; height:94%" /></div>
+    <div><img id="camera_{{ recorder.name }}" src="{{ recorder.snapshot }}" style="width:100%; height:94%" /></div>
     <div class="widget_bar">
         <div style="float:right;" class="{{ recorder.widget_err }}">{{ recorder.error_cnt }}</div>
         <div style="float:right;" class="{{ recorder.widget_status }}">{{ recorder.status }}</div>

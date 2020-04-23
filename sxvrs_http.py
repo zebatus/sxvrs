@@ -86,7 +86,9 @@ def on_mqtt_message(client, userdata, message):
         logger.exception(f'Error on_mqtt_message() topic: {message.topic} msg_len={len(message.payload)}')
 
 def on_mqtt_connect(client, userdata, flags, rc):
-    client.connection_rc = rc
+    if client.is_connected:
+        return
+    client.connection_rc = rc    
     if rc==0:
         client.is_connected = True
         logger.info(f"Connected to MQTT: {cnfg.mqtt_server_host}:{cnfg.mqtt_server_port} rc={str(rc)}")
@@ -148,6 +150,7 @@ def recorder_view_data(recorder, width=None, height=None):
     """ This function prepares dictionary for displaying recorder
     """
     res = {
+        "refresh_img_speed": cnfg.http_refresh_img_speed * 1000,
         "name": recorder.name,
         "error_cnt": recorder.error_cnt,
         "status": recorder.status,
@@ -182,7 +185,7 @@ def recorder_view_data(recorder, width=None, height=None):
         elif recorder.status in ['error'] :
             res['btn_rec_img'] = 'err.gif'
             res['widget_status'] = 'widget_status_err'
-        elif recorder.status in ['inactive'] :
+        elif recorder.status in ['inactive','None'] :
             res['btn_rec_img'] = 'nointernet.png'
             res['widget_status'] = 'widget_status_err'
     if recorder.error_cnt>0:

@@ -15,5 +15,13 @@
                 </pre>
             </diw>
         </div>
+        <script type="text/javascript" >
+            function ChangeMedia(){
+                var d = new Date();
+                var t = d.getTime();
+                document.getElementById('camera_{{ recorder.name }}').src = "{{ recorder.snapshot }}?"+t;
+            }
+            var reloadcam = setInterval(ChangeMedia, {{ recorder.refresh_img_speed }});
+            </script>        
     </body>
 </html>
