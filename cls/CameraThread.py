@@ -260,7 +260,7 @@ class CameraThread(Thread):
                     if not is_motion:
                         os.remove(filename_wch)
                     else:
-                        self.log_to_file(self.latest_recorded_filename+".motion.log", '', label)
+                        self.log_to_file(self.latest_recorded_filename+".motion.log", '', label)                        
                         filename_obj_wait = f"{filename}.obj.wait"
                         filename_obj_none = f"{filename}.obj.none"
                         filename_obj_found = f"{filename}.obj.found"
@@ -287,8 +287,10 @@ class CameraThread(Thread):
                                     action_manager.run(filename_obj_found, info) 
                                 # Remove temporary files
                                 try:
-                                    os.remove(filename_obj_found)
-                                    os.remove(filename_obj_found+'.info')
+                                    if os.path.isfile(filename_obj_found):
+                                        os.remove(filename_obj_found)
+                                    if os.path.isfile(filename_obj_found+'.info'):
+                                        os.remove(filename_obj_found+'.info')
                                 except:
                                     self.logger.exception('Can''t delete temporary files')
                                 break
