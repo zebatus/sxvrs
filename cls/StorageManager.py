@@ -74,17 +74,21 @@ class StorageManager():
         if init_list:
             self.file_list = []
         for entry in scandir(path):
-            if entry.is_file(follow_symlinks=False):
-                if glob.fnmatch.fnmatch(entry.name, file_pattern):
-                    total += entry.stat().st_size
-                    row = {
-                                'file': entry.path,
-                                'size': entry.stat().st_size,
-                                'dt': entry.stat().st_mtime, # have to use last modification time because of Linux: there is no easy way to get correct creation time value
-                            }
-                    self.file_list.append(row)
-            elif entry.is_dir(follow_symlinks=False):
-                total += self.get_folder_size(entry.path, file_pattern=file_pattern, init_list=False)
+            try:
+                if entry.is_file(follow_symlinks=False):
+                    if os.path.isfile(entry.path):
+                        if glob.fnmatch.fnmatch(entry.name, file_pattern):
+                            total += entry.stat().st_size
+                            row = {
+                                        'file': entry.path,
+                                        'size': entry.stat().st_size,
+                                        'dt': entry.stat().st_mtime, # have to use last modification time because of Linux: there is no easy way to get correct creation time value
+                                    }
+                            self.file_list.append(row)
+                elif entry.is_dir(follow_symlinks=False):
+                    total += self.get_folder_size(entry.path, file_pattern=file_pattern, init_list=False)
+            except FileNotFoundError:
+                pass
         return total
 
 
