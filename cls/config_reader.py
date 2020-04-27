@@ -5,6 +5,7 @@ import os, sys, shutil
 import logging, logging.config
 from datetime import datetime
 import importlib
+import glob
 
 from cls.misc import check_package_is_installed
 
@@ -42,6 +43,14 @@ class config_reader():
             self.logger.exception('Exception in reading config from YAML')
             raise  
         self.data = cnfg
+        # force clear logs on startup for debugging
+        self.clear_logs_on_startup = cnfg.get('clear_logs_on_startup', False)
+        if self.clear_logs_on_startup:
+            for file in glob.glob('logs/*'):
+                try:
+                    os.remove(file)
+                except:
+                    print(f'Can''t remove file: {file}')
         # setup logger from yaml config file
         cnfg['logger'] = dict_templ_replace(cnfg['logger'], log_filename=log_filename)
         logging.config.dictConfig(cnfg['logger'])           
