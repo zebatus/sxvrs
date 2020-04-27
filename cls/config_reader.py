@@ -210,6 +210,8 @@ class recorder_configuration():
         self.motion_blur_size = self.combine('blur_size', group='motion_detector', default=15)
         # if set debug filename, then write snapshots there
         self._filename_debug = self.combine('filename_debug', group='motion_detector')
+        # if set {filename_last_motion} then will save last detected motion into this file
+        self._filename_last_motion = self.combine('filename_last_motion', group='motion_detector', default='{storage_path}/last_motion.jpg')
         # motion detector watch folder for files with detected objects (seconds)
         self.object_watch_delay = self.combine('object_watch_delay', group='motion_detector', default=0.5)
         # if there are too many motiondetection events without object detection, then start throttling of object detection
@@ -236,6 +238,18 @@ class recorder_configuration():
         except:
             return None
 
+    def filename_last_motion(self, **kwargs):
+        try:
+            if 'name' not in kwargs:
+                kwargs['name'] = self.name
+            if 'datetime' not in kwargs:
+                kwargs['datetime'] = datetime.now()
+            if 'storage_path' not in kwargs:
+                kwargs['storage_path'] = self.storage_path()
+            return self._filename_last_motion.format(**kwargs)
+        except:
+            return None
+
     def stream_url(self, **kwargs):
         if 'name' not in kwargs:
             kwargs['name'] = self.name
@@ -251,6 +265,8 @@ class recorder_configuration():
         return self._storage_path.format(**kwargs)
     
     def filename_temp(self, **kwargs):
+        if self._filename_temp is None:
+            return None
         if 'name' not in kwargs:
             kwargs['name'] = self.name
         if 'datetime' not in kwargs:
@@ -260,6 +276,8 @@ class recorder_configuration():
         return self._filename_temp.format(**kwargs)
         
     def filename_snapshot(self, **kwargs):
+        if self._filename_snapshot is None:
+            return None
         if 'name' not in kwargs:
             kwargs['name'] = self.name
         if 'datetime' not in kwargs:
@@ -269,6 +287,8 @@ class recorder_configuration():
         return self._filename_snapshot.format(**kwargs)
         
     def filename_video(self, **kwargs):
+        if self._filename_video is None:
+            return None
         if 'name' not in kwargs:
             kwargs['name'] = self.name
         if 'datetime' not in kwargs:
@@ -278,6 +298,8 @@ class recorder_configuration():
         return self._filename_video.format(**kwargs)
     
     def cmd_ffmpeg_read(self, **kwargs):
+        if self._cmd_ffmpeg_read is None:
+            return None
         if 'name' not in kwargs:
             kwargs['name'] = self.name
         if 'datetime' not in kwargs:
@@ -289,6 +311,8 @@ class recorder_configuration():
         return self._cmd_ffmpeg_read.format(**kwargs)
     
     def cmd_ffmpeg_write(self, **kwargs):
+        if self._cmd_ffmpeg_write is None:
+            return None
         if 'name' not in kwargs:
             kwargs['name'] = self.name
         if 'datetime' not in kwargs:
@@ -300,6 +324,8 @@ class recorder_configuration():
         return self._cmd_ffmpeg_write.format(**kwargs)
 
     def cmd_recorder_start(self, **kwargs):
+        if self._cmd_recorder_start is None:
+            return None
         if 'name' not in kwargs:
             kwargs['name'] = self.name
         if 'datetime' not in kwargs:
