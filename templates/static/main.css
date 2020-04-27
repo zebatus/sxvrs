@@ -109,6 +109,16 @@ a{text-decoration: #242424;color: #bbbbbb; }
     background-color: rgba(44, 44, 44, 0.63);
     cursor: pointer; 
 }
+div.img_main{
+    width:800px; 
+    padding: 10px; 
+    float: left;
+}
+div.img_file{
+    width:200px; 
+    padding: 10px; 
+    float: left;
+}
 
 .panel {
     margin:  0;

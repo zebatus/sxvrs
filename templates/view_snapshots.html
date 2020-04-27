@@ -1,0 +1,6 @@
+{% for file in recorder.snapshot_files %}
+<div class="img_file">
+    <img id="file_{{ file.name }}" alt="{{ file.name }}" src="/recorder/{{ recorder.name }}/snapshot/200/150/{{ file.name }}?{{ file.dt  }}" />
+    {{ file.name }} [{{ file.dt.strftime('%H:%M') }}]
+</div>
+{% endfor %}

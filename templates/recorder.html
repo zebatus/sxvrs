@@ -7,21 +7,58 @@
     </head>
     <body>
         <h1><a href="/">SXVRS</a> - <a href="/recorder/{{ content.recorder_name }}">{{ content.recorder_name }}</a></h1>
-        <div style="width:100%; height:100%; text-align:center">
-            <div style="width:800px; margin: 0 auto;padding:10px">{% include 'recorder_widget.html' %}</div>
-            <diw  class="log_box" style="">
-                <pre>
-{{ content.log_box }}
-                </pre>
-            </diw>
+        <div style="width:100%; text-align:center">
+            <div style="width:200px; float:left">&nbsp;</div>
+            <div class="img_main">{% include 'recorder_widget.html' %}</div>
+            <div id="snapshots"></div>
+        </div>
+        <div style="width:100%; text-align:center">
+            <diw  class="log_box"><pre id="log"></pre></diw>
         </div>
         <script type="text/javascript" >
+            /*
+            * Replicates the functionality of jQuery's `load` function, 
+            * used to load some HTML from another file into the current one.
+            * 
+            * Based on this Stack Overflow answer:
+            * https://stackoverflow.com/a/38132775/3626537
+            * And `fetch` documentation:
+            * https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch
+            * 
+            * @param {string} parentElementId - The ID of the DOM element to load into
+            * @param {string} htmlFilePath - The path of the HTML file to load
+            */
+            const loadHtml = function(parentElementId, filePath) {
+                const init = {
+                    method : "GET",
+                    headers : { "Content-Type" : "text/html" },
+                    mode : "cors",
+                    cache : "default"
+                };
+                const req = new Request(filePath, init);
+                fetch(req)
+                    .then(function(response) {
+                        return response.text();
+                    })
+                    .then(function(body) {
+                        // Replace `#` char in case the function gets called `querySelector` or jQuery style
+                        if (parentElementId.startsWith("#")) {
+                            parentElementId.replace("#", "");
+                        }
+                        document.getElementById(parentElementId).innerHTML = body;
+
+                    });
+            };
+            loadHtml("snapshots", "/recorder/{{ content.recorder_name }}/view_snapshots")
+            loadHtml("log", "/recorder/{{ content.recorder_name }}/view_log")
             function ChangeMedia(){
                 var d = new Date();
                 var t = d.getTime();
                 document.getElementById('camera_{{ recorder.name }}').src = "{{ recorder.snapshot }}?"+t;
+                loadHtml("snapshots", "/recorder/{{ content.recorder_name }}/view_snapshots")
+                loadHtml("log", "/recorder/{{ content.recorder_name }}/view_log")
             }
             var reloadcam = setInterval(ChangeMedia, {{ recorder.refresh_img_speed }});
-            </script>        
+        </script>       
     </body>
 </html>

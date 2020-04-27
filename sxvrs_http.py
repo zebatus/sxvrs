@@ -28,6 +28,7 @@ import urllib.parse
 import mimetypes
 import subprocess
 import gevent
+import glob
 
 
 from cls.config_reader import config_reader
@@ -266,11 +267,16 @@ def page_restart(name):
     return render_template('restart.html', name=name)
 
 @app.route('/recorder/<recorder_name>/snapshot/<width>/<height>')
-def recorder_snapshot(recorder_name, width=None, height=None):
+@app.route('/recorder/<recorder_name>/snapshot/<width>/<height>/<selected_name>')
+def recorder_snapshot(recorder_name, width=None, height=None, selected_name=None):
     recorder = get_recorder_by_name(recorder_name)
     str_param = "-brightness-contrast -50x-70" if recorder.status=="inactive" else "" 
     # get snapshot name for the recorder
-    filename = cnfg.recorders[recorder_name].filename_snapshot()        
+    if selected_name is None:
+        filename = cnfg.recorders[recorder_name].filename_snapshot()
+    else:
+        snapshot_path = os.path.dirname(os.path.abspath(cnfg.recorders[recorder_name].filename_snapshot()))
+        filename = os.path.join(snapshot_path, selected_name+'.jpg')
     if os.path.isfile(filename):
         # resize image
         #new_filename = f'{filename[:-4]}.{width}x{height}.jpg'
@@ -290,31 +296,64 @@ def view_recorder(recorder_name):
         # get recorder by name
         recorder = get_recorder_by_name(recorder_name)
         recorder_dict = recorder_view_data(recorder, width=800, height=600)
-        #show log for selected recorder
-        logs_path = os.path.dirname(cnfg.data['logger']['handlers']['info_file_handler']['filename'])
-        logs_file = 'daemon.log'
-        try:
-            log_box = ""
-            i = 0
-            with open(os.path.join(logs_path, logs_file), mode='r', encoding='utf-8') as f:
-                for row in reversed(f.readlines()):
-                    if recorder.name in row:
-                        log_box += row #html.escape(row)
-                        i += 1
-                        if i>500:
-                            break
-        except:
-            logger.exception(f'Error in opening logs file: {logs_file}')
-            log_box = f'Error loading log file: {logs_file}'
         content = {
             "charset" : enc,
             "title" : f"Camera: {recorder_name}",
             "recorder_name": recorder_name,
-            "log_box" : log_box
         }
         return render_template('recorder.html', content=content, recorder=recorder_dict)
 
+@app.route('/recorder/<recorder_name>/view_snapshots')
+def view_recorder_snapshots(recorder_name):
+        """Function will return view with list of snapshots for given recorder"""
+        # list all jpg files in snapshot folder
+        snapshot_path = os.path.dirname(os.path.abspath(cnfg.recorders[recorder_name].filename_snapshot()))
+        files = [f for f in glob.glob(snapshot_path + "/*.jpg", recursive=False)]
+        snapshot_files = []
+        if len(files)>1:
+            for file in files:
+                last_modified_date = datetime.fromtimestamp(os.path.getmtime(file))
+                snapshot_files.append({
+                    "name": os.path.basename(os.path.splitext(file)[0]),
+                    "dt": last_modified_date
+                    })
+        recorder = {
+            'name': recorder_name,
+            'snapshot_files': snapshot_files
+        }
+        return render_template('view_snapshots.html', recorder=recorder)
 
+@app.route('/recorder/<recorder_name>/view_log')
+@app.route('/recorder/<recorder_name>/view_log/<log_name>')
+@app.route('/recorder/<recorder_name>/view_log/<log_name>/<log_len>')
+@app.route('/recorder/<recorder_name>/view_log/<log_name>/<log_len>/<log_start>')
+def view_recorder_log(recorder_name, log_name='daemon', log_len=500, log_start=0):
+        """Function will return view with list of snapshots for given recorder"""
+        log_filter = ''
+        if log_name=='daemon':
+            log_file = f'{log_name}.log'
+            log_filter = recorder_name
+        elif log_name=='recorder':
+            log_file = f'{log_name}_{recorder_name}.log'
+        else:
+            return
+        #show log for selected recorder
+        logs_path = os.path.dirname(os.path.abspath(cnfg.data['logger']['handlers']['info_file_handler']['filename']))
+        try:
+            log_data = ""
+            i = 0
+            with open(os.path.join(logs_path, log_file), mode='r', encoding='utf-8') as f:
+                for row in reversed(f.readlines()):
+                    is_filtered = (log_filter == '')or(log_filter in row)
+                    if is_filtered and i >= log_start:
+                        log_data += row #html.escape(row)
+                        i += 1
+                        if i > log_start + log_len:
+                            break
+        except:
+            logger.exception(f'Error in opening logs file: {log_file}')
+            log_data = f'Error loading log file: {log_file}'
+        return render_template('view_log.html', log_data=log_data)
 
 @app.route('/recorder/<recorder_name>/Start')
 @app.route('/recorder/<recorder_name>/start')
