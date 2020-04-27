@@ -99,6 +99,8 @@ cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=frame_s
 if not cmd_ffmpeg_write is None:
     logger.debug(f"Execute process to write frames:\n  {cmd_ffmpeg_write}")
     ffmpeg_write = Popen(shlex.split(cmd_ffmpeg_write), stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
+else:
+    ffmpeg_write = None
 try:
     snapshot_taken_time = 0
     i = 0
