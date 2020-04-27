@@ -15,6 +15,7 @@ import math
 import signal
 import shlex
 import re
+import glob
 
 from cls.misc import get_frame_shape, ping_ip
 from cls.config_reader import config_reader
@@ -285,14 +286,12 @@ class CameraThread(Thread):
                                 if watcher_memory.add(info):
                                     # Take actions on image where objects was found
                                     action_manager.run(filename_obj_found, info) 
-                                # Remove temporary files
-                                try:
-                                    if os.path.isfile(filename_obj_found):
-                                        os.remove(filename_obj_found)
-                                    if os.path.isfile(filename_obj_found+'.info'):
-                                        os.remove(filename_obj_found+'.info')
-                                except:
-                                    self.logger.exception('Can''t delete temporary files')
+                                # Remove all temporary files
+                                for file in glob.glob(filename_obj_found[-10] + "*"):
+                                    try:
+                                        os.remove(file)
+                                    except:
+                                        self.logger.exception('Can''t delete temporary files')
                                 break
                             time.sleep(self.cnfg.object_watch_delay)
                         if time.time()-time_start >= self.cnfg_daemon.object_detector_timeout:
