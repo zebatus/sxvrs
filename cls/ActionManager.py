@@ -7,7 +7,6 @@ from subprocess import Popen, PIPE, STDOUT
 import cv2
 import shutil
 import json
-import cv2
 import math
 from datetime import datetime
 import numpy as np
@@ -30,12 +29,13 @@ class ActionManager():
         self.logger = logging.getLogger(f"{name}:ActionManager")
 
     def run(self, obj_detected_file=None, obj_detection_results=None):
+        self.convert_bmp2jpg(obj_detected_file)
         for action in self.cnfg.actions:
             action = self.cnfg.actions[action]
             if self.check_action(action_cnfg=action, data=obj_detection_results):
                 self.logger.debug(f'action cnfg={action} data={obj_detection_results}')
                 if action.type=='painter':
-                    obj_detected_file_new = action.file_target(filename=obj_detected_file[:-10]+'.jpg')
+                    obj_detected_file_new = action.file_target(filename=obj_detected_file)
                     self.act_draw_box(
                         action_cnfg=action, 
                         obj_detection_results = obj_detection_results,
@@ -108,6 +108,11 @@ class ActionManager():
                     i += 1
                 return found
         return False
+
+    def convert_bmp2jpg(self, filename):
+        cv2.imread(filename)
+        filename = filename[:-10] + '.jpg'
+        cv2.imwrite(filename)
 
     def act_draw_box(self, action_cnfg, obj_detection_results, filename_in, filename_out):
         """Function draws boxes arround each detected objects"""
