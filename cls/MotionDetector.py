@@ -95,6 +95,10 @@ class MotionDetector():
             if is_motion_detected:
                 # remove image from background list if it is not static
                 self.background_check()
+                # save to last_motion file
+                filename_last_motion = self.cnfg.filename_last_motion()
+                if not filename_last_motion is None:
+                    cv2.imwrite(filename_last_motion, frame_orig)
                 # save image for debug
                 self.save_debug_img(img_new, img_prev, img_delta, img_thresh)
                 # count number of changed frames                
