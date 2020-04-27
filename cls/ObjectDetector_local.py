@@ -38,7 +38,10 @@ class ObjectDetector_local(ObjectDetectorBase):
             else:
                 tf_config = tf.compat.v1.ConfigProto()
             if self.count_GPU > 0:
-                tf_config.gpu_options.allow_growth = True
+                if self.cnfg.tensorflow_per_process_gpu_memory_fraction is None:
+                    tf_config.gpu_options.allow_growth = True
+                else:
+                    tf_config.gpu_options.per_process_gpu_memory_fraction = self.cnfg.tensorflow_per_process_gpu_memory_fraction
             self.tf_sess = tf.compat.v1.Session(config=tf_config)
             tf.import_graph_def(trt_graph, name='')
             self.image_tensor = self.tf_sess.graph.get_tensor_by_name('image_tensor:0')
@@ -75,7 +78,8 @@ class ObjectDetector_local(ObjectDetectorBase):
                 [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
                 feed_dict={self.image_tensor: image_np_expanded})
             scores = scores[0].tolist()
-            classes = [int(x) for x in classes[0].tolist()]            
+            classes = [int(x) for x in classes[0].tolist()]      
+            self.logger.debug(f'boxes.shape[0]: {boxes.shape[0]} /n boxes:{boxes}')        
             for i in range(boxes.shape[0]):
                 self.logger.debug(f'Object detected! class:{classes[i]} score:{scores[i]}')
                 box =  (int(boxes[0,i,0] * self.original_height),

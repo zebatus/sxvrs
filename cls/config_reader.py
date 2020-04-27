@@ -58,6 +58,8 @@ class config_reader():
         self.mqtt_topic_daemon_subscribe = cnfg['mqtt'].get('daemon_subscribe', 'sxvrs/daemon/{source_name}')
         self.mqtt_topic_client_publish = cnfg['mqtt'].get('client_publish', 'sxvrs/clients/{source_name}')
         self.mqtt_topic_client_subscribe = cnfg['mqtt'].get('client_subscribe', 'sxvrs/daemon/{source_name}')
+        # tensorflow per_process_gpu_memory_fraction param can limit usage of GPU memory
+        self.tensorflow_per_process_gpu_memory_fraction = cnfg.get('tensorflow_per_process_gpu_memory_fraction', None)
         # temp storage RAM disk
         # folder name where RAM disk will be mounted
         self.temp_storage_path = cnfg.get('temp_storage_path', '/dev/shm/sxvrs')
