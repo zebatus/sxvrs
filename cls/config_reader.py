@@ -5,7 +5,6 @@ import os, sys, shutil
 import logging, logging.config
 from datetime import datetime
 import importlib
-import glob
 
 from cls.misc import check_package_is_installed
 
@@ -29,7 +28,7 @@ class config_reader():
     def __init__(self, filename, name_daemon=None, name_http=None, log_filename='sxvrs'):
         """ Load configuration file.
         """
-        self.tensorflow_is_installed = check_package_is_installed('tensorflow')
+        self.tensorflow_is_installed = check_package_is_installed('tensorflow')        
         self.logger = logging.getLogger(f"config_reader")
         try:
             # if there is no configuration file then create new one
@@ -43,17 +42,10 @@ class config_reader():
             self.logger.exception('Exception in reading config from YAML')
             raise  
         self.data = cnfg
-        # force clear logs on startup for debugging
-        self.clear_logs_on_startup = cnfg.get('clear_logs_on_startup', False)
-        if self.clear_logs_on_startup:
-            for file in glob.glob('logs/*'):
-                try:
-                    os.remove(file)
-                except:
-                    print(f'Can''t remove file: {file}')
         # setup logger from yaml config file
         cnfg['logger'] = dict_templ_replace(cnfg['logger'], log_filename=log_filename)
-        logging.config.dictConfig(cnfg['logger'])           
+        logging.config.dictConfig(cnfg['logger'])      
+        self.clear_logs_on_startup = cnfg.get('clear_logs_on_startup', False)     
         name_daemon = 'sxvrs_daemon' if name_daemon is None else name_daemon
         name_http = 'sxvrs_daemon' if name_http is None else name_http
         self.mqtt_name_daemon = cnfg['mqtt'].get('name_daemon', name_daemon)
@@ -221,6 +213,7 @@ class recorder_configuration():
         self.motion_blur_size = self.combine('blur_size', group='motion_detector', default=15)
         # if set debug filename, then write snapshots there
         self._filename_debug = self.combine('filename_debug', group='motion_detector')
+        self._filename_debug_bg = self.combine('filename_debug_bg', group='motion_detector')
         # if set {filename_last_motion} then will save last detected motion into this file
         self._filename_last_motion = self.combine('filename_last_motion', group='motion_detector', default='{storage_path}/last_motion.jpg')
         # motion detector watch folder for files with detected objects (seconds)
@@ -246,6 +239,18 @@ class recorder_configuration():
             if 'storage_path' not in kwargs:
                 kwargs['storage_path'] = self.storage_path()
             return self._filename_debug.format(**kwargs)
+        except:
+            return None
+
+    def filename_debug_bg(self, **kwargs):
+        try:
+            if 'name' not in kwargs:
+                kwargs['name'] = self.name
+            if 'datetime' not in kwargs:
+                kwargs['datetime'] = datetime.now()
+            if 'storage_path' not in kwargs:
+                kwargs['storage_path'] = self.storage_path()
+            return self._filename_debug_bg.format(**kwargs)
         except:
             return None
 

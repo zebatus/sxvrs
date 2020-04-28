@@ -22,6 +22,7 @@ __status__      = "Development"
 import os, sys, logging
 import json
 import time
+import glob
 from datetime import datetime
 import paho.mqtt.client as mqtt
 from subprocess import Popen, PIPE
@@ -45,6 +46,14 @@ cnfg = config_reader(
         name_daemon = 'sxvrs_daemon',
         log_filename = 'daemon'
     )
+# force clear logs on startup for debugging
+if cnfg.clear_logs_on_startup:
+    for file in glob.glob('logs/*'):
+        try:
+            os.remove(file)
+        except:
+            print(f'Can''t remove file: {file}')
+    logging.config.dictConfig(cnfg.data['logger']) 
 logger = logging.getLogger(f"{script_name}")
 logger.debug(f"> Start on: '{dt_start}'")
 
