@@ -170,7 +170,7 @@ if stored_exception==None:
     # Start Object Detector
     object_detector = SelectObjectDetector(cnfg, logger_name = logger.name)
     # Start HTTP web server
-    if cnfg.is_http_server:
+    if cnfg.is_http_server and cnfg.http_server_autostart:
         Popen(cnfg.cmd_http_server(), shell=True)
     # Main loop start
     while stored_exception==None:

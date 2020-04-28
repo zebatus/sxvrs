@@ -89,6 +89,7 @@ class config_reader():
         # HTTP Server configs
         self.is_http_server = 'http_server' in cnfg
         if self.is_http_server:
+            self.http_server_autostart = cnfg['http_server'].get('autostart', True) # if set, then daemon will start http server, otherwice it is possible to start manually
             self.http_server_host = cnfg['http_server'].get('host', '0.0.0.0')
             self.http_server_port = cnfg['http_server'].get('port', '8282')
             self._http_server_cmd = cnfg['http_server'].get('cmd', 'python sxvrs_http.py')
