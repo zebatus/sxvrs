@@ -29,11 +29,12 @@ class ActionManager():
         self.logger = logging.getLogger(f"{name}:ActionManager")
 
     def run(self, obj_detected_file=None, obj_detection_results=None):
-        self.convert_bmp2jpg(obj_detected_file)
+        obj_detected_file = self.convert_bmp2jpg(obj_detected_file)
         for action in self.cnfg.actions:
             action = self.cnfg.actions[action]
             if self.check_action(action_cnfg=action, data=obj_detection_results):
-                self.logger.debug(f'action cnfg={action} data={obj_detection_results}')
+                tobe_detected = action.objects
+                self.logger.debug(f'action cnfg={action} data={obj_detection_results} tobe_detected={tobe_detected}')
                 if action.type=='painter':
                     obj_detected_file_new = action.file_target(filename=obj_detected_file)
                     self.act_draw_box(
@@ -51,13 +52,13 @@ class ActionManager():
                 elif action.type=='mail':                    
                     self.act_send_mail(
                         action.file_source(filename=obj_detected_file),
-                        config=action,
+                        action_cnfg=action,
                         obj_detection_results = obj_detection_results
                         )
                 elif action.type=='copy':
                     for obj in obj_detection_results.get('objects'):  
                         obj_class = obj.get('class')
-                        if not obj_class is None:                  
+                        if len(tobe_detected)==0 or obj_class in tobe_detected:                  
                             self.act_copy_file(
                                 action.file_source(filename=obj_detected_file), 
                                 action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
@@ -65,14 +66,14 @@ class ActionManager():
                 elif action.type=='move':                    
                     for obj in obj_detection_results.get('objects'):  
                         obj_class = obj.get('class')
-                        if not obj_class is None:                  
+                        if len(tobe_detected)==0 or obj_class in tobe_detected:                  
                             self.act_move_file(
                                 action.file_source(filename=obj_detected_file), 
                                 action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
                                 )
 
     def check_action(self, action_cnfg, data):
-        """Function will check if the returned data is "ok" and if it fits config params, will return True, to run further action"""
+        """Function will check if the returned data is "ok" and if it fits action_cnfg params, will return True, to run further action"""
         if data.get("result")=="ok" and len(data.get("objects",[]))>0:        
             if action_cnfg is None:
                 return True
@@ -110,9 +111,10 @@ class ActionManager():
         return False
 
     def convert_bmp2jpg(self, filename):
-        cv2.imread(filename)
+        img = cv2.imread(filename)
         filename = filename[:-10] + '.jpg'
-        cv2.imwrite(filename)
+        cv2.imwrite(filename, img)
+        return filename
 
     def act_draw_box(self, action_cnfg, obj_detection_results, filename_in, filename_out):
         """Function draws boxes arround each detected objects"""
@@ -123,13 +125,13 @@ class ActionManager():
                 filename_out = filename_out
             )
 
-    def act_send_mail(self, filename, config, obj_detection_results):
+    def act_send_mail(self, filename, action_cnfg, obj_detection_results):
         """Function will send email message with attchment of catured snapshot"""
         # Create the container (outer) email message.
         msg = MIMEMultipart('related')
-        msg['Subject'] = config.subject
-        msg['From'] =  config.mail_from
-        msg['To'] = config.mail_to
+        msg['Subject'] = action_cnfg.subject
+        msg['From'] =  action_cnfg.mail_from
+        msg['To'] = action_cnfg.mail_to
         msg.preamble = 'Object Detection'
         
         msgAlternative = MIMEMultipart('alternative')
@@ -138,8 +140,10 @@ class ActionManager():
         msgText = MIMEText(f'Object detected on {self.name} \n {obj_detection_results}')
         msgAlternative.attach(msgText)
         strObjects = ''
+        tobe_detected = action_cnfg.objects
         for obj in obj_detection_results.get('objects'):
-            strObjects += f'detected: <b>{obj.get("class")}</b>&nbsp;({obj.get("score")})<br>'
+            if len(tobe_detected)==0 or obj.get('class') in tobe_detected:
+                strObjects += f'detected: <b>{obj.get("class")}</b>&nbsp;({obj.get("score")})<br>'
         msgText = MIMEText(f'Object detected on <b>{self.name}</b><br>{strObjects}<img src="cid:image1"><br>{obj_detection_results}<i></i>', 'html')
         msgAlternative.attach(msgText)
 
@@ -149,8 +153,8 @@ class ActionManager():
         msg.attach(msgImage)
 
         s = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        s.login(config.user, config.password)
-        s.sendmail(config.mail_from, [config.mail_to], msg.as_string())
+        s.login(action_cnfg.user, action_cnfg.password)
+        s.sendmail(action_cnfg.mail_from, [action_cnfg.mail_to], msg.as_string())
         s.quit()
         self.logger.debug('email sent')        
 
