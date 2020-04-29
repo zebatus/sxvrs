@@ -99,12 +99,12 @@ class ObjectDetector_local(ObjectDetectorBase):
             scores = scores[0].tolist()
             classes = [int(x) for x in classes[0].tolist()]      
             for i in range(boxes.shape[1]):
-                self.logger.debug(f'Object detected! class:{classes[i]} score:{scores[i]}')
-                box =  (int(boxes[0,i,0] * self.original_height),
-                        int(boxes[0,i,1] * self.original_width),
-                        int(boxes[0,i,2] * self.original_height),
-                        int(boxes[0,i,3] * self.original_width))
                 if scores[i]*100 >= self.cnfg.object_detector_min_score:
+                    self.logger.debug(f'Object detected! class:{classes[i]} score:{scores[i]}')
+                    box =  (int(boxes[0,i,0] * self.original_height),
+                            int(boxes[0,i,1] * self.original_width),
+                            int(boxes[0,i,2] * self.original_height),
+                            int(boxes[0,i,3] * self.original_width))
                     objects.append({
                         'box': box,
                         'score': scores[i],

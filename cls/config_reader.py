@@ -86,6 +86,8 @@ class config_reader():
             self.object_detector_local_gpu = cnfg['object_detector_local'].get('gpu', 0) # 0 means dissable GPU
             self.object_detector_timeout = cnfg['object_detector_local'].get('timeout', 30) # in seconds
             self.object_detector_min_score = cnfg['object_detector_local'].get('min_score', 30) # min score from 0..100
+        if self.object_detector_min_score == 0:
+            self.object_detector_min_score = 0.01
         # HTTP Server configs
         self.is_http_server = 'http_server' in cnfg
         if self.is_http_server:
