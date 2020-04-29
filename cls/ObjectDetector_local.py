@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import time
 import json
+import math
 try:
     import tensorflow as tf
     logging.info('Loaded tensorflow version: '+ tf.__version__)
@@ -41,9 +42,10 @@ class ObjectDetector_local(ObjectDetectorBase):
                 if self.cnfg.tensorflow_per_process_gpu_memory_fraction is None:
                     tf_config.gpu_options.allow_growth = True
                 else:
+                    tf_config.gpu_options.allow_growth = True
                     tf_config.gpu_options.per_process_gpu_memory_fraction = self.cnfg.tensorflow_per_process_gpu_memory_fraction
             self.tf_sess = tf.compat.v1.Session(config=tf_config)
-            tf.import_graph_def(trt_graph, name='')
+            tf.import_graph_def(trt_graph, name='')       
             self.image_tensor = self.tf_sess.graph.get_tensor_by_name('image_tensor:0')
             self.detection_boxes = self.tf_sess.graph.get_tensor_by_name('detection_boxes:0')
             self.detection_scores = self.tf_sess.graph.get_tensor_by_name('detection_scores:0')
@@ -58,6 +60,7 @@ class ObjectDetector_local(ObjectDetectorBase):
             try:
                 self.image = cv2.imread(filename)
                 self.original_height, self.original_width, self.original_channels = self.image.shape
+                self.resize_image(1024,786)
                 return True
             except Exception as ex:
                 self.logger.exception(f"Error in ObjectDetector: can't open image '{filename}'")
@@ -65,7 +68,23 @@ class ObjectDetector_local(ObjectDetectorBase):
         else:
             self.logger.error(f"Can't find file: '{filename}'")
             raise FileNotFoundError
-
+    
+    def resize_image(self, target_height, target_width):
+        height, width, channels = self.image.shape
+        if height > target_height:
+            scale_height = target_height / height
+        else:
+            scale_height = 1
+        if width > target_width:
+            scale_width = target_width / width
+        else:
+            scale_width = 1
+        scale = min(scale_height, scale_width) 
+        if scale < 1:
+            height = math.floor(height*scale)
+            width = math.floor(width*scale)
+            frame = cv2.resize(self.image, (width, height))               
+                    
     def detect(self, filename):
         """ Object Detection using CPU or GPU
         """
@@ -79,8 +98,7 @@ class ObjectDetector_local(ObjectDetectorBase):
                 feed_dict={self.image_tensor: image_np_expanded})
             scores = scores[0].tolist()
             classes = [int(x) for x in classes[0].tolist()]      
-            self.logger.debug(f'boxes.shape[0]: {boxes.shape[0]} /n boxes:{boxes}')        
-            for i in range(boxes.shape[0]):
+            for i in range(boxes.shape[1]):
                 self.logger.debug(f'Object detected! class:{classes[i]} score:{scores[i]}')
                 box =  (int(boxes[0,i,0] * self.original_height),
                         int(boxes[0,i,1] * self.original_width),
