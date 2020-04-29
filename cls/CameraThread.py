@@ -287,11 +287,11 @@ class CameraThread(Thread):
                                     # Take actions on image where objects was found
                                     action_manager.run(filename_obj_found, info) 
                                 # Remove all temporary files
-                                for file in glob.glob(filename_obj_found[-10] + "*"):
+                                for file in glob.glob(filename_obj_found[:-10] + "*"):
                                     try:
                                         os.remove(file)
                                     except:
-                                        self.logger.exception('Can''t delete temporary files')
+                                        self.logger.exception(f'Can''t delete temporary file: {file}')
                                 break
                             time.sleep(self.cnfg.object_watch_delay)
                         if time.time()-time_start >= self.cnfg_daemon.object_detector_timeout:
