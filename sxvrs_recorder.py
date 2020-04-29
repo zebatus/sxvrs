@@ -28,6 +28,7 @@ from datetime import datetime
 from time import time
 import signal
 import shlex
+import hashlib
 
 from cls.config_reader import config_reader
 from cls.misc import get_frame_shape
@@ -105,6 +106,7 @@ try:
     snapshot_taken_time = 0
     i = 0
     throttling = 0
+    frame_hash_old = ''
     while True:
         frame_bytes = ffmpeg_read.stdout.read(frame_size)
         if len(frame_bytes)==0:
@@ -133,9 +135,13 @@ try:
             if tmp_size < cnfg.throttling_max_mem_size:
                 # save frame into RAM snapshot file
                 frame_np_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
-                temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path)
-                cv2.imwrite(f'{temp_frame_file}.bmp', frame_np_rgb)
-                os.rename(f'{temp_frame_file}.bmp', f'{temp_frame_file}.rec')
+                # Need to compare hash of the frame to detect duplicated frames
+                frame_hash = hashlib.sha1(frame_np_rgb).hexdigest()
+                if frame_hash != frame_hash_old:
+                    frame_hash_old = frame_hash
+                    temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path)
+                    cv2.imwrite(f'{temp_frame_file}.bmp', frame_np_rgb)
+                    os.rename(f'{temp_frame_file}.bmp', f'{temp_frame_file}.rec')
         # save frame to video file
         if not ffmpeg_write is None:
             ffmpeg_write.stdin.write(frame_np.tostring())       
