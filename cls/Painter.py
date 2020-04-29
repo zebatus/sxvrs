@@ -40,15 +40,19 @@ class Painter():
     def paint(self, action_cnfg, obj_detection_results, filename_in, filename_out):
         """ This is the main method to call. It draws required boxes and texts on the image and saves it to file
         """
-        img = cv2.imread(filename_in)
-        self.img_height, self.img_width, self.img_channels = img.shape  
-        self.drawDetectionArea(action_cnfg, img)  
-        # Loop over all detected objects and draw boxes around them 
-        i = 0
-        if not isinstance(obj_detection_results, dict):
-            obj_detection_results = json.loads(obj_detection_results)
-        detected_objects = obj_detection_results['objects']
-        for detected in detected_objects:
-            self.drawBox(action_cnfg, i, img, detected)
-        # save image to output file
-        cv2.imwrite(filename_out, img, [cv2.IMWRITE_JPEG_QUALITY, action_cnfg.jpeg_quality])  
+        try:
+            img = cv2.imread(filename_in)
+            self.img_height, self.img_width, self.img_channels = img.shape  
+            self.drawDetectionArea(action_cnfg, img)  
+            # Loop over all detected objects and draw boxes around them 
+            i = 0
+            if not isinstance(obj_detection_results, dict):
+                obj_detection_results = json.loads(obj_detection_results)
+            detected_objects = obj_detection_results['objects']
+            for detected in detected_objects:
+                self.drawBox(action_cnfg, i, img, detected)
+            # save image to output file
+            cv2.imwrite(filename_out+'.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, action_cnfg.jpeg_quality])
+            os.rename(filename_out+'.jpg', filename_out)
+        except:
+            self.logger.exception(f'Painter.paint(self, {action_cnfg}, {obj_detection_results}, {filename_in}, {filename_out})')
