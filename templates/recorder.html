@@ -8,6 +8,7 @@
     <body>
         <h1><a href="/">SXVRS</a> - <a href="/recorder/{{ content.recorder_name }}">{{ content.recorder_name }}</a></h1>
         <div style="width:100%; text-align:center">
+            <div><h2 id="view_caption"></h2></div>
             <div style="width:200px; float:left">&nbsp;</div>
             <div class="img_main">{% include 'recorder_widget.html' %}</div>
             <div id="snapshots"></div>
@@ -49,16 +50,46 @@
 
                     });
             };
-            loadHtml("snapshots", "/recorder/{{ content.recorder_name }}/view_snapshots")
-            loadHtml("log", "/recorder/{{ content.recorder_name }}/view_log")
+            function setCookie(cname, cvalue, exdays) {
+                var d = new Date();
+                d.setTime(d.getTime() + (exdays*24*60*60*1000));
+                var expires = "expires="+ d.toUTCString();
+                document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+            }
+            function getCookie(cname) {
+                var name = cname + "=";
+                var decodedCookie = decodeURIComponent(document.cookie);
+                var ca = decodedCookie.split(';');
+                for(var i = 0; i <ca.length; i++) {
+                    var c = ca[i];
+                    while (c.charAt(0) == ' ') {
+                        c = c.substring(1);
+                    }
+                    if (c.indexOf(name) == 0) {
+                        return c.substring(name.length, c.length);
+                    }
+                }
+                return "";
+            }          
             function ChangeMedia(){
+                var rec_view = getCookie("rec_view");
+                if (rec_view == "") {
+                    var rec_view = "snapshot"
+                }
                 var d = new Date();
                 var t = d.getTime();
-                document.getElementById('camera_{{ recorder.name }}').src = "{{ recorder.snapshot }}?"+t;
+                document.getElementById("view_caption").innerHTML = rec_view
+                document.getElementById('camera_{{ recorder.name }}').src = "{{ recorder.snapshot }}/"+rec_view+"?"+t;
                 loadHtml("snapshots", "/recorder/{{ content.recorder_name }}/view_snapshots")
                 loadHtml("log", "/recorder/{{ content.recorder_name }}/view_log")
             }
-            var reloadcam = setInterval(ChangeMedia, {{ recorder.refresh_img_speed }});
+            document.cookie = "rec_view=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            ChangeMedia()
+            var reload = setInterval(ChangeMedia, {{ recorder.refresh_img_speed }});
+            function view_snapshot(view_name){
+                setCookie("rec_view", view_name, 1)
+                ChangeMedia()
+            }
         </script>       
     </body>
 </html>
