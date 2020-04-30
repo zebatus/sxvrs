@@ -225,6 +225,8 @@ class recorder_configuration():
         self.object_throttling = self.combine('object_throttling', group='motion_detector', default=10)
         self.memory_remember_time = self.combine('remember_time', group='memory', default=600)
         self.memory_move_threshold = self.combine('move_threshold', group='memory', default=0.5)
+        # determine interval to sending mqtt status
+        self.send_status_interval = self.combine('send_status_interval', default=30)
         ### ObjectDetection block ###
         #_object_detector = self.combine('object_detector', default=[])  
         #self.is_object_detection = (not _object_detector is None) and len(_object_detector)>0  > move to entire configuration

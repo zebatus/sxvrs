@@ -52,10 +52,13 @@ class CameraThread(Thread):
         self.frame_dim = None
         self.watcher_thread = None
         self.proc_recorder = None
+        self.send_status_time = 0
         self.motion_throttling = ''
-        self.motion_detected = 0
-        self.object_detected = 0
+        self.cnt_motion_frame = 0
+        self.cnt_obj_frame = 0
+        self.cnt_in_memory = 0
         self.cnt_no_object = 0
+        self.cnt_frame_analyzed = 0
 
     
     def is_watching(self):
@@ -89,20 +92,28 @@ class CameraThread(Thread):
     
     def mqtt_status(self):
         """ Sends MQTT status """
-        payload = json.dumps({
-                'name': self.name,
-                'status': self.state_msg, 
-                'error_cnt': self.err_cnt,
-                'latest_file': self.latest_recorded_filename,
-                'snapshot': self.latest_snapshot,
-                'watcher': self.is_watching(),
-                'object throttling': math.ceil(self.cnt_no_object / self.cnfg.object_throttling),
-                'object detected': self.object_detected,
-                'motion throttling': self.motion_throttling,
-                'motion detected': self.motion_detected
-                })
-        self.logger.debug(f'mqtt send "status" [{payload}]')
-        self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),payload)
+        if time.time() - self.send_status_time > self.cnfg.send_status_interval:
+            payload = json.dumps({
+                    'name': self.name,
+                    'status': self.state_msg, 
+                    'error_cnt': self.err_cnt,
+                    'latest_file': self.latest_recorded_filename,
+                    'snapshot': self.latest_snapshot,
+                    'watcher': self.is_watching(),
+                    'motion throttling': self.motion_throttling,
+                    'cnt_frame_analyzed': self.cnt_frame_analyzed,
+                    'cnt_motion_frame': self.cnt_motion_frame,
+                    'object throttling': math.ceil(self.cnt_no_object / self.cnfg.object_throttling),
+                    'cnt_obj_frame': self.cnt_obj_frame,
+                    'cnt_in_memory': self.cnt_in_memory,
+                    })
+            self.logger.debug(f'mqtt send "status" [{payload}]')
+            self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),payload)
+            self.send_status_time = time.time()
+            self.cnt_obj_frame = 0
+            self.cnt_in_memory = 0
+            self.cnt_motion_frame = 0
+            self.cnt_frame_analyzed = 0
 
     def get_camera_info(self):
         """ Check if camera is available and calculate frame_shape"""
@@ -158,19 +169,20 @@ class CameraThread(Thread):
                     self.state_msg = 'started'
                     self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg }))
                     start_time = time.time()
-                    self.object_detected = 0
-                    self.motion_detected = 0
+                    self.cnt_obj_frame = 0
+                    self.cnt_motion_frame = 0
                     # need to parse sxvrs_recorder execution output, to catch required variables 
                     pattern_videofile = re.compile(r".*Start record filename: \<(.*)\>.*")
                     pattern_snapshotfile = re.compile(r".*Snapshot filename: \<(.*)\>.*")
-                    pattern_motion_throttling = re.compile(r".*Start frame throttling \((.*)\) for recorder.*")
+                    pattern_motion_throttling = re.compile(r".* frame throttling \((.*)\) for recorder.*")
                     def parse_output(output, pattern, var):
                         found = re.search(pattern, output)
                         if not found is None:
                             var = found.groups()[0]
                         return var
                     self.motion_throttling
-                    while not self._stop_event.is_set():
+                    duration = 0
+                    while (not self._stop_event.is_set()) and duration < self.cnfg.record_time+5:
                         output = self.proc_recorder.stdout.readline()
                         if output == b'' and self.proc_recorder.poll() is not None:
                             break
@@ -249,6 +261,7 @@ class CameraThread(Thread):
             """ Processing of each snapshot file must be done in separate thread
             """
             try:
+                self.cnt_frame_analyzed += 1
                 filename_wch = f"{filename[:-4]}.wch"
                 try:
                     os.rename(filename, filename_wch)
@@ -261,6 +274,7 @@ class CameraThread(Thread):
                     if not is_motion:
                         os.remove(filename_wch)
                     else:
+                        self.cnt_motion_frame += 1
                         self.log_to_file(self.latest_recorded_filename+".motion.log", '', label)                        
                         filename_obj_wait = f"{filename}.obj.wait"
                         filename_obj_none = f"{filename}.obj.none"
@@ -282,10 +296,12 @@ class CameraThread(Thread):
                                 except:
                                     self.logger.exception('Can''t load info file')
                                 self.log_to_file(self.latest_recorded_filename+".object.log", info, label)
-                                self.object_detected += 1
+                                self.cnt_obj_frame += 1
                                 if watcher_memory.add(info):
                                     # Take actions on image where objects was found
                                     action_manager.run(filename_obj_found, info) 
+                                else:
+                                    self.cnt_in_memory += 1
                                 # Remove all temporary files
                                 for file in glob.glob(filename_obj_found[:-10] + "*"):
                                     try:
@@ -303,6 +319,7 @@ class CameraThread(Thread):
                 else: # in case if object detection is dissabled
                     # TODO: notify recorder that object detected
                     os.remove(filename_wch)
+                self.mqtt_status()
             except:
                 self.logger.exception(f'Watch: {filename} failed')
 
