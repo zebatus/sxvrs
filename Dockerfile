@@ -13,8 +13,6 @@ COPY README.md README.md
 COPY sxvrs_daemon.py sxvrs_daemon.py
 COPY sxvrs_http.py sxvrs_http.py
 COPY sxvrs_recorder.py sxvrs_recorder.py
-COPY sxvrs_thread.py sxvrs_thread.py
-COPY sxvrs_watcher.py sxvrs_watcher.py
 COPY requirements.txt requirements.txt
 RUN apt-get update
 RUN apt-get install -y ffmpeg
