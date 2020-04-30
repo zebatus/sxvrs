@@ -3,7 +3,7 @@
     <div class="widget_btn_bar">
         {% if recorder.btn_rec_img  %}
         {% if not recorder.status in ['inactive','error'] %}
-        <a class="widget_btn" href="/recorder/{{ recorder.name }}/{{ recorder.btn_rec_cmd }}" title="{{ recorder.btn_rec_name }}">
+        <a class="widget_btn" href="/recorder/{{ recorder.name }}/record/{{ recorder.btn_rec_cmd }}" title="{{ recorder.btn_rec_name }}">
         {% endif %}
     <img class="widget_mark {{ recorder.blink }}" src="{{ recorder.btn_rec_img }}" />
         {% if not recorder.status in ['inactive','error'] %}
@@ -12,11 +12,11 @@
     {% endif %}
     {% if not recorder.status in ['inactive','error']  %}
         {% if recorder.watcher  %}
-        <a class="widget_btn" href="/recorder/{{ recorder.name }}/watcher_stop" title="Stop Watcher">
+        <a class="widget_btn" href="/recorder/{{ recorder.name }}/watcher/stop" title="Stop Watcher">
             <img class="widget_mark {{ recorder.blink }}" src="/static/watcher_on.png" />        
         </a>
         {% else %}
-        <a class="widget_btn" href="/recorder/{{ recorder.name }}/watcher_start" title="Start Watcher">
+        <a class="widget_btn" href="/recorder/{{ recorder.name }}/watcher/start" title="Start Watcher">
             <img class="widget_mark" src="/static/watcher_off.png" />        
         </a>
         {% endif %}

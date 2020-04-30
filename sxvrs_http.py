@@ -269,6 +269,7 @@ def page_restart(name):
 @app.route('/recorder/<recorder_name>/snapshot/<width>/<height>')
 @app.route('/recorder/<recorder_name>/snapshot/<width>/<height>/<selected_name>')
 def recorder_snapshot(recorder_name, width=None, height=None, selected_name=None):
+    """Returns snapshot image file"""
     recorder = get_recorder_by_name(recorder_name)
     str_param = "-brightness-contrast -50x-70" if recorder.status=="inactive" else "" 
     # get snapshot name for the recorder
@@ -328,7 +329,7 @@ def view_recorder_snapshots(recorder_name):
 @app.route('/recorder/<recorder_name>/view_log/<log_name>/<log_len>')
 @app.route('/recorder/<recorder_name>/view_log/<log_name>/<log_len>/<log_start>')
 def view_recorder_log(recorder_name, log_name='daemon', log_len=500, log_start=0):
-        """Function will return view with list of snapshots for given recorder"""
+        """Function will return logs text for given recorder"""
         log_filter = ''
         if log_name=='daemon':
             log_file = f'{log_name}.log'
@@ -355,15 +356,13 @@ def view_recorder_log(recorder_name, log_name='daemon', log_len=500, log_start=0
             log_data = f'Error loading log file: {log_file}'
         return render_template('view_log.html', log_data=log_data)
 
-@app.route('/recorder/<recorder_name>/Start')
-@app.route('/recorder/<recorder_name>/start')
+@app.route('/recorder/<recorder_name>/record/start')
 def recorder_start(recorder_name):
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'start'}))
     time.sleep(2) # sleep before refresh, to give time to update data
     return redirect(url_for('view_recorder', recorder_name=recorder_name))
 
-@app.route('/recorder/<recorder_name>/Stop')
-@app.route('/recorder/<recorder_name>/stop')
+@app.route('/recorder/<recorder_name>/record/stop')
 def recorder_stop(recorder_name):
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'stop'}))
     time.sleep(2) # sleep before refresh, to give time to update data

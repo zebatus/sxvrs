@@ -47,8 +47,9 @@ run:`env/bin/python sxvrs_http.py`
 
 Available pages:
 
-  * http://localhost:8282/logs/[logfilename]/[max_len]
-    - this page show the last [max_len] rows from the [lofilename]
+
+  * http://localhost:8282/logs/<name>/<max_len>/<page>
+    - this page show the last <max_len> rows from the <log_name> file. <page> parameter can be used in pagination
 
   * http://localhost:8282/restart/http
     - this link restarts HTTPS server itself (can be used on updates)
@@ -56,20 +57,33 @@ Available pages:
   * http://localhost:8282/restart/daemon
     - this link sends MQTT message {cmd:restart} to sxvrs_daemon script
 
-  * http://localhost:8282/static/[filename]
+  * http://localhost:8282/static/<filename>
     - it is possible to provide files located in folder: /templates/static/* 
 
-  * http://localhost:8282/recorder/[name]/snapshot/[width]/[height]
-    - this link provides snapshot from the camera.
-    if [width] and [height] parameters are provided, the image will be resized to that size
+  * http://localhost:8282/recorder/<recorder_name>
+    Displays the page for <recorder_name> camera. Show all snapshots and logs
 
-  * http://localhost:8282/recorder/[name]/start
+  * http://localhost:8282/recorder/<name>/snapshot/<width>/<height>/<selected_name>'
+    - this link provides snapshot from the camera.
+    if <width> and <height> parameters are provided, the image will be resized to that size. <selected_name> is optional, and can be used to give alternative snapshot name (i.e. last_motion_snapshot)
+
+  * http://localhost:8282/recorder/<name>/record/start
     - this link sends MQTT message {cmd:start} to sxvrs_daemon script
     This will start recording on camera
 
-  * http://localhost:8282/recorder/[name]/stop
+  * http://localhost:8282/recorder/<name>/record/stop
     - this link sends MQTT message {cmd:stop} to sxvrs_daemon script
     This will stop recording on camera
+
+
+Views are used for AJAX load elements
+
+  * http://localhost:8282/recorder/<recorder_name>/view_log/<log_name>/<log_len>/<log_start>
+    Function returns logs text for given <recorder_name>
+    Following parameters are optional: <log_name>/<log_len>/<log_start>
+
+  * http://localhost:8282/recorder/<recorder_name>/view_snapshots
+    Function returns view with list of snapshots for given recorder
 
 ### How to test MQQT messages:
 For testing in linux shell, there can be used mosquitto_pub application:
