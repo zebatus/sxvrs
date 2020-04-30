@@ -28,10 +28,11 @@ class WatcherMemory():
         if self.cnfg.memory_remember_time<0:
             # If there is no need to remember then always return true
             return True
-        if isinstance(data, list):
+        objects = data.get('objects')
+        if isinstance(objects, list):
             # recursively add objects in list
             res = False
-            for obj in data:
+            for obj in objects:
                 res = res or self.add(obj)
             self.cleanup()
             return res
