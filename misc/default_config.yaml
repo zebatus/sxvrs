@@ -75,8 +75,8 @@ global:
       brush_size: 2
       jpeg_quality: 90
       file:
-        source: {filename}
-        target: {filename}
+        source: "{filename}"
+        target: "{filename}"
       area: [[50,150], [200,1050], [1600,1050], [600,150]]    
     mail_2:
       type: mail
