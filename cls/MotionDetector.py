@@ -128,13 +128,14 @@ class MotionDetector():
         self.last_background  = self.images_bg[-1]
         _, dev_delta = cv2.meanStdDev(img_delta)
         discard_background = dev_delta > self.cnfg.detect_by_diff_threshold
+        if not self.cnfg._filename_debug_bg is None:
+            img_blank = np.zeros(img_delta.shape, np.uint8)
+            img_blank = cv2.putText(img_blank, f'IS BG: { not discard_background}', (10,10), cv2.FONT_HERSHEY_SIMPLEX,.3,(255, 0, 0) )        
+            self.save_debug_img(self.images_bg[-1], self.last_background, img_delta, img_blank, filename = self.cnfg.filename_debug_bg())
         if discard_background:
             self.images_bg = self.images_bg[:-1]
             return False
         else:
-            img_blank = np.zeros(img_delta.shape, np.uint8)
-            img_blank = cv2.putText(img_blank, f'{discard_background} = {dev_delta} > {self.cnfg.detect_by_diff_threshold}', (50,50), cv2.FONT_HERSHEY_SIMPLEX,.5,(255, 0, 0) )        
-            self.save_debug_img(self.images_bg[-1], self.last_background, img_delta, img_blank, filename = self.cnfg.filename_debug_bg())
             return True
 
     def define_minmax_area(self, value, height, width):
