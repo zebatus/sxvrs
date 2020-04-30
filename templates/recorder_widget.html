@@ -1,10 +1,29 @@
 <div class="widget" {% if recorder.width  %} style="width:{{ recorder.width }}px;"{% endif %}>
-    <div class="widget_cap" id="vr_{{ recorder.name }}">{{ recorder.name }}</div>
-    {% if recorder.state_img  %}
-    <img class="widget_mark {{ recorder.blink }}" src="{{ recorder.state_img }}" />
+   <!-- <div class="widget_cap" id="vr_{{ recorder.name }}">{{ recorder.name }}</div> -->
+    <div class="widget_btn_bar">
+        {% if recorder.btn_rec_img  %}
+        {% if not recorder.status in ['inactive','error'] %}
+        <a class="widget_btn" href="/recorder/{{ recorder.name }}/{{ recorder.btn_rec_cmd }}" title="{{ recorder.btn_rec_name }}">
+        {% endif %}
+    <img class="widget_mark {{ recorder.blink }}" src="{{ recorder.btn_rec_img }}" />
+        {% if not recorder.status in ['inactive','error'] %}
+        </a>
+        {% endif %}
     {% endif %}
-    <a class="widget_btn" href="/recorder/{{ recorder.name }}/{{ recorder.btn_name }}">{{ recorder.btn_name }}</a>
-    <div><img src="{{ recorder.snapshot }}" style="width:100%; height:94%" /></div>
+    {% if not recorder.status in ['inactive','error']  %}
+        {% if recorder.watcher  %}
+        <a class="widget_btn" href="/recorder/{{ recorder.name }}/watcher_stop" title="Stop Watcher">
+            <img class="widget_mark {{ recorder.blink }}" src="/static/watcher_on.png" />        
+        </a>
+        {% else %}
+        <a class="widget_btn" href="/recorder/{{ recorder.name }}/watcher_start" title="Start Watcher">
+            <img class="widget_mark" src="/static/watcher_off.png" />        
+        </a>
+        {% endif %}
+    {% endif %}
+    </div>
+    
+    <div><img id="camera_{{ recorder.name }}" src="{{ recorder.snapshot }}" style="width:100%; height:94%" /></div>
     <div class="widget_bar">
         <div style="float:right;" class="{{ recorder.widget_err }}">{{ recorder.error_cnt }}</div>
         <div style="float:right;" class="{{ recorder.widget_status }}">{{ recorder.status }}</div>

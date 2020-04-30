@@ -27,6 +27,8 @@ import socketserver
 import urllib.parse
 import mimetypes
 import subprocess
+import gevent
+import glob
 
 
 from cls.config_reader import config_reader
@@ -85,7 +87,9 @@ def on_mqtt_message(client, userdata, message):
         logger.exception(f'Error on_mqtt_message() topic: {message.topic} msg_len={len(message.payload)}')
 
 def on_mqtt_connect(client, userdata, flags, rc):
-    client.connection_rc = rc
+    if client.is_connected:
+        return
+    client.connection_rc = rc    
     if rc==0:
         client.is_connected = True
         logger.info(f"Connected to MQTT: {cnfg.mqtt_server_host}:{cnfg.mqtt_server_port} rc={str(rc)}")
@@ -130,11 +134,14 @@ except :
 
 
 #####    Flask HTTP Server   #####
-from flask import Flask, render_template, redirect, url_for, send_file
+from flask import Flask, render_template, redirect, url_for, send_file, session
 app = Flask(__name__, static_url_path='/static', static_folder='templates/static', template_folder='templates')
 
 def refresh_recorder_status(recorder=None):
     """This function is for running of refreshment of the status for all cam"""
+    if len(recorders)==0:
+        mqtt_client.publish(mqtt_topic_pub.format(source_name='list'))
+        logger.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name='list')}")        
     if recorder is None:
         for recorder_name in recorders:
             mqtt_publish_recorder(recorder_name, {'cmd':'status'})
@@ -147,9 +154,11 @@ def recorder_view_data(recorder, width=None, height=None):
     """ This function prepares dictionary for displaying recorder
     """
     res = {
+        "refresh_img_speed": cnfg.http_refresh_img_speed * 1000,
         "name": recorder.name,
         "error_cnt": recorder.error_cnt,
         "status": recorder.status,
+        "watcher": recorder.watcher,
         "latest_file": recorder.latest_file,
         "widget_err": '_',
         "widget_status": '_',
@@ -163,26 +172,31 @@ def recorder_view_data(recorder, width=None, height=None):
     res['title'] = f'Camera: {recorder.name}'
     res['blink'] = ''
     if recorder.status == 'stopped':
-        res['btn_name'] = 'Start'
-        res['state_img'] = 'stop.gif'
+        res['btn_rec_name'] = 'Start Recording'
+        res['btn_rec_cmd'] = 'start'
+        res['btn_rec_img'] = 'stop.gif'
         res['widget_status'] = 'widget_status_ok'
     else:
-        res['btn_name'] = 'Stop'
+        res['btn_rec_name'] = 'Stop Recording'
+        res['btn_rec_cmd'] = 'stop'
         if recorder.status == 'started':
             res['blink'] = 'blink'
-            res['state_img'] = 'rec.gif'
+            res['btn_rec_img'] = 'rec.gif'
             res['widget_status'] = 'widget_status_ok'
         elif recorder.status in ['snapshot','restarting']:
-            res['state_img'] = 'state.gif'
+            res['btn_rec_img'] = 'state.gif'
             res['widget_status'] = 'widget_status'
-        elif recorder.status == 'error':
-            res['state_img'] = 'err.gif'
+        elif recorder.status in ['error'] :
+            res['btn_rec_img'] = 'err.gif'
+            res['widget_status'] = 'widget_status_err'
+        elif recorder.status in ['inactive','None'] :
+            res['btn_rec_img'] = 'nointernet.png'
             res['widget_status'] = 'widget_status_err'
     if recorder.error_cnt>0:
         res['widget_err'] = 'widget_err' 
     else:
         res['widget_err'] = ''
-    res['state_img'] = '/static/' + res['state_img']
+    res['btn_rec_img'] = '/static/' + res['btn_rec_img']
     return res
 
 @app.route('/')
@@ -202,14 +216,13 @@ def page_index():
 def page_logs(name=None, page = None, max_len = None):    
     logs_path = os.path.dirname(cnfg.data['logger']['handlers']['info_file_handler']['filename'])
     charset = sys.getfilesystemencoding()
-    title = f'Logs: {page}'
-    list_box = ""
+    title = f'Logs: {name}'
+    file_list = []
     for file in os.listdir(logs_path):
         if os.path.isfile(os.path.join(logs_path,file)) and file[-4:] in ['.err','.log']:
-            list_box += f'<li><a href="/logs/{file}">{file}</a></li>'
-    if page==None:
-        log_box = "Please select logs.file"
-    else:
+            file_list.append(file)
+    log_box = None
+    if not name is None:
         try:
             log_box = ""
             i = 0
@@ -217,21 +230,20 @@ def page_logs(name=None, page = None, max_len = None):
                 max_len = 500
             else:
                 max_len = int(max_len)
-            with open(os.path.join(logs_path, page), mode='r', encoding='utf-8') as f:
+            with open(os.path.join(logs_path, name), mode='r', encoding='utf-8') as f:
                 for row in reversed(f.readlines()):
-                    log_box += html.escape(row)
+                    log_box += row
                     i += 1
                     if i>max_len:
                         break
         except:
-            logger.exception(f'Error in opening logs file: {page}')
-            log_box = 'Error loading log file'
-    #render_template(os.path.join('templates', 'logs.html'),
+            logger.exception(f'Error in opening logs file: {name}')
     return render_template('logs.html',
             charset = charset, 
             title = title,
-            list_box = list_box,
-            log_box = log_box
+            log_filename = name,
+            log_box = log_box,
+            file_list = file_list
         )
 
 @app.route('/restart/<name>')
@@ -255,19 +267,27 @@ def page_restart(name):
     return render_template('restart.html', name=name)
 
 @app.route('/recorder/<recorder_name>/snapshot/<width>/<height>')
-def recorder_snapshot(recorder_name, width=None, height=None):
+@app.route('/recorder/<recorder_name>/snapshot/<width>/<height>/<selected_name>')
+def recorder_snapshot(recorder_name, width=None, height=None, selected_name=None):
+    recorder = get_recorder_by_name(recorder_name)
+    str_param = "-brightness-contrast -50x-70" if recorder.status=="inactive" else "" 
     # get snapshot name for the recorder
-    filename = cnfg.recorders[recorder_name].filename_snapshot()
+    if selected_name is None:
+        filename = cnfg.recorders[recorder_name].filename_snapshot()
+    else:
+        snapshot_path = os.path.dirname(os.path.abspath(cnfg.recorders[recorder_name].filename_snapshot()))
+        filename = os.path.join(snapshot_path, selected_name+'.jpg')
     if os.path.isfile(filename):
         # resize image
-        new_filename = f'{filename}.{width}x{height}.jpg'
-        cmd = f'convert {filename} -resize {width}x{height}\> {new_filename}'
+        #new_filename = f'{filename[:-4]}.{width}x{height}.jpg'
+        new_filename = f'{cnfg.temp_storage_path}/http_img.jpg'
+        cmd = f'convert {filename} -resize {width}x{height} {str_param}\> {new_filename}'
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
         process.wait(20)
         filename = new_filename    
         return send_file(new_filename)
     else:
-        return send_file('/static/novideo.gif')
+        return send_file('templates/static/nosnapshot.gif')
 
 @app.route('/recorder/<recorder_name>')
 def view_recorder(recorder_name):
@@ -276,42 +296,78 @@ def view_recorder(recorder_name):
         # get recorder by name
         recorder = get_recorder_by_name(recorder_name)
         recorder_dict = recorder_view_data(recorder, width=800, height=600)
+        content = {
+            "charset" : enc,
+            "title" : f"Camera: {recorder_name}",
+            "recorder_name": recorder_name,
+        }
+        return render_template('recorder.html', content=content, recorder=recorder_dict)
+
+@app.route('/recorder/<recorder_name>/view_snapshots')
+def view_recorder_snapshots(recorder_name):
+        """Function will return view with list of snapshots for given recorder"""
+        # list all jpg files in snapshot folder
+        snapshot_path = os.path.dirname(os.path.abspath(cnfg.recorders[recorder_name].filename_snapshot()))
+        files = [f for f in glob.glob(snapshot_path + "/*.jpg", recursive=False)]
+        snapshot_files = []
+        if len(files)>1:
+            for file in files:
+                last_modified_date = datetime.fromtimestamp(os.path.getmtime(file))
+                snapshot_files.append({
+                    "name": os.path.basename(os.path.splitext(file)[0]),
+                    "dt": last_modified_date
+                    })
+        recorder = {
+            'name': recorder_name,
+            'snapshot_files': snapshot_files
+        }
+        return render_template('view_snapshots.html', recorder=recorder)
+
+@app.route('/recorder/<recorder_name>/view_log')
+@app.route('/recorder/<recorder_name>/view_log/<log_name>')
+@app.route('/recorder/<recorder_name>/view_log/<log_name>/<log_len>')
+@app.route('/recorder/<recorder_name>/view_log/<log_name>/<log_len>/<log_start>')
+def view_recorder_log(recorder_name, log_name='daemon', log_len=500, log_start=0):
+        """Function will return view with list of snapshots for given recorder"""
+        log_filter = ''
+        if log_name=='daemon':
+            log_file = f'{log_name}.log'
+            log_filter = recorder_name
+        elif log_name=='recorder':
+            log_file = f'{log_name}_{recorder_name}.log'
+        else:
+            return
         #show log for selected recorder
-        logs_path = os.path.dirname(cnfg.data['logger']['handlers']['info_file_handler']['filename'])
-        logs_file = 'sxvrs_daemon.log'
+        logs_path = os.path.dirname(os.path.abspath(cnfg.data['logger']['handlers']['info_file_handler']['filename']))
         try:
-            log_box = ""
+            log_data = ""
             i = 0
-            with open(os.path.join(logs_path, logs_file), mode='r', encoding='utf-8') as f:
+            with open(os.path.join(logs_path, log_file), mode='r', encoding='utf-8') as f:
                 for row in reversed(f.readlines()):
-                    if recorder.name in row:
-                        log_box += html.escape(row)
+                    is_filtered = (log_filter == '')or(log_filter in row)
+                    if is_filtered and i >= log_start:
+                        log_data += row #html.escape(row)
                         i += 1
-                        if i>500:
+                        if i > log_start + log_len:
                             break
         except:
-            logger.exception(f'Error in opening logs file: {logs_file}')
-            log_box = 'Error loading log file'
-            content = {
-                "charset" : enc,
-                "title" : f"Camera: recorder_name",
-                "log_box" : log_box
-            }
-            return render_template('restart.html', content=content, recorder=recorder_dict)
+            logger.exception(f'Error in opening logs file: {log_file}')
+            log_data = f'Error loading log file: {log_file}'
+        return render_template('view_log.html', log_data=log_data)
 
-
-
+@app.route('/recorder/<recorder_name>/Start')
 @app.route('/recorder/<recorder_name>/start')
 def recorder_start(recorder_name):
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'start'}))
     time.sleep(2) # sleep before refresh, to give time to update data
-    redirect(url_for(view_recorder))
+    return redirect(url_for('view_recorder', recorder_name=recorder_name))
 
+@app.route('/recorder/<recorder_name>/Stop')
 @app.route('/recorder/<recorder_name>/stop')
 def recorder_stop(recorder_name):
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'stop'}))
     time.sleep(2) # sleep before refresh, to give time to update data
-    redirect(url_for(view_recorder))
+    return redirect(url_for("view_recorder", recorder_name=recorder_name))
 
 if stored_exception==None:
     # start HTTP Server

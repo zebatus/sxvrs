@@ -7,6 +7,7 @@ cnfg/*
 extra/*
 env/*
 env36/*
-env38/*
+env*/*
 envw/*
 !.gitkeep 
+test_email.py

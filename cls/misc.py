@@ -13,16 +13,23 @@ class Recorder():
         self.status = 'None'
         self.error_cnt = 0 
         self.latest_file = ''
+        self.watcher = False
     
     def update(self, values):
         """ Function updates recorder values according on dictionary
         """
         if 'status' in values:
             self.status = values['status']
+        if 'watcher' in values:
+            self.watcher = values['watcher']
         if 'error_cnt' in values:
             self.error_cnt = values['error_cnt']
         if 'latest_file' in values:
             self.latest_file = values['latest_file']
+
+def check_package_is_installed(name='tensorflow'):
+    import importlib
+    return importlib.util.find_spec(name) is not None
 
 def SelectObjectDetector(cnfg, logger_name='None'):
     """ This function selects required ObjectDetector based on config value 
@@ -31,7 +38,7 @@ def SelectObjectDetector(cnfg, logger_name='None'):
         from cls.ObjectDetector_cloud import ObjectDetector_cloud
         return ObjectDetector_cloud(cnfg, logger_name)
     elif cnfg.is_object_detector_local:
-        if 'tensorflow' in sys.modules:
+        if cnfg.tensorflow_is_installed:
             from cls.ObjectDetector_local import ObjectDetector_local
             return ObjectDetector_local(cnfg, logger_name)
         else:
@@ -48,18 +55,32 @@ def get_frame_shape(source):
     p_status = p.wait()
     info = json.loads(output)
     logging.debug(info)
+    if 'error' in info:
+        logging.warning(f'Can''t open {source}: {info}')
+        #raise Exception(f'Can''t open {source}')
+    else:
+        video_info = [s for s in info['streams'] if s['codec_type'] == 'video'][0]
 
-    video_info = [s for s in info['streams'] if s['codec_type'] == 'video'][0]
-
-    if video_info['height'] != 0 and video_info['width'] != 0:
-        return (video_info['height'], video_info['width'], 3)
-    
-    # fallback to using opencv if ffprobe didnt succeed
-    video = cv2.VideoCapture(source)
-    ret, frame = video.read()
-    frame_shape = frame.shape
-    video.release()
-    return frame_shape
+        if video_info['height'] != 0 and video_info['width'] != 0:
+            return (video_info['height'], video_info['width'], 3)
+        
+        # fallback to using opencv if ffprobe didnt succeed
+        try:
+            video = cv2.VideoCapture(source)
+            ret, frame = video.read()
+            frame_shape = frame.shape
+            video.release()
+            return frame_shape
+        except Exception as e:
+            logging.warning(f'OpenCPV Can''t get frame shape: source= {source}')
+            raise e
 
 def check_topic(topic, value):
     return topic.lower().endswith(f"/{value}")
+
+def ping_ip(ip):
+    try:
+        sp.check_output(["ping", "-c", "1", ip])
+        return True                      
+    except sp.CalledProcessError:
+        return False

@@ -2,13 +2,16 @@
 
 import os, sys, logging
 import numpy as np
-import tensorflow as tf
 import cv2
 import time
-
+import json
+import math
+try:
+    import tensorflow as tf
+    logging.info('Loaded tensorflow version: '+ tf.__version__)
+except:
+    logging.warning('tensorflow is not installed')
 from cls.ObjectDetectorBase import ObjectDetectorBase
-
-logging.info('Loaded tensorflow version: '+ tf.__version__)
 
 class ObjectDetector_local(ObjectDetectorBase):
     """ Object Detection using local CPU or GPU. Make sure that you have enought CPU/GPU available, otherwice use cloud detection
@@ -26,7 +29,7 @@ class ObjectDetector_local(ObjectDetectorBase):
         else:
             def get_frozen_graph(graph_file):
                 """Read Frozen Graph file from disk."""
-                with tf.gfile.GFile(graph_file, "rb") as f:
+                with tf.io.gfile.GFile(graph_file, "rb") as f:
                     graph_def = tf.compat.v1.GraphDef()
                     graph_def.ParseFromString(f.read())
                 return graph_def            
@@ -36,14 +39,20 @@ class ObjectDetector_local(ObjectDetectorBase):
             else:
                 tf_config = tf.compat.v1.ConfigProto()
             if self.count_GPU > 0:
-                tf_config.gpu_options.allow_growth = True
+                if self.cnfg.tensorflow_per_process_gpu_memory_fraction is None:
+                    tf_config.gpu_options.allow_growth = True
+                else:
+                    tf_config.gpu_options.allow_growth = True
+                    tf_config.gpu_options.per_process_gpu_memory_fraction = self.cnfg.tensorflow_per_process_gpu_memory_fraction
             self.tf_sess = tf.compat.v1.Session(config=tf_config)
-            tf.import_graph_def(trt_graph, name='')
+            tf.import_graph_def(trt_graph, name='')       
             self.image_tensor = self.tf_sess.graph.get_tensor_by_name('image_tensor:0')
             self.detection_boxes = self.tf_sess.graph.get_tensor_by_name('detection_boxes:0')
             self.detection_scores = self.tf_sess.graph.get_tensor_by_name('detection_scores:0')
             self.detection_classes = self.tf_sess.graph.get_tensor_by_name('detection_classes:0')
             self.num_detections = self.tf_sess.graph.get_tensor_by_name('num_detections:0')   
+        # start watching folder for new incoming files and process each of them
+        self.start_watch()
 
     def load_image(self, filename):    
         if os.path.isfile(filename):
@@ -51,6 +60,7 @@ class ObjectDetector_local(ObjectDetectorBase):
             try:
                 self.image = cv2.imread(filename)
                 self.original_height, self.original_width, self.original_channels = self.image.shape
+                self.resize_image(1024,786)
                 return True
             except Exception as ex:
                 self.logger.exception(f"Error in ObjectDetector: can't open image '{filename}'")
@@ -58,11 +68,27 @@ class ObjectDetector_local(ObjectDetectorBase):
         else:
             self.logger.error(f"Can't find file: '{filename}'")
             raise FileNotFoundError
-
+    
+    def resize_image(self, target_height, target_width):
+        height, width, channels = self.image.shape
+        if height > target_height:
+            scale_height = target_height / height
+        else:
+            scale_height = 1
+        if width > target_width:
+            scale_width = target_width / width
+        else:
+            scale_width = 1
+        scale = min(scale_height, scale_width) 
+        if scale < 1:
+            height = math.floor(height*scale)
+            width = math.floor(width*scale)
+            frame = cv2.resize(self.image, (width, height))               
+                    
     def detect(self, filename):
         """ Object Detection using CPU or GPU
         """
-        result = []
+        objects = []
         if self.load_image(filename):
             # Expand dimensions since the trained_model expects images to have shape: [1, None, None, 3]
             image_np_expanded = np.expand_dims(self.image, axis=0)
@@ -71,21 +97,38 @@ class ObjectDetector_local(ObjectDetectorBase):
                 [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
                 feed_dict={self.image_tensor: image_np_expanded})
             scores = scores[0].tolist()
-            classes = [int(x) for x in classes[0].tolist()]            
-            for i in range(len(boxes)):
-                self.logger.debug(f'Object detected! class:{classes[i]} score:{scores[i]}')
-                box =  (int(boxes[0,i,0] * self.original_height),
-                        int(boxes[0,i,1] * self.original_width),
-                        int(boxes[0,i,2] * self.original_height),
-                        int(boxes[0,i,3] * self.original_width))
-                result.append({
-                    'box': box,
-                    'score': scores[i],
-                    'class': self.labels[classes[i]],
-                    'num': int(num[0])
-                })
-            result['elapsed'] = time.time() - start_time         
-            self.logger.debug(f"ObjectDetector Elapsed Time:{result['elapsed']} : \n {result}", )
+            classes = [int(x) for x in classes[0].tolist()]      
+            for i in range(boxes.shape[1]):
+                if scores[i]*100 >= self.cnfg.object_detector_min_score:
+                    self.logger.debug(f'Object detected! class:{classes[i]} score:{scores[i]}')
+                    box =  (int(boxes[0,i,0] * self.original_height),
+                            int(boxes[0,i,1] * self.original_width),
+                            int(boxes[0,i,2] * self.original_height),
+                            int(boxes[0,i,3] * self.original_width))
+                    objects.append({
+                        'box': box,
+                        'score': scores[i],
+                        'class': self.labels[classes[i]],
+                        'num': int(num[0]),                     
+                    }) 
+            if len(objects)>0:
+                filename_obj_found = f"{filename[:-10]}.obj.found"
+                os.rename(filename, filename_obj_found)
+                result = {
+                    'result': 'ok',
+                    'objects': objects,
+                    'elapsed': time.time() - start_time,
+                }
+                with open(filename_obj_found+'.info', 'w') as f:
+                    f.write(json.dumps(result))
+            else:
+                os.rename(filename, f"{filename[:-10]}.obj.none") 
+                result = {
+                    'result': 'ok',
+                    'objects': [],
+                    'elapsed': time.time() - start_time,
+                }
+            self.logger.debug(f"ObjectDetector Elapsed Time:{result['elapsed']} : \n {result}")
         return result   
     
     def close(self):

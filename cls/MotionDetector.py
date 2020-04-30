@@ -32,11 +32,11 @@ class MotionDetector():
         # Calculate scale coefitient only once, in case it is not defined yet
         if self.scale is None:
             if height > self.cnfg.motion_detector_max_image_height:
-                scale_height = height > self.cnfg.motion_detector_max_image_height
+                scale_height = self.cnfg.motion_detector_max_image_height / height
             else:
                 scale_height = 1
             if width > self.cnfg.motion_detector_max_image_width:
-                scale_width = width > self.cnfg.motion_detector_max_image_width
+                scale_width = self.cnfg.motion_detector_max_image_width / width
             else:
                 scale_width = 1
             self.scale = min(scale_height, scale_width)
@@ -49,7 +49,7 @@ class MotionDetector():
             frame = frame_orig
         # Prepare image for comparing
         img_new = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        #img_new = cv2.GaussianBlur(img_new, (self.blur_size, self.blur_size), 0)
+        img_new = cv2.GaussianBlur(img_new, (self.cnfg.motion_blur_size, self.cnfg.motion_blur_size), 0)
         # remember new image for background, and delete oldest background image
         self.images_bg.append(img_new)
         while len(self.images_bg) > self.cnfg.motion_detector_bg_frame_count:
@@ -75,8 +75,8 @@ class MotionDetector():
                 contours = cv2.findContours(img_thresh.copy(), cv2.RETR_EXTERNAL,
                     cv2.CHAIN_APPROX_SIMPLE)
                 contours = imutils.grab_contours(contours)            
-                if len(contours)>self.cnfg.motion_contour_max_count:
-                    self.logger.debug(f"Too many counturs found: '{len(contours)} > {self.cnfg.motion_contour_max_count}'. Skipping..")
+                if len(contours)>self.cnfg.motion_contour_max_count:                    
+                    self.logger.warning(f"Too many counturs found: '{len(contours)} > {self.cnfg.motion_contour_max_count}'. Skipping..")
                     return None
                 else:
                     self.logger.debug(f"Counturs found: '{len(contours)}'")
@@ -88,15 +88,19 @@ class MotionDetector():
                 is_motion_detected = max_area >= self.contour_min_area and max_area <= self.contour_max_area
             else:
                 _, dev_delta = cv2.meanStdDev(img_delta)
-                is_motion_detected = dev_delta > self.cnfg.detect_by_diff_threshold                       
+                #is_motion_detected = dev_delta > self.cnfg.detect_by_diff_threshold
+                is_motion_detected = any(i >= self.cnfg.detect_by_diff_threshold for i in dev_delta)                    
 
             # if significant changes detected
             if is_motion_detected:
                 # remove image from background list if it is not static
                 self.background_check()
+                # save to last_motion file
+                filename_last_motion = self.cnfg.filename_last_motion()
+                if not filename_last_motion is None:
+                    cv2.imwrite(filename_last_motion, frame_orig)
                 # save image for debug
-                if not self.cnfg._filename_debug is None:
-                    self.save_debug_img(img_new, img_prev, img_delta, img_thresh, filename = self.cnfg.filename_debug())
+                self.save_debug_img(img_new, img_prev, img_delta, img_thresh)
                 # count number of changed frames                
                 self.cnt_frames_changed += 1
                 self.cnt_frames_static = 0
@@ -107,9 +111,10 @@ class MotionDetector():
                 is_motion_detected = (self.cnt_frames_changed >= self.cnfg.motion_min_frames_changes)
             else:
                 self.cnt_frames_static += 1
+                self.logger.debug(f"Cooldown: cnt_frames_static={self.cnt_frames_static}")
                 if self.cnt_frames_static >= self.cnfg.motion_max_frames_static:
                     if self.cnt_frames_changed>0:
-                        print(f"Reset max frames_changed= {self.cnt_frames_changed}")
+                        self.logger.debug(f"Reset max frames_changed= {self.cnt_frames_changed}")
                         self.cnt_frames_changed = 0
         return is_motion_detected
 
@@ -123,13 +128,14 @@ class MotionDetector():
         self.last_background  = self.images_bg[-1]
         _, dev_delta = cv2.meanStdDev(img_delta)
         discard_background = dev_delta > self.cnfg.detect_by_diff_threshold
+        if not self.cnfg._filename_debug_bg is None:
+            img_blank = np.zeros(img_delta.shape, np.uint8)
+            img_blank = cv2.putText(img_blank, f'IS BG: { not discard_background}', (10,10), cv2.FONT_HERSHEY_SIMPLEX,.3,(255, 0, 0) )        
+            self.save_debug_img(self.images_bg[-1], self.last_background, img_delta, img_blank, filename = self.cnfg.filename_debug_bg())
         if discard_background:
             self.images_bg = self.images_bg[:-1]
             return False
         else:
-            img_blank = np.zeros(img_delta.shape, np.uint8)
-            img_blank = cv2.putText(img_blank, f'{discard_background} = {dev_delta} > {self.cnfg.detect_by_diff_threshold}', (50,50), cv2.FONT_HERSHEY_SIMPLEX,.5,(255, 0, 0) )        
-            self.save_debug_img(images_bg[-1], self.last_background, img_delta, img_blank, filename = self.cnfg.filename_debug(name=f"{self.cnfg.name}_bg"))
             return True
 
     def define_minmax_area(self, value, height, width):
@@ -143,15 +149,17 @@ class MotionDetector():
             return int(value.strip())
 
     def save_debug_img(self, img_new, img_prev, img_delta, img_thresh, filename=None):
-        """Function needed just for debugging and tuning motion detection. It saves: comparing frames and their substraction"""
-        if 'filename_debug' in self.cnfg['snapshot_detector']:
-            if filename is None:
+        """Function needed just for debugging and tuning motion detection. It saves: comparing frames and their substraction"""        
+        if filename is None:
+            if not self.cnfg._filename_debug is None:
                 filename = self.cnfg.filename_debug()
-            # create path if it is not exists
-            path = os.path.dirname(filename)
-            if not os.path.exists(path):
-                os.makedirs(path)
-            im_1 = np.concatenate((img_prev, img_new), axis=1)
-            im_2 = np.concatenate((img_delta, img_thresh), axis=1)
-            im_debug = np.concatenate((im_1, im_2), axis=0)
-            cv2.imwrite(filename, im_debug)
+            else:
+                return
+        # create path if it is not exists
+        path = os.path.dirname(filename)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        im_1 = np.concatenate((img_prev, img_new), axis=1)
+        im_2 = np.concatenate((img_delta, img_thresh), axis=1)
+        im_debug = np.concatenate((im_1, im_2), axis=0)
+        cv2.imwrite(filename, im_debug)
