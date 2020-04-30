@@ -105,6 +105,7 @@ else:
 try:
     snapshot_taken_time = 0
     i = 0
+    snap = 0
     throttling = 0
     frame_hash_old = ''
     while True:
@@ -125,13 +126,15 @@ try:
             # check for throttling
             tmp_size = storage.get_folder_size(ram_storage.storage_path, f'{cnfg.name}_*')
             if tmp_size > cnfg.throttling_max_mem_size:
-                throttling += throttling + 5
+                throttling += 10
                 logger.error(f"Can't save frame to temporary RAM folder. There are too many files for recorder: {cnfg.name}.\n Size occupied: {tmp_size}\n Max size: {cnfg.throttling_max_mem_size}")
             elif tmp_size > cnfg.throttling_min_mem_size:
-                throttling += throttling + 2
+                throttling += 1
                 logger.warning(f"Start frame throttling ({throttling}) for recorder: {cnfg.name}")
             else:
-                throttling = 0
+                if throttling>0:
+                    throttling = 0
+                    logger.warning(f"No frame throttling ({throttling}) for recorder: {cnfg.name}")                
             if tmp_size < cnfg.throttling_max_mem_size:
                 # save frame into RAM snapshot file
                 frame_np_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
@@ -142,6 +145,7 @@ try:
                     temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path)
                     cv2.imwrite(f'{temp_frame_file}.bmp', frame_np_rgb)
                     os.rename(f'{temp_frame_file}.bmp', f'{temp_frame_file}.rec')
+                    snap += 1
         # save frame to video file
         if not ffmpeg_write is None:
             ffmpeg_write.stdin.write(frame_np.tostring())       
@@ -149,6 +153,7 @@ try:
         if (dt_end - dt_start).total_seconds() >= cnfg.record_time:
             break
         i += 1
+    logger.debug(f"Finish recording to {filename_video} wrote {i}/{snap} frames")
 except (KeyboardInterrupt, SystemExit):
     logger.info("[CTRL+C detected] MainLoop")
     ffmpeg_read.send_signal(signal.SIGINT)
