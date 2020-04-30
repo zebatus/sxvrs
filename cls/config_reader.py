@@ -133,7 +133,7 @@ class recorder_configuration():
             if group in self.data['recorders'][self.name] and param in self.data['recorders'][self.name][group]:
                 return self.data['recorders'][self.name][group][param]
             else:
-                if param in self.data['global'][group]:
+                if group in self.data['global'] and param in self.data['global'][group]:
                     return self.data['global'][group][param]
                 else:
                     return default
