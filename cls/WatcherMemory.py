@@ -10,9 +10,12 @@ class memory_obj():
 
 class WatcherMemory():
     """ Remember and forget each detected object.
-    - check if object is new
-    - add object into memory
-    - forget objects on timeout
+    Incoming parameter: is a object detection result, which contains a list of detected objects
+    Result: Check if at least one of the objects is not exists in memory
+    Stages:
+    - check each object if it is new
+    - add object into memory or update timestamp
+    - forget objects on timeout {memory_remember_time}
     """
 
     def __init__(self, cnfg, name):
@@ -23,7 +26,9 @@ class WatcherMemory():
 
     def add(self, data):
         """Function to add new object into memory. It checks if such object already exists. 
-        returns True, if new object added, othervice returns False
+        returns True, if new object added, othervice returns False.
+        <data> parameter can be a result of detection containing multiple objects, 
+        or can be object itself
         """
         if self.cnfg.memory_remember_time<0:
             # If there is no need to remember then always return true
