@@ -120,23 +120,24 @@ class MotionDetector():
 
     def background_check(self):
         """Check if last image for the background is static:"""
+        result = False
         if self.last_background is None:
-            self.last_background  = self.images_bg[-1]
-            return True
-        #compare with last motion frame
-        img_delta = cv2.absdiff(self.last_background , self.images_bg[-1])
-        self.last_background  = self.images_bg[-1]
-        _, dev_delta = cv2.meanStdDev(img_delta)
-        discard_background = dev_delta > self.cnfg.detect_by_diff_threshold
-        if not self.cnfg._filename_debug_bg is None:
-            img_blank = np.zeros(img_delta.shape, np.uint8)
-            img_blank = cv2.putText(img_blank, f'IS BG: { not discard_background}', (10,10), cv2.FONT_HERSHEY_SIMPLEX,.3,(255, 0, 0) )        
-            self.save_debug_img(self.images_bg[-1], self.last_background, img_delta, img_blank, filename = self.cnfg.filename_debug_bg())
-        if discard_background:
-            self.images_bg = self.images_bg[:-1]
-            return False
+            result = True
         else:
-            return True
+            #compare with last motion frame
+            img_delta = cv2.absdiff(self.last_background , self.images_bg[-1])
+            _, dev_delta = cv2.meanStdDev(img_delta)
+            discard_background = dev_delta > self.cnfg.detect_by_diff_threshold
+            if not self.cnfg._filename_debug_bg is None:
+                img_blank = np.zeros(img_delta.shape, np.uint8)
+                img_blank = cv2.putText(img_blank, f'IS BG: { not discard_background}', (10,10), cv2.FONT_HERSHEY_SIMPLEX,.3,(255, 0, 0) )        
+                self.save_debug_img(self.images_bg[-1], self.last_background, img_delta, img_blank, filename = self.cnfg.filename_debug_bg())
+            if discard_background:
+                self.images_bg = self.images_bg[:-1]
+            else:
+                result = True
+        self.last_background  = self.images_bg[-1]
+        return result
 
     def define_minmax_area(self, value, height, width):
         """ if min and max area in percentage, then need to calculate actual value """
