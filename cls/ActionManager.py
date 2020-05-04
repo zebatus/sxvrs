@@ -151,12 +151,14 @@ class ActionManager():
             msgImage = MIMEImage(fp.read())
         msgImage.add_header('Content-ID', '<image1>')          
         msg.attach(msgImage)
-
-        s = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        s.login(action_cnfg.user, action_cnfg.password)
-        s.sendmail(action_cnfg.mail_from, [action_cnfg.mail_to], msg.as_string())
-        s.quit()
-        self.logger.debug('email sent')        
+        try:
+            s = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+            s.login(action_cnfg.user, action_cnfg.password)
+            s.sendmail(action_cnfg.mail_from, [action_cnfg.mail_to], msg.as_string())
+            s.quit()        
+            self.logger.debug('email sent')        
+        except smtplib.SMTPAuthenticationError as err:
+            self.logger.error(f'smtplib.SMTPAuthenticationError: ({err})')
 
     def act_copy_file(self, file_source, file_target):
         """Action to copies file, with forced of creation required directories"""
