@@ -310,6 +310,7 @@ def view_recorder_snapshots(recorder_name):
         # list all jpg files in snapshot folder
         snapshot_path = os.path.dirname(os.path.abspath(cnfg.recorders[recorder_name].filename_snapshot()))
         files = [f for f in glob.glob(snapshot_path + "/*.jpg", recursive=False)]
+        files.sort(key=os.path.getmtime, reverse=True)
         snapshot_files = []
         if len(files)>1:
             for file in files:
