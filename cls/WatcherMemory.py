@@ -70,6 +70,7 @@ class WatcherMemory():
                     res = res and (abs(obj_shape[1] - data_shape[1])/max(w0,w1) < self.cnfg.memory_move_threshold)
                     res = res and (abs(obj_shape[3] - data_shape[3])/max(w0,w1) < self.cnfg.memory_move_threshold)
                     self.logger.debug(f"Checki obj in memory: {res}: {obj.data} || {data}")
+                    data["in_memory"] = res
                     if res:
                         obj.time_last = time.time() # refresh time
                         self.logger.debug(f"Object found in memory: {data}")

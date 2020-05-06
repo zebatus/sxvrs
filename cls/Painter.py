@@ -21,11 +21,7 @@ class Painter():
             pts = pts.reshape((-1,1,2))
             cv2.polylines(img, [pts],True,(0,255,255))
 
-    def drawBox(self, action_cnfg, num, img, detected):
-        c = 20*num
-        if c>200:
-            c = 200
-        color = (c, c, 255)
+    def drawBox(self, action_cnfg, num, img, detected, color):        
         box = detected['box']
         class_id = detected['class']
         score = round(100*detected['score'])
@@ -41,6 +37,8 @@ class Painter():
         """ This is the main method to call. It draws required boxes and texts on the image and saves it to file
         """
         try:
+            color_red = (0, 0, 255)
+            color_blue = (150, 0, 0)
             img = cv2.imread(filename_in)
             self.img_height, self.img_width, self.img_channels = img.shape  
             self.drawDetectionArea(action_cnfg, img)  
@@ -50,7 +48,11 @@ class Painter():
                 obj_detection_results = json.loads(obj_detection_results)
             detected_objects = obj_detection_results['objects']
             for detected in detected_objects:
-                self.drawBox(action_cnfg, i, img, detected)
+                in_memory = detected.get('in_memory', False)
+                if in_memory:
+                    self.drawBox(action_cnfg, i, img, detected, color_blue)
+                else:
+                    self.drawBox(action_cnfg, i, img, detected, color_red)
             # save image to output file
             cv2.imwrite(filename_out+'.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, action_cnfg.jpeg_quality])
             os.rename(filename_out+'.jpg', filename_out)
