@@ -391,5 +391,7 @@ if stored_exception==None:
             else:
                 logger.exception("Can't start HTTP Server")
                 sys.exit(1)
+        except KeyboardInterrupt as e:
+            logger.debug("KeyboardInterrupt for HTTP server")
     mqtt_client.loop_stop()
     mqtt_client.disconnect()
