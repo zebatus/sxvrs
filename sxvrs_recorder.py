@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 """     SXVRS Recorder
-This script connects to video source stream, for taking snapshots, motion detection and video recording
-Main features:
-    1) take snapshot from video source
-    2) record into file
-    3) detect motion by comparing snapshots
+This script connects to video source stream, Continuously takes snapshots and record into video file
 
 Dependencies:
      ffmpeg
+
+Starting parameters:
+    > python sxvrs_recorder.py -n <recorder_name> -fw <frame_width> -fh <frame_height> fd <frame_dimentions>
+
 """
 
 __author__      = "Rustem Sharipov"
