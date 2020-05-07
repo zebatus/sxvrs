@@ -3,6 +3,6 @@
     <a id="link_{{ file.name }}" href="#" onclick="view_snapshot('{{ file.name }}');">
         <img id="file_{{ file.name }}" alt="{{ file.name }}" src="/recorder/{{ recorder.name }}/snapshot/200/150/{{ file.name }}?{{ file.dt  }}" />
     </a>
-    {{ file.name }} [{{ file.dt.strftime('%d %b %H:%M') }}]
+    {{ file.name }}<br>[{{ file.dt.strftime('%d %b %H:%M') }}]
 </div>
 {% endfor %}
