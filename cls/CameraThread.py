@@ -85,10 +85,13 @@ class CameraThread(Thread):
         self.mqtt_status()
 
     def stop(self, timeout=None):
-        """ Stop the thread. """        
-        self._stop_event.set()
-        self.logger.debug(f'receve "stop" event')
-        Thread.join(self, timeout)
+        """ Stop the thread. """      
+        try:  
+            self._stop_event.set()
+            self.logger.debug(f'receve "stop" event')
+            Thread.join(self, timeout)
+        except:
+            self.logger.exception(f"Can't stop thread: {self.name} ")
     
     def mqtt_status(self):
         """ Sends MQTT status """
