@@ -58,19 +58,21 @@ class ActionManager():
                 elif action.type=='copy':
                     for obj in obj_detection_results.get('objects'):  
                         obj_class = obj.get('class')
-                        if len(tobe_detected)==0 or obj_class in tobe_detected:                  
-                            self.act_copy_file(
-                                action.file_source(filename=obj_detected_file), 
-                                action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
-                                )
+                        if len(tobe_detected)==0 or obj_class in tobe_detected:     
+                            if action.use_memory and not obj.get('in_memory', False):            
+                                self.act_copy_file(
+                                    action.file_source(filename=obj_detected_file), 
+                                    action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
+                                    )
                 elif action.type=='move':                    
                     for obj in obj_detection_results.get('objects'):  
                         obj_class = obj.get('class')
                         if len(tobe_detected)==0 or obj_class in tobe_detected:                  
-                            self.act_move_file(
-                                action.file_source(filename=obj_detected_file), 
-                                action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
-                                )
+                            if action.use_memory and not obj.get('in_memory', False):            
+                                self.act_move_file(
+                                    action.file_source(filename=obj_detected_file), 
+                                    action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
+                                    )
 
     def check_action(self, action_cnfg, data):
         """Function will check if the returned data is "ok" and if it fits action_cnfg params, will return True, to run further action"""
@@ -127,6 +129,20 @@ class ActionManager():
 
     def act_send_mail(self, filename, action_cnfg, obj_detection_results):
         """Function will send email message with attchment of catured snapshot"""
+        # prepare text string, that contains all detected objects
+        cnt_detected = 0
+        strObjects = ''
+        tobe_detected = action_cnfg.objects
+        for obj in obj_detection_results.get('objects'):
+            if len(tobe_detected)==0 or obj.get('class') in tobe_detected :
+                if not obj.get('in_memory', False):
+                    strObjects += f'detected: <b>{obj.get("class")}</b>&nbsp;({obj.get("score"):.2f})<br>'
+                    cnt_detected += 1
+                else:
+                    strObjects += f'detected: {obj.get("class")}&nbsp;({obj.get("score"):.2f})<br>'
+        if action_cnfg.use_memory and cnt_detected == 0:
+            self.logger.debug(f'Email not sent, as there are no new objects')
+            return
         # Create the container (outer) email message.
         msg = MIMEMultipart('related')
         msg['Subject'] = action_cnfg.subject
@@ -139,11 +155,6 @@ class ActionManager():
 
         msgText = MIMEText(f'Object detected on {self.name} \n {obj_detection_results}')
         msgAlternative.attach(msgText)
-        strObjects = ''
-        tobe_detected = action_cnfg.objects
-        for obj in obj_detection_results.get('objects'):
-            if len(tobe_detected)==0 or obj.get('class') in tobe_detected:
-                strObjects += f'detected: <b>{obj.get("class")}</b>&nbsp;({obj.get("score")})<br>'
         msgText = MIMEText(f'Object detected on <b>{self.name}</b><br>{strObjects}<img src="cid:image1"><br>{obj_detection_results}<i></i>', 'html')
         msgAlternative.attach(msgText)
 

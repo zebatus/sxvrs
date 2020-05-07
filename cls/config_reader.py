@@ -224,7 +224,7 @@ class recorder_configuration():
         # if there are too many motiondetection events without object detection, then start throttling of object detection
         self.object_throttling = self.combine('object_throttling', group='motion_detector', default=10)
         self.memory_remember_time = self.combine('remember_time', group='memory', default=600)
-        self.memory_move_threshold = self.combine('move_threshold', group='memory', default=0.5)
+        self.memory_move_threshold = self.combine('move_threshold', group='memory', default=0.05)
         # determine interval to sending mqtt status
         self.send_status_interval = self.combine('send_status_interval', default=30)
         ### ObjectDetection block ###
@@ -391,6 +391,8 @@ class action_configuration():
         self.score = self.combine('score', default = 50)
         # the list of objects
         self.objects = self.combine('objects', default = [])
+        # determine if we action must remember detected objects, and trigger only on new ones
+        self.use_memory = self.combine('use_memory', default = False)
         #   for type = 'draw','copy'
         self._file_source = self.combine('source', group='file', default='{filename}')
         self._file_target = self.combine('target', group='file', default='{filename}')

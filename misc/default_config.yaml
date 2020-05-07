@@ -79,6 +79,7 @@ global:
         target: "{filename}"
       area: [[50,150], [200,1050], [1600,1050], [600,150]]    
     mail_2:
+      use_memory: True # remember detected object, to not email trigger action multiple times for same object (i.e if someone parced a car)
       type: mail
       user: sender@gmail.com
       password: 
