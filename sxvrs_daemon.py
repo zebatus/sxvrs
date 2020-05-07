@@ -180,7 +180,7 @@ if stored_exception==None:
             if stored_exception:
                 break        
         except (KeyboardInterrupt, SystemExit):
-            logger.info("[CTRL+C detected] MainLoop")
+            logger.info("MainLoop [CTRL+C] detected. Please wait for termination of all processes.. ")
             stored_exception=sys.exc_info()
 
     # Stop all instances
