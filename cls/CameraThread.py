@@ -130,6 +130,13 @@ class CameraThread(Thread):
             self.state_msg = 'inactive'
             self._recorder_started_event.clear()
 
+    def take_snapsot(self):
+        """This function must be run when recorder is not started, 
+        to simply take snapshot and exit from ffmpeg without recording"""        
+        cmd_take_snapshot = self.cnfg.cmd_take_snapshot()
+        self.logger.debug(f'process run:> {cmd_take_snapshot}')
+        self.proc_recorder = subprocess.Popen(shlex.split(cmd_take_snapshot), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
     def run(self):
         """Main thread"""        
         if self.cnfg.record_autostart:
@@ -157,7 +164,7 @@ class CameraThread(Thread):
         i = 0 
         while not self._stop_event.is_set(): 
             if not self._recorder_started_event.is_set():
-                i = 0
+                self.take_snapsot()
                 self.logger.debug(f'Recording stopped. Sleeping..')
                 self._recorder_started_event.wait(self.event_timeout)
             elif self.state_msg not in ('inactive'):                               

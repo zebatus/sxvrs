@@ -96,9 +96,6 @@ class config_reader():
             self.http_server_port = cnfg['http_server'].get('port', '8282')
             self._http_server_cmd = cnfg['http_server'].get('cmd', 'python sxvrs_http.py')
             self.http_refresh_img_speed= cnfg['http_server'].get('refresh_img_speed', 30) # image refresh speed (in seconds)
-        self._cmd_watcher = 'python sxvrs_watcher.py --name "{recorder}"'
-        if 'cmd' in self.data:
-            self._cmd_watcher = cnfg['cmd'].get('watcher', 'python sxvrs_watcher.py --name "{recorder}"')        
     @property
     def temp_storage_cmd_mount(self):
         return self._temp_storage_cmd_mount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)
@@ -113,8 +110,6 @@ class config_reader():
         return self.is_object_detector_cloud or (self.is_object_detector_local and self.tensorflow_is_installed)
     def cmd_http_server(self, **kwargs):
         return self._http_server_cmd.format(**kwargs)
-    def cmd_watcher(self, **kwargs):
-        return self._cmd_watcher.format(**kwargs)
 
 class recorder_configuration():
     """ Combines global and local parameter for given redcorder record
@@ -168,6 +163,8 @@ class recorder_configuration():
         self._filename_snapshot = self.combine('filename_snapshot', default='{storage_path}/snapshot.jpg')
         # filename for recording. This is template and can be formated with {name},{storage_path} and {datetime} params
         self._filename_video = self.combine('filename_video', default="{storage_path}/{datetime:%Y-%m-%d}/{name}_{datetime:%Y%m%d_%H%M%S}.mp4")
+        # shell command to just take snapshot
+        self._cmd_take_snapshot = self.combine('cmd_take_snapshot', 'ffmpeg -hide_banner -nostdin -nostats -flags low_delay -fflags +genpts+discardcorrupt -y -i "{stream_url}" -vframes 1 "{filename}"')
         # shell command for recorder start (used in daemon thread)
         self._cmd_recorder_start = self.combine('cmd_recorder_start', 'python sxvrs_recorder.py -n {name}')
         # shell command to start ffmpeg and read frames (used inside recorder subprocess)
@@ -356,6 +353,21 @@ class recorder_configuration():
         if 'filename' not in kwargs:
             kwargs['filename'] = self.filename_snapshot()
         return self._cmd_recorder_start.format(**kwargs)
+
+    def cmd_take_snapshot(self, **kwargs):
+        if self._cmd_take_snapshot is None:
+            return None
+        if 'name' not in kwargs:
+            kwargs['name'] = self.name
+        if 'datetime' not in kwargs:
+            kwargs['datetime'] = datetime.now()
+        if 'storage_path' not in kwargs:
+            kwargs['storage_path'] = self.storage_path()
+        if 'stream_url' not in kwargs:
+            kwargs['stream_url'] = self.stream_url()
+        if 'filename' not in kwargs:
+            kwargs['filename'] = self.filename_snapshot()
+        return self._cmd_take_snapshot.format(**kwargs)
         
 class action_configuration():
     """ Combines global and local parameter for given action record
