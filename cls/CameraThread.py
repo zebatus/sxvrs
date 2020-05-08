@@ -294,7 +294,8 @@ class CameraThread(Thread):
                         os.remove(filename_wch)
                     else:
                         self.cnt_motion_frame += 1
-                        self.log_to_file(self.latest_recorded_filename+".motion.log", '', label)                        
+                        if self.latest_recorded_filename != '':
+                            self.log_to_file(self.latest_recorded_filename+".motion.log", '', label)                        
                         filename_obj_wait = f"{filename}.obj.wait"
                         filename_obj_none = f"{filename}.obj.none"
                         filename_obj_found = f"{filename}.obj.found"
@@ -314,7 +315,8 @@ class CameraThread(Thread):
                                         info['filename'] = filename_obj_found
                                 except:
                                     self.logger.exception('Can''t load info file')
-                                self.log_to_file(self.latest_recorded_filename+".object.log", info, label)
+                                if self.latest_recorded_filename != '':
+                                    self.log_to_file(self.latest_recorded_filename+".object.log", info, label)
                                 self.cnt_obj_frame += 1
                                 if watcher_memory.add(info):
                                     # Take actions on image where objects was found
