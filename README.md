@@ -88,8 +88,11 @@ Views are used for AJAX load elements
 ### How to test MQQT messages:
 For testing in linux shell, there can be used mosquitto_pub application:
 ```
+    mosquitto_pub -m "{'cmd':'status'}" -t "sxvrs/daemon/camera_1"
     mosquitto_pub -m "{'cmd':'start'}" -t "sxvrs/daemon/camera_1"
     mosquitto_pub -m "{'cmd':'stop'}" -t "sxvrs/daemon/camera_1"
+    mosquitto_pub -m "{'cmd':'watcher_start'}" -t "sxvrs/daemon/camera_1"
+    mosquitto_pub -m "{'cmd':'watcher_stop'}" -t "sxvrs/daemon/camera_1"
     mosquitto_pub -m "{'cmd':'restart'}" -t "sxvrs/daemon/daemon"
 ```
 
