@@ -30,49 +30,52 @@ class ActionManager():
 
     def run(self, obj_detected_file=None, obj_detection_results=None):
         obj_detected_file = self.convert_bmp2jpg(obj_detected_file)
-        for action in self.cnfg.actions:
-            action = self.cnfg.actions[action]
-            if self.check_action(action_cnfg=action, data=obj_detection_results):
-                tobe_detected = action.objects
-                self.logger.debug(f'action cnfg={action} data={obj_detection_results} tobe_detected={tobe_detected}')
-                if action.type=='painter':
-                    obj_detected_file_new = action.file_target(filename=obj_detected_file)
-                    self.act_draw_box(
-                        action_cnfg=action, 
-                        obj_detection_results = obj_detection_results,
-                        filename_in = action.file_source(filename=obj_detected_file), 
-                        filename_out = obj_detected_file_new
-                        )
-                    obj_detected_file = obj_detected_file_new
-                elif action.type=='log':                    
-                    self.act_log(
-                        obj_detection_results, 
-                        action_cnfg=action
-                        )
-                elif action.type=='mail':                    
-                    self.act_send_mail(
-                        action.file_source(filename=obj_detected_file),
-                        action_cnfg=action,
-                        obj_detection_results = obj_detection_results
-                        )
-                elif action.type=='copy':
-                    for obj in obj_detection_results.get('objects'):  
-                        obj_class = obj.get('class')
-                        if len(tobe_detected)==0 or obj_class in tobe_detected:     
-                            if action.use_memory and not obj.get('in_memory', False):            
-                                self.act_copy_file(
-                                    action.file_source(filename=obj_detected_file), 
-                                    action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
-                                    )
-                elif action.type=='move':                    
-                    for obj in obj_detection_results.get('objects'):  
-                        obj_class = obj.get('class')
-                        if len(tobe_detected)==0 or obj_class in tobe_detected:                  
-                            if action.use_memory and not obj.get('in_memory', False):            
-                                self.act_move_file(
-                                    action.file_source(filename=obj_detected_file), 
-                                    action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
-                                    )
+        for action_name in self.cnfg.actions:
+            try:
+                action = self.cnfg.actions[action_name]
+                if self.check_action(action_cnfg=action, data=obj_detection_results):
+                    tobe_detected = action.objects
+                    self.logger.debug(f'action_name={action_name} data={obj_detection_results} tobe_detected={tobe_detected}')
+                    if action.type=='painter':
+                        obj_detected_file_new = action.file_target(filename=obj_detected_file)
+                        self.act_draw_box(
+                            action_cnfg=action, 
+                            obj_detection_results = obj_detection_results,
+                            filename_in = action.file_source(filename=obj_detected_file), 
+                            filename_out = obj_detected_file_new
+                            )
+                        obj_detected_file = obj_detected_file_new
+                    elif action.type=='log':                    
+                        self.act_log(
+                            obj_detection_results, 
+                            action_cnfg=action
+                            )
+                    elif action.type=='mail':                    
+                        self.act_send_mail(
+                            action.file_source(filename=obj_detected_file),
+                            action_cnfg=action,
+                            obj_detection_results = obj_detection_results
+                            )
+                    elif action.type=='copy':
+                        for obj in obj_detection_results.get('objects'):  
+                            obj_class = obj.get('class')
+                            if len(tobe_detected)==0 or obj_class in tobe_detected:     
+                                if not (action.use_memory and obj.get('in_memory', False)):            
+                                    self.act_copy_file(
+                                        action.file_source(filename=obj_detected_file), 
+                                        action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
+                                        )
+                    elif action.type=='move':                    
+                        for obj in obj_detection_results.get('objects'):  
+                            obj_class = obj.get('class')
+                            if len(tobe_detected)==0 or obj_class in tobe_detected:                  
+                                if not (action.use_memory and obj.get('in_memory', False)):            
+                                    self.act_move_file(
+                                        action.file_source(filename=obj_detected_file), 
+                                        action.file_target(name=self.cnfg.name, datetime=datetime.now(), object_class=obj_class)
+                                        )
+            except:
+                self.logger.exception('Action exception')
 
     def check_action(self, action_cnfg, data):
         """Function will check if the returned data is "ok" and if it fits action_cnfg params, will return True, to run further action"""
@@ -87,8 +90,8 @@ class ActionManager():
                 found = False
                 i = 0
                 detected = data.get('objects')
-                for obj in detected:
-                    if len(tobe_detected)==0 or obj['class'] in tobe_detected:
+                for obj in detected:                    
+                    if (len(tobe_detected)==0 or obj['class'] in tobe_detected) and (action_cnfg.use_memory or not obj.get('in_memory', False)):
                         found = True
                     found = found and obj['score']*100 >= score_min
                     # check if box points are inside detection polygon area
@@ -116,6 +119,7 @@ class ActionManager():
         img = cv2.imread(filename)
         filename = filename[:-10] + '.jpg'
         cv2.imwrite(filename, img)
+        self.logger.debug(f'{self.name}: Action: <bmp2jpg> {filename}')
         return filename
 
     def act_draw_box(self, action_cnfg, obj_detection_results, filename_in, filename_out):
@@ -126,6 +130,7 @@ class ActionManager():
                 filename_in = filename_in,
                 filename_out = filename_out
             )
+        self.logger.debug(f'{self.name}: Action: <painter> {filename_in} -> {filename_out}')
 
     def act_send_mail(self, filename, action_cnfg, obj_detection_results):
         """Function will send email message with attchment of catured snapshot"""
@@ -167,7 +172,7 @@ class ActionManager():
             s.login(action_cnfg.user, action_cnfg.password)
             s.sendmail(action_cnfg.mail_from, [action_cnfg.mail_to], msg.as_string())
             s.quit()        
-            self.logger.debug('email sent')        
+            self.logger.debug(f'{self.name}: Action: <mail> sent')        
         except smtplib.SMTPAuthenticationError as err:
             self.logger.error(f'smtplib.SMTPAuthenticationError: ({err})')
 
@@ -178,18 +183,24 @@ class ActionManager():
             if not os.path.exists(path):
                 os.makedirs(path)
             shutil.copy2(file_source, file_target)
+            self.logger.debug(f'{self.name}: Action: <copy> {file_source} -> {file_target}')
         except:
             self.logger.exception('Error on file copy: {file_source} -> {file_target}')
 
     def act_move_file(self, file_source, file_target):
         """Action to move file, with forced of creation required directories"""
         try:
+            if not os.path.isfile(file_source):
+                return
             path = os.path.dirname(file_target)
             if not os.path.exists(path):
                 os.makedirs(path)
             shutil.move(file_source, file_target)
+            #shutil.copy2(file_source, file_target)
+            #os.remove(file_source)
+            self.logger.debug(f'{self.name}: Action: <move> {file_source} -> {file_target}')
         except:
-            self.logger.exception('Error on file move: {file_source} -> {file_target}')
+            self.logger.exception(f'Error on file move: {file_source} -> {file_target}')
 
     def act_log(self, data, action_cnfg):
         """Action to log object detection JSON data into file"""
@@ -197,6 +208,10 @@ class ActionManager():
             filename = action_cnfg.file_target()
             if isinstance(data, dict):
                 data = json.dumps(data)
+            # check path existance and create it if needed
+            path = os.path.dirname(os.path.abspath(filename))
+            if not os.path.isdir(path):
+                os.makedirs(path)
             with open(filename, 'a+') as fp:
                 fp.write(data)
                 fp.write("\n")
