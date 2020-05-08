@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 """     SXVRS Recorder
-This script connects to video source stream, Continuously takes snapshots and record into video file
+This script connects to video source stream, Continuously takes snapshots and record into video file.
+It is possible to run script in snapshot_mode - meaning no video recording is done, only snapshots are taken
 
 Dependencies:
      ffmpeg
 
 Starting parameters:
-    > python sxvrs_recorder.py -n <recorder_name> -fw <frame_width> -fh <frame_height> fd <frame_dimentions>
+    > python sxvrs_recorder.py -n <recorder_name> -fw <frame_width> -fh <frame_height> fd <frame_dimentions> --snapshot_mode
 
 """
 
@@ -41,17 +42,19 @@ parser.add_argument('-n','--name', help='Name of the recorder instance', require
 parser.add_argument('-fw','--frame_width', help='The width of the video frames in source stream', required=False)
 parser.add_argument('-fh','--frame_height', help='The height of the video frames in source stream', required=False)
 parser.add_argument('-fd','--frame_dim', help='The number of dimensions of the video frames in source stream. (By default = 3)', required=False, default=3)
+parser.add_argument('-s','--snapshot_mode', help='Determine if only snapshots must be taken, without recording video file', action='store_true')
 #parser.add_argument('-','--', help='', default='default', required=False)
 args = parser.parse_args()
 _name = args.name
 try:
     _frame_width = int(args.frame_width)
     _frame_height = int(args.frame_height)
-    _frame_dim = int(args.frame_dim)
+    _frame_dim = int(args.frame_dim)    
 except:
     _frame_width = None
     _frame_height = None
     _frame_dim = 3
+snapshot_mode = args.snapshot_mode
 
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
@@ -88,16 +91,21 @@ storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size, logger_name
 storage.cleanup()
 # Force create path for snapshot
 storage.force_create_file_path(cnfg.filename_snapshot())
-# Force create path for video file
-filename_video = cnfg.filename_video()
-storage.force_create_file_path(filename_video)
-logger.info(f'Start record filename: <{filename_video}>')
+
 
 cmd_ffmpeg_read = cnfg.cmd_ffmpeg_read()
 logger.debug(f"Execute process to read frames:\n   {cmd_ffmpeg_read}")
 ffmpeg_read = Popen(shlex.split(cmd_ffmpeg_read), stdout = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
-cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=frame_shape[0], width=frame_shape[1], pixbytes=frame_shape[2]*8)
-if not cmd_ffmpeg_write is None:
+if snapshot_mode:
+    logger.debug("Snapshot mode detected: continuously take snapshots from source stream")
+    cmd_ffmpeg_write = None
+else:
+    # Force create path for video file
+    filename_video = cnfg.filename_video()
+    storage.force_create_file_path(filename_video)
+    logger.info(f'Start record filename: <{filename_video}>')
+    cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=frame_shape[0], width=frame_shape[1], pixbytes=frame_shape[2]*8)
+if not cmd_ffmpeg_write is None and not snapshot_mode:
     logger.debug(f"Execute process to write frames:\n  {cmd_ffmpeg_write}")
     ffmpeg_write = Popen(shlex.split(cmd_ffmpeg_write), stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
 else:
@@ -142,7 +150,7 @@ try:
                 frame_hash = hashlib.sha1(frame_np_rgb).hexdigest()
                 if frame_hash != frame_hash_old:
                     frame_hash_old = frame_hash
-                    temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path)
+                    temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path, frame_num=i)
                     cv2.imwrite(f'{temp_frame_file}.bmp', frame_np_rgb)
                     os.rename(f'{temp_frame_file}.bmp', f'{temp_frame_file}.rec')
                     snap += 1
@@ -153,7 +161,8 @@ try:
         if (dt_end - dt_start).total_seconds() >= cnfg.record_time:
             break
         i += 1
-    logger.debug(f"Finish recording to {filename_video} wrote {i}/{snap} frames")
+    if not snapshot_mode:
+        logger.debug(f"Finish recording to {filename_video} wrote {i}/{snap} frames")
 except (KeyboardInterrupt, SystemExit):
     logger.info("[CTRL+C detected] MainLoop")
     ffmpeg_read.send_signal(signal.SIGINT)

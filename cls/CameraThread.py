@@ -132,10 +132,14 @@ class CameraThread(Thread):
 
     def take_snapsot(self):
         """This function must be run when recorder is not started, 
-        to simply take snapshot and exit from ffmpeg without recording"""        
-        cmd_take_snapshot = self.cnfg.cmd_take_snapshot()
-        self.logger.debug(f'process run:> {cmd_take_snapshot}')
-        self.proc_recorder = subprocess.Popen(shlex.split(cmd_take_snapshot), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        to simply take snapshot and exit from ffmpeg without recording"""
+        if self.proc_recorder is None or not self.proc_recorder.returncode is None:
+            cmd_take_snapshot = self.cnfg.cmd_take_snapshot()
+            cmd_take_snapshot = cmd_take_snapshot + f' -fh {self.frame_height} -fw {self.frame_width} -fd {self.frame_dim}'
+            self.logger.debug(f'process run:> {cmd_take_snapshot}')
+            #self.proc_recorder = subprocess.Popen(shlex.split(cmd_take_snapshot), shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            self.proc_recorder = subprocess.Popen(shlex.split(cmd_take_snapshot), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
+            self.parse_subprocess_output()
 
     def run(self):
         """Main thread"""        
@@ -156,6 +160,33 @@ class CameraThread(Thread):
                 # recorder loop running in main thread
                 self.run_recorder_loop()
 
+    def parse_subprocess_output(self):
+        start_time = time.time()
+        self.cnt_obj_frame = 0
+        self.cnt_motion_frame = 0
+        pattern_videofile = re.compile(r".*Start record filename: \<(.*)\>.*")
+        pattern_snapshotfile = re.compile(r".*Snapshot filename: \<(.*)\>.*")
+        pattern_motion_throttling = re.compile(r".* frame throttling \((.*)\) for recorder.*")
+        def parse_output(output, pattern, var):
+            found = re.search(pattern, output)
+            if not found is None:
+                var = found.groups()[0]
+            return var
+        self.motion_throttling
+        duration = 0
+        while (not self._stop_event.is_set()) and duration < self.cnfg.record_time+5:
+            output = self.proc_recorder.stdout.readline()
+            if output == b'' and self.proc_recorder.poll() is not None:
+                break
+            if output:
+                output = output.decode("utf-8") 
+                self.logger.debug(output.strip()) # log output. maybe need to dissable this
+                self.latest_recorded_filename = parse_output(output, pattern_videofile, self.latest_recorded_filename)
+                self.latest_snapshot = parse_output(output, pattern_snapshotfile, self.latest_snapshot)
+                self.motion_throttling = parse_output(output, pattern_motion_throttling, self.motion_throttling)
+            duration = time.time() - start_time   
+        return duration     
+
     def run_recorder_loop(self):
         """ Function to run in a loop:
         - execute {cmd_recorder_start} for start recording into file and take snapshots
@@ -169,40 +200,18 @@ class CameraThread(Thread):
                 self._recorder_started_event.wait(self.event_timeout)
             elif self.state_msg not in ('inactive'):                               
                 # run cmd_recorder_start
-                cmd_recorder_start = self.cnfg.cmd_recorder_start() + f' -fh {self.frame_height} -fw {self.frame_width} -fd {self.frame_dim}'
+                cmd_recorder_start = self.cnfg.cmd_recorder_start()
                 if cmd_recorder_start == '':
                     raise ValueError(f"Config value: 'cmd_recorder_start' is not defined")                    
+                cmd_recorder_start = cmd_recorder_start + f' -fh {self.frame_height} -fw {self.frame_width} -fd {self.frame_dim}'
                 if (not self._stop_event.is_set()):
                     self.logger.debug(f'process run:> {cmd_recorder_start}')
                     #self.proc_recorder = subprocess.Popen(cmd_recorder_start, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
                     self.proc_recorder = subprocess.Popen(shlex.split(cmd_recorder_start), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
                     self.state_msg = 'started'
                     self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg }))
-                    start_time = time.time()
-                    self.cnt_obj_frame = 0
-                    self.cnt_motion_frame = 0
                     # need to parse sxvrs_recorder execution output, to catch required variables 
-                    pattern_videofile = re.compile(r".*Start record filename: \<(.*)\>.*")
-                    pattern_snapshotfile = re.compile(r".*Snapshot filename: \<(.*)\>.*")
-                    pattern_motion_throttling = re.compile(r".* frame throttling \((.*)\) for recorder.*")
-                    def parse_output(output, pattern, var):
-                        found = re.search(pattern, output)
-                        if not found is None:
-                            var = found.groups()[0]
-                        return var
-                    self.motion_throttling
-                    duration = 0
-                    while (not self._stop_event.is_set()) and duration < self.cnfg.record_time+5:
-                        output = self.proc_recorder.stdout.readline()
-                        if output == b'' and self.proc_recorder.poll() is not None:
-                            break
-                        if output:
-                            output = output.decode("utf-8") 
-                            self.logger.debug(output.strip()) # log output. maybe need to dissable this
-                            self.latest_recorded_filename = parse_output(output, pattern_videofile, self.latest_recorded_filename)
-                            self.latest_snapshot = parse_output(output, pattern_snapshotfile, self.latest_snapshot)
-                            self.motion_throttling = parse_output(output, pattern_motion_throttling, self.motion_throttling)
-                        duration = time.time() - start_time
+                    duration = self.parse_subprocess_output()
                     rc = self.proc_recorder.poll()
                     
                     # detect if process run too fast (unsuccessful start)

@@ -158,13 +158,14 @@ class recorder_configuration():
         # folder for storing recordings. This is template and can be formated with {name} and {datetime} params
         self._storage_path = self.combine('storage_path', default='storage/{name}')
         # filename for the temp file in RAM disk. This is template and can be formated with {name},{storage_path}  and {datetime} params
-        self._filename_temp = self.combine('filename_temp')
+        self._filename_temp = self.combine('filename_temp', default = "{storage_path}/{name}_{frame_num}_{datetime:%H%M%S.%f}")
         # filename for the snapshot. This is template and can be formated with {name},{storage_path} and {datetime} params
         self._filename_snapshot = self.combine('filename_snapshot', default='{storage_path}/snapshot.jpg')
         # filename for recording. This is template and can be formated with {name},{storage_path} and {datetime} params
         self._filename_video = self.combine('filename_video', default="{storage_path}/{datetime:%Y-%m-%d}/{name}_{datetime:%Y%m%d_%H%M%S}.mp4")
         # shell command to just take snapshot
-        self._cmd_take_snapshot = self.combine('cmd_take_snapshot', 'ffmpeg -hide_banner -nostdin -nostats -flags low_delay -fflags +genpts+discardcorrupt -y -i "{stream_url}" -vframes 1 "{filename}"')
+        #self._cmd_take_snapshot = self.combine('cmd_take_snapshot', 'ffmpeg -hide_banner -nostdin -nostats -flags low_delay -fflags +genpts+discardcorrupt -y -i "{stream_url}" -vframes 1 "{filename}"')
+        self._cmd_take_snapshot = self.combine('cmd_take_snapshot', 'python sxvrs_recorder.py -n {name} --snapshot_mode')
         # shell command for recorder start (used in daemon thread)
         self._cmd_recorder_start = self.combine('cmd_recorder_start', 'python sxvrs_recorder.py -n {name}')
         # shell command to start ffmpeg and read frames (used inside recorder subprocess)
