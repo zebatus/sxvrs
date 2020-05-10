@@ -12,6 +12,7 @@ mqtt:
   client_subscribe: sxvrs/clients/{source_name}
 
 http_server:
+  #autostart: True
   host: 0.0.0.0
   port: 8282
 
