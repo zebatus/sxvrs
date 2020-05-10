@@ -20,6 +20,7 @@ __status__      = "Development"
 
 
 import os, sys, logging
+import argparse
 import json
 import time
 import glob
@@ -32,6 +33,12 @@ from cls.config_reader import config_reader
 from cls.misc import check_topic
 from cls.RAM_Storage import RAM_Storage
 from cls.misc import SelectObjectDetector
+
+# Get command line arguments
+arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument('-http','--with_http_server', help='Determine if it is needed to start http', action='store_true')
+args = arg_parser.parse_args()
+start_with_http_server = args.with_http_server
 
 # Get running script name
 script_path, script_name = os.path.split(os.path.splitext(__file__)[0])
@@ -170,7 +177,7 @@ if stored_exception==None:
     # Start Object Detector
     object_detector = SelectObjectDetector(cnfg, logger_name = logger.name)
     # Start HTTP web server
-    if cnfg.is_http_server and cnfg.http_server_autostart:
+    if cnfg.is_http_server and (start_with_http_server or cnfg.http_server_autostart):
         Popen(cnfg.cmd_http_server(), shell=True)
     # Main loop start
     while stored_exception==None:

@@ -59,8 +59,6 @@ class config_reader():
         self.mqtt_topic_daemon_subscribe = cnfg['mqtt'].get('daemon_subscribe', 'sxvrs/daemon/{source_name}')
         self.mqtt_topic_client_publish = cnfg['mqtt'].get('client_publish', 'sxvrs/clients/{source_name}')
         self.mqtt_topic_client_subscribe = cnfg['mqtt'].get('client_subscribe', 'sxvrs/daemon/{source_name}')
-        # tensorflow per_process_gpu_memory_fraction param can limit usage of GPU memory
-        self.tensorflow_per_process_gpu_memory_fraction = cnfg.get('tensorflow_per_process_gpu_memory_fraction', None)
         # temp storage RAM disk
         # folder name where RAM disk will be mounted
         self.temp_storage_path = cnfg.get('temp_storage_path', '/dev/shm/sxvrs')
@@ -86,12 +84,14 @@ class config_reader():
             self.object_detector_local_gpu = cnfg['object_detector_local'].get('gpu', 0) # 0 means dissable GPU
             self.object_detector_timeout = cnfg['object_detector_local'].get('timeout', 30) # in seconds
             self.object_detector_min_score = cnfg['object_detector_local'].get('min_score', 30) # min score from 0..100
+            # tensorflow per_process_gpu_memory_fraction param can limit usage of GPU memory
+            self.tensorflow_per_process_gpu_memory_fraction = cnfg['object_detector_local'].get('tensorflow_per_process_gpu_memory_fraction', None)
         if self.object_detector_min_score == 0:
             self.object_detector_min_score = 0.01
         # HTTP Server configs
         self.is_http_server = 'http_server' in cnfg
         if self.is_http_server:
-            self.http_server_autostart = cnfg['http_server'].get('autostart', True) # if set, then daemon will start http server, otherwice it is possible to start manually
+            self.http_server_autostart = cnfg['http_server'].get('autostart', False) # if set, then daemon will start http server, otherwice it is possible to start manually
             self.http_server_host = cnfg['http_server'].get('host', '0.0.0.0')
             self.http_server_port = cnfg['http_server'].get('port', '8282')
             self._http_server_cmd = cnfg['http_server'].get('cmd', 'python sxvrs_http.py')
