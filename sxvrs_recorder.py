@@ -37,14 +37,14 @@ from cls.StorageManager import StorageManager
 from cls.RAM_Storage import RAM_Storage
 
 # Get command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('-n','--name', help='Name of the recorder instance', required=True)
-parser.add_argument('-fw','--frame_width', help='The width of the video frames in source stream', required=False)
-parser.add_argument('-fh','--frame_height', help='The height of the video frames in source stream', required=False)
-parser.add_argument('-fd','--frame_dim', help='The number of dimensions of the video frames in source stream. (By default = 3)', required=False, default=3)
-parser.add_argument('-s','--snapshot_mode', help='Determine if only snapshots must be taken, without recording video file', action='store_true')
-#parser.add_argument('-','--', help='', default='default', required=False)
-args = parser.parse_args()
+arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument('-n','--name', help='Name of the recorder instance', required=True)
+arg_parser.add_argument('-fw','--frame_width', help='The width of the video frames in source stream', required=False)
+arg_parser.add_argument('-fh','--frame_height', help='The height of the video frames in source stream', required=False)
+arg_parser.add_argument('-fd','--frame_dim', help='The number of dimensions of the video frames in source stream. (By default = 3)', required=False, default=3)
+arg_parser.add_argument('-s','--snapshot_mode', help='Determine if only snapshots must be taken, without recording video file', action='store_true')
+#arg_parser.add_argument('-','--', help='', default='default', required=False)
+args = arg_parser.parse_args()
 _name = args.name
 try:
     _frame_width = int(args.frame_width)
@@ -122,6 +122,8 @@ try:
             logging.error("Received zero length frame. exiting recording loop..")
             break
         frame_np = (np.frombuffer(frame_bytes, np.uint8).reshape(frame_shape)) 
+        # resize frame #TODO: may be need to move into config
+        frame_np = cv2.resize(frame_np, (1024, 768))  
         # take snapshot
         if time() - snapshot_taken_time > cnfg.snapshot_time:
             frame_np_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
