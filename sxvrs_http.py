@@ -134,7 +134,9 @@ except :
 
 
 #####    Flask HTTP Server   #####
-from flask import Flask, render_template, redirect, url_for, send_file, session
+from flask import Flask, render_template, redirect, url_for, send_file, session, make_response
+import cv2, math
+
 app = Flask(__name__, static_url_path='/static', static_folder='templates/static', template_folder='templates')
 
 def refresh_recorder_status(recorder=None):
@@ -279,14 +281,29 @@ def recorder_snapshot(recorder_name, width=None, height=None, selected_name=None
         snapshot_path = os.path.dirname(os.path.abspath(cnfg.recorders[recorder_name].filename_snapshot()))
         filename = os.path.join(snapshot_path, selected_name+'.jpg')
     if os.path.isfile(filename):
-        # resize image
-        #new_filename = f'{filename[:-4]}.{width}x{height}.jpg'
-        new_filename = f'{cnfg.temp_storage_path}/http_img.jpg'
-        cmd = f'convert {filename} -resize {width}x{height} {str_param}\> {new_filename}'
-        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
-        process.wait(20)
-        filename = new_filename    
-        return send_file(new_filename)
+        height = int(height)
+        width = int(width)
+        img = cv2.imread(filename)
+        # resize image and preserve aspect ratio
+        orig_height, orig_width, _ = img.shape
+        if orig_height > height:
+            scale_height = height / orig_height
+        else:
+            scale_height = 1
+        if orig_width > width:
+            scale_width = width / orig_width
+        else:
+            scale_width = 1
+        scale = min(scale_height, scale_width) 
+        if scale < 1:
+            height = math.floor(orig_height*scale)
+            width = math.floor(orig_width*scale)
+            img = cv2.resize(img, (width, height))               
+        # encode to jpeg image
+        _, img_jpg = cv2.imencode('.jpg', img)
+        response = make_response(img_jpg.tostring())
+        response.headers.set('Content-Type', 'image/jpeg')
+        return response
     else:
         return send_file('templates/static/nosnapshot.gif')
 
