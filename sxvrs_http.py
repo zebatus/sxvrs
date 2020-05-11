@@ -177,7 +177,6 @@ def recorder_view_data(recorder, width=None, height=None):
         last_modified_date = datetime.fromtimestamp(os.path.getmtime(snapshot_file))
         res["snapshot"] = res["snapshot"] + f"?{last_modified_date}"
     res['title'] = f'Camera: {recorder.name}'
-    res['blink'] = ''
     if recorder.status == 'stopped':
         res['btn_rec_name'] = 'Start Recording'
         res['btn_rec_cmd'] = 'start'
@@ -187,7 +186,6 @@ def recorder_view_data(recorder, width=None, height=None):
         res['btn_rec_name'] = 'Stop Recording'
         res['btn_rec_cmd'] = 'stop'
         if recorder.status == 'started':
-            res['blink'] = 'blink'
             res['btn_rec_img'] = 'rec.gif'
             res['widget_status'] = 'widget_status_ok'
         elif recorder.status in ['snapshot','restarting']:
