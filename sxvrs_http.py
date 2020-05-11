@@ -136,6 +136,7 @@ except :
 #####    Flask HTTP Server   #####
 from flask import Flask, render_template, redirect, url_for, send_file, session, make_response
 import cv2, math
+import numpy as np
 
 app = Flask(__name__, static_url_path='/static', static_folder='templates/static', template_folder='templates')
 
@@ -287,11 +288,16 @@ def recorder_snapshot(recorder_name, width=None, height=None, selected_name=None
             scale_width = width / orig_width
         else:
             scale_width = 1
-        scale = min(scale_height, scale_width) 
+        scale = min(scale_height, scale_width)         
         if scale < 1:
             height = math.floor(orig_height*scale)
             width = math.floor(orig_width*scale)
             img = cv2.resize(img, (width, height))               
+        # make darker if snapshot was not updated
+        if not recorder.status in ['started'] and not recorder.watcher:
+            a = np.double(img)
+            b = a * 0.2
+            img = np.uint8(b)
         # encode to jpeg image
         _, img_jpg = cv2.imencode('.jpg', img)
         response = make_response(img_jpg.tostring())
