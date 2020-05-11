@@ -1,20 +1,23 @@
 <div class="widget_btn_bar">
-    {% if recorder.btn_rec_img  %}
     {% if not recorder.status in ['inactive','error'] %}
-    <a class="widget_btn" href="/recorder/{{ recorder.name }}/record/{{ recorder.btn_rec_cmd }}" title="{{ recorder.btn_rec_name }}">
+    <a class="widget_btn" href="#" onclick="btn_click(this, '{{ recorder.name }}', 'record', '{% if recorder.status in ['started'] %}stop{% else %}start{% endif %}');return false;" title="{{ recorder.btn_rec_name }}">
     {% endif %}
-<img class="widget_mark {% if recorder.status in ['started'] %} blink {% endif %}" src="{{ recorder.btn_rec_img }}" />
+<img class="widget_mark {% if recorder.status in ['started'] %} blink {% endif %}" {% if recorder.status in ['stopped'] %} src="/static/stop.gif"
+{% elif recorder.status in ['started'] %} src="/static/rec.gif"
+{% elif recorder.status in ['snapshot','restarting'] %} src="/static/state.gif"
+{% elif recorder.status in ['error'] %} src="/static/err.gif"
+{% elif recorder.status in ['inactive','None'] %} src="/static/nointernet.png"
+{% endif %} />
     {% if not recorder.status in ['inactive','error'] %}
     </a>
     {% endif %}
-{% endif %}
 {% if not recorder.status in ['inactive','error']  %}
     {% if recorder.watcher  %}
-    <a class="widget_btn" href="/recorder/{{ recorder.name }}/watcher/stop" title="Stop Watcher">
+    <a class="widget_btn" href="#" onclick="btn_click(this, '{{ recorder.name }}', 'watcher','stop');return false;" title="Stop Watcher">
         <img class="widget_mark {% if recorder.watcher %} blink {% endif %}" src="/static/watcher_on.png" />        
     </a>
     {% else %}
-    <a class="widget_btn" href="/recorder/{{ recorder.name }}/watcher/start" title="Start Watcher">
+    <a class="widget_btn" href="#" onclick="btn_click(this, '{{ recorder.name }}', 'watcher','start');return false;" title="Start Watcher">
         <img class="widget_mark" src="/static/watcher_off.png" />        
     </a>
     {% endif %}
@@ -23,8 +26,11 @@
 
 <div><img id="camera_{{ recorder.name }}" src="{{ recorder.snapshot }}" style="width:100%; height:94%" /></div>
 <div class="widget_bar">
-    <div style="float:right;" class="{{ recorder.widget_err }}">{{ recorder.error_cnt }}</div>
-    <div style="float:right;" class="{{ recorder.widget_status }}">{{ recorder.status }}</div>
+    <div style="float:right;" {% if recorder.error_cnt>0 %} class="widget_err" {% endif %}>{{ recorder.error_cnt }}</div>
+    <div style="float:right;" {% if recorder.status in ['stopped','started'] %} class="widget_status_ok"
+    {% elif recorder.status in ['snapshot','restarting'] %} class="widget_status"
+    {% elif recorder.status in ['error','inactive','None'] %} class="widget_status_err"
+    {% endif %}>{{ recorder.status }}</div>
     <div class="widget_latest_file">
         <a href="">{{ recorder.latest_file }}</a>
     </div>

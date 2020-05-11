@@ -179,29 +179,19 @@ def recorder_view_data(recorder, width=None, height=None):
     res['title'] = f'Camera: {recorder.name}'
     if recorder.status == 'stopped':
         res['btn_rec_name'] = 'Start Recording'
-        res['btn_rec_cmd'] = 'start'
-        res['btn_rec_img'] = 'stop.gif'
         res['widget_status'] = 'widget_status_ok'
     else:
         res['btn_rec_name'] = 'Stop Recording'
-        res['btn_rec_cmd'] = 'stop'
         if recorder.status == 'started':
-            res['btn_rec_img'] = 'rec.gif'
             res['widget_status'] = 'widget_status_ok'
         elif recorder.status in ['snapshot','restarting']:
-            res['btn_rec_img'] = 'state.gif'
             res['widget_status'] = 'widget_status'
-        elif recorder.status in ['error'] :
-            res['btn_rec_img'] = 'err.gif'
-            res['widget_status'] = 'widget_status_err'
-        elif recorder.status in ['inactive','None'] :
-            res['btn_rec_img'] = 'nointernet.png'
+        elif recorder.status in ['error','inactive','None']:
             res['widget_status'] = 'widget_status_err'
     if recorder.error_cnt>0:
         res['widget_err'] = 'widget_err' 
     else:
         res['widget_err'] = ''
-    res['btn_rec_img'] = '/static/' + res['btn_rec_img']
     return res
 
 @app.route('/')
@@ -394,14 +384,26 @@ def view_recorder_log(recorder_name, log_name='daemon', log_len=500, log_start=0
 @app.route('/recorder/<recorder_name>/record/start')
 def recorder_start(recorder_name):
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'start'}))
-    time.sleep(2) # sleep before refresh, to give time to update data
-    return redirect(url_for('view_recorder', recorder_name=recorder_name))
+    #time.sleep(2) # sleep before refresh, to give time to update data
+    #return redirect(url_for('view_recorder', recorder_name=recorder_name))
+    return "accepted"
 
 @app.route('/recorder/<recorder_name>/record/stop')
 def recorder_stop(recorder_name):
     mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'stop'}))
-    time.sleep(2) # sleep before refresh, to give time to update data
-    return redirect(url_for("view_recorder", recorder_name=recorder_name))
+    #time.sleep(2) # sleep before refresh, to give time to update data
+    #return redirect(url_for("view_recorder", recorder_name=recorder_name))
+    return "accepted"
+
+@app.route('/recorder/<recorder_name>/watcher/start')
+def watcher_start(recorder_name):
+    mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'watcher_start'}))
+    return "accepted"
+
+@app.route('/recorder/<recorder_name>/watcher/stop')
+def watcher_stop(recorder_name):
+    mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'watcher_stop'}))
+    return "accepted"
 
 if stored_exception==None:
     # start HTTP Server

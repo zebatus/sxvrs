@@ -20,13 +20,8 @@
         <script type="text/javascript" src="/static/sxvrs.js"></script>
         <script type="text/javascript" >  
             var widgets = document.getElementsByClassName('widget');        
-            function UpdateWidget(){
-                [].forEach.call(widgets, function (el) {
-                    loadHtml(el.id, "/recorder/" + el.id + "/view_widget")
-                });                
-            }
-            UpdateWidget()
-            var reload = setInterval(UpdateWidget, {{ content.refresh_img_speed }});
+            UpdateWidget(null)
+            var reload = setInterval(UpdateWidget(null), {{ content.refresh_img_speed }});
         </script>          
     </body>
 </html>
