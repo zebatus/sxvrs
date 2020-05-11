@@ -171,6 +171,11 @@ def recorder_view_data(recorder, width=None, height=None):
     res["snapshot"] = f'/recorder/{recorder.name}/snapshot'
     if width>0 and height>0:
         res["snapshot"] = res["snapshot"] + f"/{width}/{height}"
+    snapshot_path = os.path.dirname(os.path.abspath(cnfg.recorders[recorder.name].filename_snapshot()))
+    snapshot_file = os.path.join(snapshot_path, 'snapshot.jpg')
+    if os.path.isfile(snapshot_file):
+        last_modified_date = datetime.fromtimestamp(os.path.getmtime(snapshot_file))
+        res["snapshot"] = res["snapshot"] + f"?{last_modified_date}"
     res['title'] = f'Camera: {recorder.name}'
     res['blink'] = ''
     if recorder.status == 'stopped':
@@ -208,7 +213,8 @@ def page_index():
     for recorder_name in recorders:
         recorder_dict_list.append(recorder_view_data(recorders[recorder_name], width=400, height=300))
     content = {
-        "title": "SXVRS"
+        "title": "SXVRS",
+        "refresh_img_speed": cnfg.http_refresh_img_speed * 1000,
     }
     return render_template('index.html', content=content, recorders = recorder_dict_list)
 
@@ -273,7 +279,6 @@ def page_restart(name):
 def recorder_snapshot(recorder_name, width=None, height=None, selected_name=None):
     """Returns snapshot image file"""
     recorder = get_recorder_by_name(recorder_name)
-    str_param = "-brightness-contrast -50x-70" if recorder.status=="inactive" else "" 
     # get snapshot name for the recorder
     if selected_name is None:
         filename = cnfg.recorders[recorder_name].filename_snapshot()
@@ -309,70 +314,84 @@ def recorder_snapshot(recorder_name, width=None, height=None, selected_name=None
 
 @app.route('/recorder/<recorder_name>')
 def view_recorder(recorder_name):
-        """Returns page for given camera"""
-        enc = sys.getfilesystemencoding()
-        # get recorder by name
-        recorder = get_recorder_by_name(recorder_name)
-        recorder_dict = recorder_view_data(recorder, width=800, height=600)
-        content = {
-            "charset" : enc,
-            "title" : f"Camera: {recorder_name}",
-            "recorder_name": recorder_name,
-        }
-        return render_template('recorder.html', content=content, recorder=recorder_dict)
+    """Returns page for given camera"""
+    enc = sys.getfilesystemencoding()
+    # get recorder by name
+    recorder = get_recorder_by_name(recorder_name)
+    recorder_dict = recorder_view_data(recorder, width=800, height=600)
+    content = {
+        "charset" : enc,
+        "title" : f"Camera: {recorder_name}",
+        "recorder_name": recorder_name,
+    }
+    return render_template('recorder.html', content=content, recorder=recorder_dict)
+
+@app.route('/recorder/<recorder_name>/view_widget')
+def view_recorder_widget(recorder_name):
+    """Function will return view for recorder widget"""
+    enc = sys.getfilesystemencoding()
+    # get recorder by name
+    recorder = get_recorder_by_name(recorder_name)
+    recorder_dict = recorder_view_data(recorder, width=800, height=600)
+    content = {
+        "charset" : enc,
+        "title" : f"Camera: {recorder_name}",
+        "recorder_name": recorder_name,
+    }
+    return render_template('view_widget.html', content=content, recorder=recorder_dict)
 
 @app.route('/recorder/<recorder_name>/view_snapshots')
 def view_recorder_snapshots(recorder_name):
-        """Function will return view with list of snapshots for given recorder"""
-        # list all jpg files in snapshot folder
-        snapshot_path = os.path.dirname(os.path.abspath(cnfg.recorders[recorder_name].filename_snapshot()))
-        files = [f for f in glob.glob(snapshot_path + "/*.jpg", recursive=False)]
-        files.sort(key=os.path.getmtime, reverse=True)
-        snapshot_files = []
-        if len(files)>1:
-            for file in files:
-                last_modified_date = datetime.fromtimestamp(os.path.getmtime(file))
-                snapshot_files.append({
-                    "name": os.path.basename(os.path.splitext(file)[0]),
-                    "dt": last_modified_date
-                    })
-        recorder = {
-            'name': recorder_name,
-            'snapshot_files': snapshot_files
-        }
-        return render_template('view_snapshots.html', recorder=recorder)
+    """Function will return view with list of snapshots for given recorder"""
+    # list all jpg files in snapshot folder
+    snapshot_path = os.path.dirname(os.path.abspath(cnfg.recorders[recorder_name].filename_snapshot()))
+    files = [f for f in glob.glob(snapshot_path + "/*.jpg", recursive=False)]
+    files.sort(key=os.path.getmtime, reverse=True)
+    snapshot_files = []
+    if len(files)>1:
+        for file in files:
+            last_modified_date = datetime.fromtimestamp(os.path.getmtime(file))
+            snapshot_files.append({
+                "name": os.path.basename(os.path.splitext(file)[0]),
+                "dt": last_modified_date
+                })
+    recorder = {
+        'name': recorder_name,
+        'snapshot_files': snapshot_files
+    }
+    return render_template('view_snapshots.html', recorder=recorder)
 
 @app.route('/recorder/<recorder_name>/view_log')
 @app.route('/recorder/<recorder_name>/view_log/<log_name>')
 @app.route('/recorder/<recorder_name>/view_log/<log_name>/<log_len>')
 @app.route('/recorder/<recorder_name>/view_log/<log_name>/<log_len>/<log_start>')
 def view_recorder_log(recorder_name, log_name='daemon', log_len=500, log_start=0):
-        """Function will return logs text for given recorder"""
-        log_filter = ''
-        if log_name=='daemon':
-            log_file = f'{log_name}.log'
-            log_filter = recorder_name
-        elif log_name=='recorder':
-            log_file = f'{log_name}_{recorder_name}.log'
-        else:
-            return
-        #show log for selected recorder
-        logs_path = os.path.dirname(os.path.abspath(cnfg.data['logger']['handlers']['info_file_handler']['filename']))
-        try:
-            log_data = ""
-            i = 0
-            with open(os.path.join(logs_path, log_file), mode='r', encoding='utf-8') as f:
-                for row in reversed(f.readlines()):
-                    is_filtered = (log_filter == '')or(log_filter in row)
-                    if is_filtered and i >= log_start:
-                        log_data += row #html.escape(row)
-                        i += 1
-                        if i > log_start + log_len:
-                            break
-        except:
-            logger.exception(f'Error in opening logs file: {log_file}')
-            log_data = f'Error loading log file: {log_file}'
-        return render_template('view_log.html', log_data=log_data)
+    """Function will return logs text for given recorder"""
+    log_filter = ''
+    if log_name=='daemon':
+        log_file = f'{log_name}.log'
+        log_filter = recorder_name
+    elif log_name=='recorder':
+        log_file = f'{log_name}_{recorder_name}.log'
+    else:
+        return
+    #show log for selected recorder
+    logs_path = os.path.dirname(os.path.abspath(cnfg.data['logger']['handlers']['info_file_handler']['filename']))
+    try:
+        log_data = ""
+        i = 0
+        with open(os.path.join(logs_path, log_file), mode='r', encoding='utf-8') as f:
+            for row in reversed(f.readlines()):
+                is_filtered = (log_filter == '')or(log_filter in row)
+                if is_filtered and i >= log_start:
+                    log_data += row #html.escape(row)
+                    i += 1
+                    if i > log_start + log_len:
+                        break
+    except:
+        logger.exception(f'Error in opening logs file: {log_file}')
+        log_data = f'Error loading log file: {log_file}'
+    return render_template('view_log.html', log_data=log_data)
 
 @app.route('/recorder/<recorder_name>/record/start')
 def recorder_start(recorder_name):
