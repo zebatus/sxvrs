@@ -21,7 +21,7 @@
         <script type="text/javascript" >  
             var widgets = document.getElementsByClassName('widget');        
             UpdateWidget(null)
-            var reload = setInterval(UpdateWidget(null), {{ content.refresh_img_speed }});
+            var reload = setInterval(UpdateWidget, {{ content.refresh_img_speed }});
         </script>          
     </body>
 </html>
