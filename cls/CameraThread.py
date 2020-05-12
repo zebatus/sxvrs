@@ -17,7 +17,7 @@ import shlex
 import re
 import glob
 
-from cls.misc import get_frame_shape, ping_ip
+from cls.misc import get_frame_shape, ping_ip, OrEvent
 from cls.config_reader import config_reader
 from cls.StorageManager import StorageManager
 from cls.RAM_Storage import RAM_Storage
@@ -37,8 +37,8 @@ class CameraThread(Thread):
         self.state_msg = 'stopped'
         self._stop_event = Event()
         self._recorder_started_event = Event()
-#        self.recording = False
         self._watcher_started_event = Event()
+        self._recorder_any_event = OrEvent(self._recorder_started_event, self._watcher_started_event, self._stop_event)
         self.name = name
         self.cnfg_daemon = cnfg_daemon
         self.cnfg = cnfg_recorder
@@ -71,6 +71,7 @@ class CameraThread(Thread):
         """ Start recording, if it is not started yet """
         self._recorder_started_event.set()
         self.logger.debug(f'receve "record_start" event')
+        #self.mqtt_status()
 
     def record_stop(self):
         """ Stop recording gracefully"""
@@ -79,15 +80,32 @@ class CameraThread(Thread):
             if not self.proc_recorder is None:
                 self.proc_recorder.send_signal(signal.SIGINT)
                 #self.proc_recorder.kill()
-
         self.logger.debug(f'receve "record_stop" event')
         self.state_msg = 'stopped'
+        self.mqtt_status()
+
+    def watcher_start(self):
+        """ Start watching, if it is not started yet """
+        self._watcher_started_event.set()
+        self.logger.debug(f'receve "watcher_start" event')
+        #self.mqtt_status()
+
+    def watcher_stop(self):
+        """ Stop watching"""
+        if self._watcher_started_event.is_set():
+            self._watcher_started_event.clear()
+            if not self.is_recording() and not self.proc_recorder is None:
+                self.proc_recorder.send_signal(signal.SIGINT)
+                #self.proc_recorder.kill()
+        self.logger.debug(f'receve "watcher_stop" event')
         self.mqtt_status()
 
     def stop(self, timeout=None):
         """ Stop the thread. """      
         try:  
             self._stop_event.set()
+            if not self.proc_recorder is None and self.proc_recorder.returncode is None:
+                self.proc_recorder.send_signal(signal.SIGINT)
             self.logger.debug(f'receve "stop" event')
             Thread.join(self, timeout)
         except:
@@ -133,13 +151,13 @@ class CameraThread(Thread):
     def take_snapsot(self):
         """This function must be run when recorder is not started, 
         to simply take snapshot and exit from ffmpeg without recording"""
-        if self.proc_recorder is None or not self.proc_recorder.returncode is None:
+        if self.is_watching() and (self.proc_recorder is None or not self.proc_recorder.returncode is None):
             cmd_take_snapshot = self.cnfg.cmd_take_snapshot()
             cmd_take_snapshot = cmd_take_snapshot + f' -fh {self.frame_height} -fw {self.frame_width} -fd {self.frame_dim}'
             self.logger.debug(f'process run:> {cmd_take_snapshot}')
             #self.proc_recorder = subprocess.Popen(shlex.split(cmd_take_snapshot), shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             self.proc_recorder = subprocess.Popen(shlex.split(cmd_take_snapshot), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
-            self.parse_subprocess_output()
+            self.parse_subprocess_output(is_recording=False)
 
     def run(self):
         """Main thread"""        
@@ -148,7 +166,7 @@ class CameraThread(Thread):
         self.get_camera_info()        
         while not self._stop_event.is_set(): 
             if self.state_msg in ('inactive'):
-                self._stop_event.wait(self.cnfg.camera_ping_interval)
+                self._recorder_any_event.wait(self.cnfg.camera_ping_interval)
                 self.get_camera_info()
             else:
                 # watcher running in separate thread (start only once)
@@ -160,7 +178,8 @@ class CameraThread(Thread):
                 # recorder loop running in main thread
                 self.run_recorder_loop()
 
-    def parse_subprocess_output(self):
+    def parse_subprocess_output(self, is_recording = True):
+        self.mqtt_status()
         start_time = time.time()
         self.cnt_obj_frame = 0
         self.cnt_motion_frame = 0
@@ -174,7 +193,7 @@ class CameraThread(Thread):
             return var
         self.motion_throttling
         duration = 0
-        while (not self._stop_event.is_set()) and duration < self.cnfg.record_time+5:
+        while ((not self._stop_event.is_set()) and ((is_recording and self._recorder_started_event.is_set()) or (not is_recording and self._watcher_started_event.is_set()) )) and duration < self.cnfg.record_time+5:
             output = self.proc_recorder.stdout.readline()
             if output == b'' and self.proc_recorder.poll() is not None:
                 break
@@ -196,8 +215,8 @@ class CameraThread(Thread):
         while not self._stop_event.is_set(): 
             if not self._recorder_started_event.is_set():
                 self.take_snapsot()
-                self.logger.debug(f'Recording stopped. Sleeping..')
-                self._recorder_started_event.wait(self.event_timeout)
+                self.logger.debug(f'Recording is not started. Sleeping..')
+                self._recorder_any_event.wait(self.event_timeout)
             elif self.state_msg not in ('inactive'):                               
                 # run cmd_recorder_start
                 cmd_recorder_start = self.cnfg.cmd_recorder_start()
@@ -223,27 +242,20 @@ class CameraThread(Thread):
                             self.state_msg = 'error'
                             self.get_camera_info() # check if camera is available
                             self.mqtt_status()
-                            self._stop_event.wait(self.cnfg.start_error_sleep)
+                            self._recorder_any_event.wait(self.cnfg.start_error_sleep)
                     else:
                         self.err_cnt = 0
                         self.logger.debug(f'process execution finished in {duration:.2f} sec')
                     self.proc_recorder = None
-                    self.state_msg = 'restarting'
-                    self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg}))
+                    if self._recorder_started_event:
+                        self.state_msg = 'restarting'
+                    #self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg}))
+                    self.mqtt_status()
                 i += 1
                 self.logger.debug(f'Running thread, iteration #{i}')
             elif self.state_msg in ('inactive'):
+                time.sleep(self.cnfg_daemon.http_refresh_img_speed)
                 break
-
-    def watcher_start(self):
-        """ Start recording, if it is not started yet """
-        self._watcher_started_event.set()
-        self.logger.debug(f'receve "watcher_start" event')
-
-    def watcher_stop(self):
-        """ Stop recording, if it is not started yet """
-        self._watcher_started_event.clear()
-        self.logger.debug(f'receve "watcher_stop" event')
 
     def log_to_file(self, filename, data, label=''):
         """ Function to write data into file """
@@ -314,7 +326,8 @@ class CameraThread(Thread):
                                         info = json.loads(f.read())
                                         info['filename'] = filename_obj_found
                                 except:
-                                    self.logger.exception('Can''t load info file')
+                                    self.logger.exception(f'Can''t load info file: {filename_obj_found}.info')
+                                    info = {"result": "can't load info file"}
                                 if self.latest_recorded_filename != '':
                                     self.log_to_file(self.latest_recorded_filename+".object.log", info, label)
                                 self.cnt_obj_frame += 1
@@ -347,7 +360,8 @@ class CameraThread(Thread):
         i = 0
         while not self._stop_event.is_set():
             if not self._watcher_started_event.is_set():
-                self._watcher_started_event.wait(self.event_timeout)
+                self.logger.debug(f'Watcher {self.name}: wait for start {self.event_timeout} sec')
+                self._recorder_any_event.wait(self.event_timeout)
             else:
                 try:
                     i += 1
@@ -358,13 +372,15 @@ class CameraThread(Thread):
                         time.sleep(sleep_time)
                         continue
                     if os.path.isfile(filename):
-                        throttling = math.ceil(self.cnt_no_object / self.cnfg.object_throttling)
-                        if throttling>0:
-                            if i % throttling != 0:
-                                self.logger.debug(f'ObjectDetector throttling')
-                                os.remove(filename)
-                        thread = Thread(target=thread_process, args=(filename,))
-                        thread.start()
+                        throttling = round(self.cnt_no_object / self.cnfg.object_throttling)
+                        if throttling>0 and i % throttling != 0:
+                            self.logger.debug(f'ObjectDetector throttling')
+                            os.remove(filename)
+                        else:
+                            self.logger.debug(f'Start processing file: {filename}')
+                            thread = Thread(target=thread_process, args=(filename,))
+                            thread.start()
+
                 except:
                     self.logger.exception(f"watcher '{self.name}'")
 
