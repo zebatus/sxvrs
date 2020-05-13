@@ -136,7 +136,8 @@ class MotionDetector():
                 self.images_bg = self.images_bg[:-1]
             else:
                 result = True
-        self.last_background  = self.images_bg[-1]
+        if len(self.images_bg)>0:
+            self.last_background  = self.images_bg[-1]
         return result
 
     def define_minmax_area(self, value, height, width):
