@@ -4,11 +4,13 @@
 It runs separate thread for recording in a loop and run additional separate thread for watcher loop
 """
 import os
+import sys
 import logging
 import json
 from datetime import datetime
 import time
 from threading import Thread, Event
+from queue import Queue, Empty
 import subprocess
 from operator import itemgetter
 import math
@@ -88,7 +90,7 @@ class CameraThread(Thread):
         """ Start watching, if it is not started yet """
         self._watcher_started_event.set()
         self.logger.debug(f'receve "watcher_start" event')
-        #self.mqtt_status()
+        self.mqtt_status()
 
     def watcher_stop(self):
         """ Stop watching"""
@@ -191,18 +193,34 @@ class CameraThread(Thread):
             if not found is None:
                 var = found.groups()[0]
             return var
+        # non-blocking way to read from stdout of subprocess
+        def enqueue_output(out, queue):
+            for line in iter(out.readline, b''):
+                queue.put(line)
+            out.close()      
+        q = Queue()
+        t = Thread(target=enqueue_output, args=(self.proc_recorder.stdout, q))
+        t.daemon = True # thread dies with the program
+        t.start()                  
         self.motion_throttling
         duration = 0
         while ((not self._stop_event.is_set()) and ((is_recording and self._recorder_started_event.is_set()) or (not is_recording and self._watcher_started_event.is_set()) )) and duration < self.cnfg.record_time+5:
-            output = self.proc_recorder.stdout.readline()
-            if output == b'' and self.proc_recorder.poll() is not None:
-                break
-            if output:
-                output = output.decode("utf-8") 
-                self.logger.debug(output.strip()) # log output. maybe need to dissable this
-                self.latest_recorded_filename = parse_output(output, pattern_videofile, self.latest_recorded_filename)
-                self.latest_snapshot = parse_output(output, pattern_snapshotfile, self.latest_snapshot)
-                self.motion_throttling = parse_output(output, pattern_motion_throttling, self.motion_throttling)
+            #output = self.proc_recorder.stdout.readline()
+            # read line without blocking
+            try:  output = q.get_nowait() # or q.get(timeout=.1)
+            except Empty:
+                #print('no output yet')
+                pass
+            else: # got line
+                # ... do something with line
+                if output == b'' and self.proc_recorder.poll() is not None:
+                    break
+                if output:
+                    output = output.decode("utf-8") 
+                    self.logger.debug(output.strip()) # log output. maybe need to dissable this
+                    self.latest_recorded_filename = parse_output(output, pattern_videofile, self.latest_recorded_filename)
+                    self.latest_snapshot = parse_output(output, pattern_snapshotfile, self.latest_snapshot)
+                    self.motion_throttling = parse_output(output, pattern_motion_throttling, self.motion_throttling)
             duration = time.time() - start_time   
         return duration     
 
@@ -254,7 +272,7 @@ class CameraThread(Thread):
                 i += 1
                 self.logger.debug(f'Running thread, iteration #{i}')
             elif self.state_msg in ('inactive'):
-                time.sleep(self.cnfg_daemon.http_refresh_img_speed)
+                self._recorder_any_event.wait(self.cnfg_daemon.http_refresh_img_speed)
                 break
 
     def log_to_file(self, filename, data, label=''):
@@ -326,8 +344,9 @@ class CameraThread(Thread):
                                         info = json.loads(f.read())
                                         info['filename'] = filename_obj_found
                                 except:
-                                    self.logger.exception(f'Can''t load info file: {filename_obj_found}.info')
+                                    self.logger.exception(f"Can't load info file: {filename_obj_found}.info")
                                     info = {"result": "can't load info file"}
+                                    continue
                                 if self.latest_recorded_filename != '':
                                     self.log_to_file(self.latest_recorded_filename+".object.log", info, label)
                                 self.cnt_obj_frame += 1
@@ -375,7 +394,10 @@ class CameraThread(Thread):
                         throttling = round(self.cnt_no_object / self.cnfg.object_throttling)
                         if throttling>0 and i % throttling != 0:
                             self.logger.debug(f'ObjectDetector throttling')
-                            os.remove(filename)
+                            try:
+                                os.remove(filename)
+                            except FileNotFoundError:
+                                pass # some times thread is not fast enoght to rename file first                                
                         else:
                             self.logger.debug(f'Start processing file: {filename}')
                             thread = Thread(target=thread_process, args=(filename,))
