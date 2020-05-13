@@ -72,7 +72,7 @@ ram_storage.clear()
 def on_mqtt_message(client, userdata, message):
     """Provides reaction on all events received from MQTT broker"""
     try:
-        payload = ''
+        payload = {}
         if len(message.payload)>0:
             payload = json.loads(str(message.payload.decode("utf-8")))
         # topic = list 
