@@ -2,7 +2,7 @@
     {% if not recorder.status in ['inactive','error'] %}
     <a class="widget_btn" href="#" onclick="btn_click(this, '{{ recorder.name }}', 'record', '{% if recorder.status in ['started'] %}stop{% else %}start{% endif %}');return false;" title="{{ recorder.btn_rec_name }}">
     {% endif %}
-<img class="widget_mark {% if recorder.status in ['started'] %} blink {% endif %}" {% if recorder.status in ['stopped'] %} src="/static/stop.gif"
+<img id="img_record_{{ recorder.name }}" class="widget_mark {% if recorder.status in ['started'] %} blink {% endif %}" {% if recorder.status in ['stopped'] %} src="/static/stop.gif"
 {% elif recorder.status in ['started'] %} src="/static/rec.gif"
 {% elif recorder.status in ['snapshot','restarting'] %} src="/static/state.gif"
 {% elif recorder.status in ['error'] %} src="/static/err.gif"
@@ -14,11 +14,11 @@
 {% if not recorder.status in ['inactive','error']  %}
     {% if recorder.watcher  %}
     <a class="widget_btn" href="#" onclick="btn_click(this, '{{ recorder.name }}', 'watcher','stop');return false;" title="Stop Watcher">
-        <img class="widget_mark {% if recorder.watcher %} blink {% endif %}" src="/static/watcher_on.png" />        
+        <img id="img_watcher_{{ recorder.name }}" class="widget_mark {% if recorder.watcher %} blink {% endif %}" src="/static/watcher_on.png" />        
     </a>
     {% else %}
     <a class="widget_btn" href="#" onclick="btn_click(this, '{{ recorder.name }}', 'watcher','start');return false;" title="Start Watcher">
-        <img class="widget_mark" src="/static/watcher_off.png" />        
+        <img id="img_watcher_{{ recorder.name }}" class="widget_mark" src="/static/watcher_off.png" />        
     </a>
     {% endif %}
 {% endif %}

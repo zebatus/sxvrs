@@ -104,10 +104,15 @@ a{text-decoration: #242424;color: #bbbbbb; }
     text-align: center;
     vertical-align: middle;
     padding:0px;
+    width:32px;
+    height:32px;
 }
 .widget_btn:hover{
     background-color: rgba(44, 44, 44, 0.63);
     cursor: pointer; 
+}
+.btn_pressed{
+    background-color: rgba(77, 77, 77, 0.3);
 }
 div.img_main{
     width:800px; 

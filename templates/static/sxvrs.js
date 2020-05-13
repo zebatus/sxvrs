@@ -64,7 +64,8 @@ function UpdateWidget(camera){
 }
 
 function btn_click(self, camera_name, trg, cmd){
-    self.style.display = "none"
+    document.getElementById("img_"+trg+"_"+camera_name).style.display = "none"
+    self.classList.add("btn_pressed");
     const url ='/recorder/' + camera_name + '/' + trg + '/' + cmd;
     const Http = new XMLHttpRequest();
     Http.open("GET", url);
