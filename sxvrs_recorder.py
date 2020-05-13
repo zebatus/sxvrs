@@ -85,7 +85,21 @@ else:
     frame_shape = (_frame_height, _frame_width, _frame_dim)
 frame_size = frame_shape[0] * frame_shape[1] * frame_shape[2]
 logger.debug(f"frame_shape = {frame_shape}     frame_size = {frame_size}")
-
+# calculate resized values (if it is needed to resize)
+if cnfg.resize_frame:
+    if _frame_height > cnfg.resize_frame_height:
+        scale_height = cnfg.resize_frame_height / _frame_height
+    else:
+        scale_height = 1
+    if _frame_width > cnfg.resize_frame_width:
+        scale_width = cnfg.resize_frame_width / _frame_width
+    else:
+        scale_width = 1
+    scale = min(scale_height, scale_width) 
+    new_height = round(_frame_height * scale)
+    new_width = round(_frame_width * scale)
+else:
+    scale = 1
 # Maintain Storage for the recorded files:
 storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size, logger_name = logger.name)
 storage.cleanup()
@@ -122,8 +136,9 @@ try:
             logging.error("Received zero length frame. exiting recording loop..")
             break
         frame_np = (np.frombuffer(frame_bytes, np.uint8).reshape(frame_shape)) 
-        # resize frame #TODO: may be need to move into config
-        frame_np = cv2.resize(frame_np, (1024, 768))  
+        # resize frame if needed
+        if scale != 1:
+            frame_np = cv2.resize(frame_np, (new_width, new_height))  
         # take snapshot
         if time() - snapshot_taken_time > cnfg.snapshot_time:
             frame_np_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)

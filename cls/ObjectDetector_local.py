@@ -83,7 +83,7 @@ class ObjectDetector_local(ObjectDetectorBase):
         if scale < 1:
             height = math.floor(height*scale)
             width = math.floor(width*scale)
-            frame = cv2.resize(self.image, (width, height))               
+            self.image = cv2.resize(self.image, (width, height))               
                     
     def detect(self, filename):
         """ Object Detection using CPU or GPU
@@ -112,15 +112,15 @@ class ObjectDetector_local(ObjectDetectorBase):
                         'num': int(num[0]),                     
                     }) 
             if len(objects)>0:
-                filename_obj_found = f"{filename[:-10]}.obj.found"
-                os.rename(filename, filename_obj_found)
                 result = {
                     'result': 'ok',
                     'objects': objects,
                     'elapsed': time.time() - start_time,
                 }
+                filename_obj_found = f"{filename[:-10]}.obj.found"
                 with open(filename_obj_found+'.info', 'w') as f:
                     f.write(json.dumps(result))
+                os.rename(filename, filename_obj_found)
             else:
                 os.rename(filename, f"{filename[:-10]}.obj.none") 
                 result = {

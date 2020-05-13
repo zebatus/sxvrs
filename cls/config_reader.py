@@ -151,6 +151,11 @@ class recorder_configuration():
         self.recorder_sleep_time = self.combine('recorder_sleep_time', default=5)
         # If camera is in inactive state (can not be pinged) than try to check and ping it again every {camera_ping_interval} sec
         self.camera_ping_interval = 30
+        # resize image if needed
+        self.resize_frame = not self.combine('resize_frame', default=None) is None     
+        if self.resize_frame:            
+            self.resize_frame_width = self.combine('width', group='resize_frame', default=None)
+            self.resize_frame_height = self.combine('height', group='resize_frame', default=None)
         # Take snapshot every <snapshot_time> seconds
         self.snapshot_time = self.combine('snapshot_time', default=5)
         # maximum storage folder size in GB. If it exceeds, then the oldes files will be removed
