@@ -221,7 +221,8 @@ class CameraThread(Thread):
                     self.latest_recorded_filename = parse_output(output, pattern_videofile, self.latest_recorded_filename)
                     self.latest_snapshot = parse_output(output, pattern_snapshotfile, self.latest_snapshot)
                     self.motion_throttling = parse_output(output, pattern_motion_throttling, self.motion_throttling)
-            duration = time.time() - start_time   
+            duration = time.time() - start_time 
+        self.proc_recorder = None  
         return duration     
 
     def run_recorder_loop(self):
@@ -332,12 +333,13 @@ class CameraThread(Thread):
                         os.rename(filename_wch, filename_obj_wait)
                         # wait for file where object detection is complete
                         time_start = time.time()
-                        while time.time()-time_start < self.cnfg_daemon.object_detector_timeout:                
+                        while time.time()-time_start < self.cnfg_daemon.object_detector_timeout:                                     
                             if os.path.isfile(filename_obj_none):
                                 self.cnt_no_object += 1
                                 os.remove(filename_obj_none)
                                 break
                             if os.path.isfile(filename_obj_found):
+                                self.logger.debug(f'Detection finished: {filename_obj_found}') 
                                 self.cnt_no_object = 0            
                                 try: # Read info file
                                     with open(filename_obj_found+'.info') as f:
@@ -362,12 +364,13 @@ class CameraThread(Thread):
                                     except:
                                         self.logger.exception(f'Can''t delete temporary file: {file}')
                                 break
-                            time.sleep(self.cnfg.object_watch_delay)
+                            time.sleep(self.cnfg.object_watch_delay)                 
                         if time.time()-time_start >= self.cnfg_daemon.object_detector_timeout:
-                            self.logger.warning(f'Timeout: {filename} {time.time()-time_start} >= {self.cnfg_daemon.object_detector_timeout}')
+                            self.logger.warning(f'Timeout: {filename} {time.time()-time_start:.2f} >= {self.cnfg_daemon.object_detector_timeout} sec')
                             # remove temporary file on timeout
                             for ext in ['.wch','.obj.wait','.obj.none','.obj.found','.obj.found.info']:
                                 if os.path.isfile(filename+ext):
+                                    self.logger.warning(f"remove unprocessed file '{filename+ext}'' due timeout")
                                     os.remove(filename+ext)
                 else: # in case if object detection is dissabled
                     # TODO: notify recorder that object detected
@@ -402,9 +405,10 @@ class CameraThread(Thread):
                             self.logger.debug(f'Start processing file: {filename}')
                             thread = Thread(target=thread_process, args=(filename,))
                             thread.start()
+                            self.logger.debug(f'End processing file: {filename}')
 
                 except:
-                    self.logger.exception(f"watcher '{self.name}'")
+                    self.logger.exception(f"watcher failed '{self.name}'")
 
 def camera_create(name, cnfg_daemon, cnfg_recorder, mqtt_client):
     camera = CameraThread(name, cnfg_daemon, cnfg_recorder, mqtt_client)

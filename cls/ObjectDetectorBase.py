@@ -29,7 +29,9 @@ class ObjectDetectorBase():
         """
         while not self._stop_event.is_set():
             try:
-                filename = self.storage.get_first_file(f"{self.ram_storage.storage_path}/*.obj.wait")
+                filename = self.storage.get_first_file(f"{self.ram_storage.storage_path}/*.obj.wait", 
+                                                        start_mtime= time.time() - self.cnfg.object_detector_timeout + 2 # do not take outdated files ( +2 sec to be safe)
+                                                        )
                 if filename is None:
                     sleep_time = 1
                     self.logger.debug(f'Wait for file. Sleep {sleep_time} sec')

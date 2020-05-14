@@ -70,6 +70,7 @@ class StorageManager():
             self.logger.exception(f"Storage Cleanup Error")
 
     def get_folder_size(self, path='.', file_pattern='*', init_list=True):
+        """ Calculate folder size matching by file_pattern """
         total = 0
         if init_list:
             self.file_list = []
@@ -93,20 +94,28 @@ class StorageManager():
 
 
     def get_file_list(self, template):
-        # Get list of files matching to template
+        """ Get list of files matching to template """
         try:
             filelist = sorted(glob.glob(template, recursive=True), key=os.path.getmtime)
         except FileNotFoundError:
             return []
         return filelist
 
-    def get_first_file(self, template):
-        # Get list of files matching to template
+    def get_first_file(self, template, start_mtime=None):
+        """ Get first(oldest) file matching to the template (ordered by timestamp). 
+        If start_mtime is specified, then file will be taken only starting from that time
+        start_mtime - floating point value which represents the number of seconds since the epoch.
+        """
         try:
             filelist = sorted(glob.glob(template, recursive=True), key=os.path.getmtime)
         except FileNotFoundError:
             return None
         if len(filelist)>0:
-            return filelist[0]
+            if start_mtime is None:
+                return filelist[0]
+            else:
+                for filename in filelist:
+                    if start_mtime <= os.path.getmtime(filename):
+                        return filename
         else:
             return None
