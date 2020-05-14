@@ -249,9 +249,7 @@ class CameraThread(Thread):
                     self.state_msg = 'started'
                     self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),json.dumps({'status':self.state_msg }))
                     # need to parse sxvrs_recorder execution output, to catch required variables 
-                    duration = self.parse_subprocess_output()
-                    rc = self.proc_recorder.poll()
-                    
+                    duration = self.parse_subprocess_output()                                        
                     # detect if process run too fast (unsuccessful start)
                     if duration<self.cnfg.start_error_threshold:
                         self.err_cnt += 1
@@ -339,8 +337,7 @@ class CameraThread(Thread):
                                 os.remove(filename_obj_none)
                                 break
                             if os.path.isfile(filename_obj_found):
-                                self.logger.debug(f'Detection finished: {filename_obj_found}') 
-                                self.cnt_no_object = 0            
+                                self.logger.debug(f'Detection finished: {filename_obj_found}')                                            
                                 try: # Read info file
                                     with open(filename_obj_found+'.info') as f:
                                         info = json.loads(f.read())
@@ -353,6 +350,7 @@ class CameraThread(Thread):
                                     self.log_to_file(self.latest_recorded_filename+".object.log", info, label)
                                 self.cnt_obj_frame += 1
                                 if watcher_memory.add(info):
+                                    self.cnt_no_object = 0 # dissable object detection throttling
                                     # Take actions on image where objects was found
                                     action_manager.run(filename_obj_found, info) 
                                 else:
@@ -367,6 +365,8 @@ class CameraThread(Thread):
                             time.sleep(self.cnfg.object_watch_delay)                 
                         if time.time()-time_start >= self.cnfg_daemon.object_detector_timeout:
                             self.logger.warning(f'Timeout: {filename} {time.time()-time_start:.2f} >= {self.cnfg_daemon.object_detector_timeout} sec')
+                            # increase object throttling
+                            self.cnt_no_object += 1
                             # remove temporary file on timeout
                             for ext in ['.wch','.obj.wait','.obj.none','.obj.found','.obj.found.info']:
                                 if os.path.isfile(filename+ext):
@@ -391,7 +391,7 @@ class CameraThread(Thread):
                     if filename is None:
                         sleep_time = 1
                         self.logger.debug(f'Wait for "{self.name}_*.rec" file. Sleep {sleep_time} sec')
-                        time.sleep(sleep_time)
+                        self._recorder_any_event.wait(sleep_time)
                         continue
                     if os.path.isfile(filename):
                         throttling = round(self.cnt_no_object / self.cnfg.object_throttling)
