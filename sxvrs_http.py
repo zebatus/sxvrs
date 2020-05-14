@@ -176,7 +176,7 @@ def recorder_view_data(recorder, width=None, height=None):
     snapshot_file = os.path.join(snapshot_path, 'snapshot.jpg')
     if os.path.isfile(snapshot_file):
         last_modified_date = datetime.fromtimestamp(os.path.getmtime(snapshot_file))
-        res["snapshot"] = res["snapshot"] + f"?{last_modified_date}"
+        res["snapshot_dt"] = last_modified_date
     res['title'] = f'Camera: {recorder.name}'
     if recorder.status == 'stopped':
         res['btn_rec_name'] = 'Start Recording'

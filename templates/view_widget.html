@@ -24,7 +24,7 @@
 {% endif %}
 </div>
 
-<div><img id="camera_{{ recorder.name }}" src="{{ recorder.snapshot }}" style="width:100%; height:94%" /></div>
+<div><img id="camera_{{ recorder.name }}" src="{{ recorder.snapshot }}/snapshot?dt={{ recorder.snapshot_dt }}" style="width:100%; height:94%" /></div>
 <div class="widget_bar">
     <div style="float:right;" {% if recorder.error_cnt>0 %} class="widget_err" {% endif %}>{{ recorder.error_cnt }}</div>
     <div style="float:right;" {% if recorder.status in ['stopped','started'] %} class="widget_status_ok"
