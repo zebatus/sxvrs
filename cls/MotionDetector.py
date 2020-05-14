@@ -61,8 +61,11 @@ class MotionDetector():
             i = 0 if len(self.images_bg) <= 2 else randrange(len(self.images_bg)-2)
             img_prev = self.images_bg[i]
             # find difference
-            img_delta = cv2.absdiff(img_prev, img_new)
-            img_thresh = cv2.threshold(img_delta, self.cnfg.motion_detector_threshold, 255, cv2.THRESH_BINARY)[1]
+            try:
+                img_delta = cv2.absdiff(img_prev, img_new)
+                img_thresh = cv2.threshold(img_delta, self.cnfg.motion_detector_threshold, 255, cv2.THRESH_BINARY)[1]
+            except cv2.error:
+                self.logger.exception(f'img_prev:{img_prev.shape}  | img_new: {img_new.shape} | frame_orig: {frame_orig.shape} | scale={self.scale}')
             # if detect by countour area
             if self.cnfg.is_motion_contour_detection:
                 # Calculate min/max area only for the first frame
