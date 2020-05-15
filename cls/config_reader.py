@@ -185,6 +185,8 @@ class recorder_configuration():
         self.ffmpeg_buffer_frames = self.combine('ffmpeg_buffer_frames', default=16)
         # How many frames will be skipped between motion detection
         self.frame_skip = self.combine('frame_skip', default=5)
+        # To detect duplicate frames comparing hash of frame miniature, it is possible to define frame_compare_width for this miniature
+        self.frame_compare_width = self.combine('frame_compare_width', default=32)
         # if on RAM disk there will be too many files, then start to increase frame skiping
         self.throttling_min_mem_size = self.combine('throttling_min_mem_size', default=16)*1024*1024
         # if total size of files exceeds maximum value, then dissable frame saving to RAM folder
