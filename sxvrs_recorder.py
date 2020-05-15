@@ -165,7 +165,7 @@ try:
                 # but first, make frame significantly smaller (like simple motion detection)
                 if compare_frame_width is None:
                     height, width, channels = frame_np.shape
-                    compare_scale = 32 / width
+                    compare_scale = cnfg.frame_comparing_width / width
                     compare_frame_width = math.floor(width * compare_scale)
                     compare_frame_height = math.floor(height * compare_scale)
                 frame_compare = cv2.resize(frame_np, (compare_frame_width, compare_frame_height))
