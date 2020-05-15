@@ -170,9 +170,9 @@ class recorder_configuration():
         self._filename_video = self.combine('filename_video', default="{storage_path}/{datetime:%Y-%m-%d}/{name}_{datetime:%Y%m%d_%H%M%S}.mp4")
         # shell command to just take snapshot
         #self._cmd_take_snapshot = self.combine('cmd_take_snapshot', 'ffmpeg -hide_banner -nostdin -nostats -flags low_delay -fflags +genpts+discardcorrupt -y -i "{stream_url}" -vframes 1 "{filename}"')
-        self._cmd_take_snapshot = self.combine('cmd_take_snapshot', 'python sxvrs_recorder.py -n {name} --snapshot_mode')
+        self._cmd_take_snapshot = self.combine('cmd_take_snapshot', 'python sxvrs_recorder.py -n {name} --snapshot_mode -fh {frame_height} -fw {frame_width} -fc {frame_channels}')
         # shell command for recorder start (used in daemon thread)
-        self._cmd_recorder_start = self.combine('cmd_recorder_start', 'python sxvrs_recorder.py -n {name}')
+        self._cmd_recorder_start = self.combine('cmd_recorder_start', 'python sxvrs_recorder.py -n {name} -fh {frame_height} -fw {frame_width} -fc {frame_channels}')
         # shell command to start ffmpeg and read frames (used inside recorder subprocess)
         self._cmd_ffmpeg_read = self.combine('cmd_ffmpeg_read', default='ffmpeg -hide_banner -nostdin -nostats -flags low_delay -fflags +genpts+discardcorrupt -y -i "{stream_url}" -f rawvideo -pix_fmt rgb24 pipe:')
         # shell command to start ffmpeg and write video from collected frames (used inside recorder subprocess)

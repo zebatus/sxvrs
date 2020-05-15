@@ -51,7 +51,7 @@ class CameraThread(Thread):
         self.event_timeout = 5
         self.frame_width = None
         self.frame_height = None
-        self.frame_dim = None
+        self.frame_channels = None
         self.watcher_thread = None
         self.proc_recorder = None
         self.send_status_time = 0
@@ -145,7 +145,7 @@ class CameraThread(Thread):
             if not frame_shape is None:
                 self.frame_width = frame_shape[1]
                 self.frame_height = frame_shape[0]
-                self.frame_dim = frame_shape[2]
+                self.frame_channels = frame_shape[2]
         else:
             self.state_msg = 'inactive'
             self._recorder_started_event.clear()
@@ -154,10 +154,12 @@ class CameraThread(Thread):
         """This function must be run when recorder is not started, 
         to simply take snapshot and exit from ffmpeg without recording"""
         if self.is_watching() and (self.proc_recorder is None or not self.proc_recorder.returncode is None):
-            cmd_take_snapshot = self.cnfg.cmd_take_snapshot()
-            cmd_take_snapshot = cmd_take_snapshot + f' -fh {self.frame_height} -fw {self.frame_width} -fd {self.frame_dim}'
-            self.logger.debug(f'process run:> {cmd_take_snapshot}')
-            #self.proc_recorder = subprocess.Popen(shlex.split(cmd_take_snapshot), shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            cmd_take_snapshot = self.cnfg.cmd_take_snapshot(
+                frame_height = self.frame_height,
+                frame_width = self.frame_width,
+                frame_channels = self.frame_channels
+            )
+            self.logger.debug(f'snapshot process run:> {cmd_take_snapshot}')
             self.proc_recorder = subprocess.Popen(shlex.split(cmd_take_snapshot), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
             self.parse_subprocess_output(is_recording=False)
 
@@ -238,12 +240,15 @@ class CameraThread(Thread):
                 self._recorder_any_event.wait(self.event_timeout)
             elif self.state_msg not in ('inactive'):                               
                 # run cmd_recorder_start
-                cmd_recorder_start = self.cnfg.cmd_recorder_start()
+                cmd_recorder_start = self.cnfg.cmd_recorder_start(
+                    frame_height = self.frame_height,
+                    frame_width = self.frame_width,
+                    frame_channels = self.frame_channels
+                )
                 if cmd_recorder_start == '':
                     raise ValueError(f"Config value: 'cmd_recorder_start' is not defined")                    
-                cmd_recorder_start = cmd_recorder_start + f' -fh {self.frame_height} -fw {self.frame_width} -fd {self.frame_dim}'
                 if (not self._stop_event.is_set()):
-                    self.logger.debug(f'process run:> {cmd_recorder_start}')
+                    self.logger.debug(f'record process run:> {cmd_recorder_start}')
                     #self.proc_recorder = subprocess.Popen(cmd_recorder_start, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE, universal_newlines=True)
                     self.proc_recorder = subprocess.Popen(shlex.split(cmd_recorder_start), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
                     self.state_msg = 'started'
@@ -370,7 +375,7 @@ class CameraThread(Thread):
                             # remove temporary file on timeout
                             for ext in ['.wch','.obj.wait','.obj.none','.obj.found','.obj.found.info']:
                                 if os.path.isfile(filename+ext):
-                                    self.logger.warning(f"remove unprocessed file '{filename+ext}'' due timeout")
+                                    self.logger.warning(f"remove unprocessed file '{filename+ext}'' due timeout ({self.cnt_no_object})")
                                     os.remove(filename+ext)
                 else: # in case if object detection is dissabled
                     # TODO: notify recorder that object detected

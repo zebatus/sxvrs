@@ -30,6 +30,7 @@ from time import time
 import signal
 import shlex
 import hashlib
+import math
 
 from cls.config_reader import config_reader
 from cls.misc import get_frame_shape
@@ -41,7 +42,7 @@ arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('-n','--name', help='Name of the recorder instance', required=True)
 arg_parser.add_argument('-fw','--frame_width', help='The width of the video frames in source stream', required=False)
 arg_parser.add_argument('-fh','--frame_height', help='The height of the video frames in source stream', required=False)
-arg_parser.add_argument('-fd','--frame_dim', help='The number of dimensions of the video frames in source stream. (By default = 3)', required=False, default=3)
+arg_parser.add_argument('-fc','--frame_channels', help='The number of channels of the video frames in source stream. (By default = 3)', required=False, default=3)
 arg_parser.add_argument('-s','--snapshot_mode', help='Determine if only snapshots must be taken, without recording video file', action='store_true')
 #arg_parser.add_argument('-','--', help='', default='default', required=False)
 args = arg_parser.parse_args()
@@ -49,11 +50,11 @@ _name = args.name
 try:
     _frame_width = int(args.frame_width)
     _frame_height = int(args.frame_height)
-    _frame_dim = int(args.frame_dim)    
+    _frame_ch = int(args.frame_channels)    
 except:
     _frame_width = None
     _frame_height = None
-    _frame_dim = 3
+    _frame_ch = 3
 snapshot_mode = args.snapshot_mode
 
 # Get running script name
@@ -79,12 +80,10 @@ else:
 ram_storage = RAM_Storage(cnfg_daemon, logger_name = logger.name)
 
 # calculate frame_size
-if _frame_width is None or _frame_height is None or _frame_dim is None:
-    frame_shape = get_frame_shape(cnfg.stream_url())
-else:
-    frame_shape = (_frame_height, _frame_width, _frame_dim)
-frame_size = frame_shape[0] * frame_shape[1] * frame_shape[2]
-logger.debug(f"frame_shape = {frame_shape}     frame_size = {frame_size}")
+if _frame_width is None or _frame_height is None or _frame_ch is None:
+    _frame_height, _frame_width, _frame_ch = get_frame_shape(cnfg.stream_url())
+frame_size = _frame_height * _frame_width * _frame_ch
+logger.debug(f"frame_shape = ({_frame_height}, {_frame_width}, {_frame_ch})    frame_size = {frame_size}")
 # calculate resized values (if it is needed to resize)
 if cnfg.resize_frame:
     if _frame_height > cnfg.resize_frame_height:
@@ -118,7 +117,7 @@ else:
     filename_video = cnfg.filename_video()
     storage.force_create_file_path(filename_video)
     logger.info(f'Start record filename: <{filename_video}>')
-    cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=frame_shape[0], width=frame_shape[1], pixbytes=frame_shape[2]*8)
+    cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=_frame_height, width=_frame_width, pixbytes=_frame_ch*8)
 if not cmd_ffmpeg_write is None and not snapshot_mode:
     logger.debug(f"Execute process to write frames:\n  {cmd_ffmpeg_write}")
     ffmpeg_write = Popen(shlex.split(cmd_ffmpeg_write), stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
@@ -130,12 +129,13 @@ try:
     snap = 0
     throttling = 0
     frame_hash_old = ''
+    compare_frame_width = None
     while True:
         frame_bytes = ffmpeg_read.stdout.read(frame_size)
         if len(frame_bytes)==0:
             logging.error("Received zero length frame. exiting recording loop..")
             break
-        frame_np = (np.frombuffer(frame_bytes, np.uint8).reshape(frame_shape)) 
+        frame_np = (np.frombuffer(frame_bytes, np.uint8).reshape((_frame_height, _frame_width, _frame_ch))) 
         # resize frame if needed
         if scale != 1:
             frame_np = cv2.resize(frame_np, (new_width, new_height))  
@@ -161,13 +161,20 @@ try:
                     throttling = 0
                     logger.warning(f"No frame throttling ({throttling}) for recorder: {cnfg.name}")                
             if tmp_size < cnfg.throttling_max_mem_size:
-                # save frame into RAM snapshot file
-                frame_np_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
                 # Need to compare hash of the frame to detect duplicated frames
-                frame_hash = hashlib.sha1(frame_np_rgb).hexdigest()
+                # but first, make frame significantly smaller (like simple motion detection)
+                if compare_frame_width is None:
+                    height, width, channels = frame_np.shape
+                    compare_scale = 32 / width
+                    compare_frame_width = math.floor(width * compare_scale)
+                    compare_frame_height = math.floor(height * compare_scale)
+                frame_compare = cv2.resize(frame_np, (compare_frame_width, compare_frame_height))
+                frame_hash = hashlib.sha1(frame_compare).hexdigest()
                 if frame_hash != frame_hash_old:
                     frame_hash_old = frame_hash
                     temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path, frame_num=i)
+                    # save frame into RAM snapshot file
+                    frame_np_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)                    
                     cv2.imwrite(f'{temp_frame_file}.bmp', frame_np_rgb)
                     os.rename(f'{temp_frame_file}.bmp', f'{temp_frame_file}.rec')
                     snap += 1
