@@ -86,11 +86,13 @@ class CameraThread(Thread):
         self._watcher_started_event.set()
         self.logger.debug(f'receve "watcher_start" event')
         self.mqtt_status()
+        self.recorder_send_watch_state(self._watcher_started_event.is_set())
 
     def watcher_stop(self):
         """ Stop watching"""
         if self._watcher_started_event.is_set():
             self._watcher_started_event.clear()
+            self.recorder_send_watch_state(self._watcher_started_event.is_set())
             if not self._watcher_started_event.is_set() and not self.proc_recorder is None:
                 self.proc_recorder.send_signal(signal.SIGINT)
                 #self.proc_recorder.kill()
@@ -216,7 +218,7 @@ class CameraThread(Thread):
                     else:
                         self.err_cnt = 0
                         self.logger.debug(f'process execution finished in {duration:.2f} sec')
-                    if self._recorder_started_event:
+                    if self._recorder_started_event.is_set():
                         self.set_recorder_state('restarting')                
                 i += 1
                 self.logger.debug(f'Running thread, iteration #{i}')
@@ -344,33 +346,46 @@ class CameraThread(Thread):
             else:
                 try:
                     i += 1
-                    filename = storage.get_first_file(f"{ram_storage.storage_path}/{self.name}_*.rec")
-                    if filename is None:                        
-                        #self.logger.debug(f'Wait for "{self.name}_*.rec" file. Sleep {sleep_time} sec')
-                        time.sleep(sleep_time)
-                        continue
-                    if os.path.isfile(filename):
-                        throttling = round(self.cnt_no_object / self.cnfg.object_throttling)
-                        if throttling>0 and i % throttling != 0:
-                            self.logger.debug(f'ObjectDetector throttling')
-                            try:
-                                os.remove(filename)
-                            except FileNotFoundError:
-                                pass # some times thread is not fast enoght to rename file first                                
-                        else:
-                            self.logger.debug(f'Start processing file: {filename}')
-                            thread = Thread(target=thread_process, args=(filename,))
-                            thread.start()
-                            self.logger.debug(f'End processing file: {filename}')
+                    for filename in storage.get_file_list(f"{ram_storage.storage_path}/{self.name}_*.rec"):
+                        if filename is None:                        
+                            #self.logger.debug(f'Wait for "{self.name}_*.rec" file. Sleep {sleep_time} sec')
+                            time.sleep(sleep_time)
+                            continue
+                        if os.path.isfile(filename):
+                            throttling = round(self.cnt_no_object / self.cnfg.object_throttling)
+                            if throttling>0 and i % throttling != 0:
+                                self.logger.debug(f'ObjectDetector throttling')
+                                try:
+                                    os.remove(filename)
+                                except FileNotFoundError:
+                                    pass # some times thread is not fast enoght to rename file first                                
+                            else:
+                                thread = Thread(target=thread_process, args=(filename,))
+                                thread.start()
 
                 except:
                     self.logger.exception(f"watcher failed '{self.name}'")
+
+    def recorder_send_watch_state(self, state):
+        """ interact with child process to set watcher state by keypress event
+        w - to start watching
+        e - to stop watching
+        """
+        if not self.proc_recorder is None:
+            if state:
+                self.proc_recorder.stdin.write(b'w') #_watcher_started_event.set()
+            else:
+                self.proc_recorder.stdin.write(b'e') #_watcher_started_event.clear()
+            self.proc_recorder.stdin.flush()
 
     def parse_subprocess_output(self, from_recorder = True):
         self.mqtt_status()
         start_time = time.time()
         self.cnt_obj_frame = 0
         self.cnt_motion_frame = 0
+        # interact with child process to set watcher state
+        self.recorder_send_watch_state(self._watcher_started_event.is_set())
+        # regex paterns to catch output
         pattern_videofile = re.compile(r".*Start record filename: \<(.*)\>.*")
         pattern_snapshotfile = re.compile(r".*Snapshot filename: \<(.*)\>.*")
         pattern_motion_throttling = re.compile(r".* frame throttling \((.*)\) for recorder.*")
@@ -408,9 +423,9 @@ class CameraThread(Thread):
                     self.latest_snapshot = parse_output(output, pattern_snapshotfile, self.latest_snapshot)
                     self.motion_throttling = parse_output(output, pattern_motion_throttling, self.motion_throttling)                
             duration = time.time() - start_time 
-        self.logger.debug(f"{self._stop_event.is_set()} | {from_recorder} | {self._recorder_started_event.is_set()} {self._watcher_started_event.is_set()} : {duration}")
-        if not self.proc_recorder is None:
-            self.logger.debug(f"rc={self.proc_recorder.returncode}")
+        # if process still running, then send stop signal
+        if self.proc_recorder.returncode is None: 
+            self.proc_recorder.send_signal(signal.SIGINT)
         self.proc_recorder = None  
         return duration     
 
