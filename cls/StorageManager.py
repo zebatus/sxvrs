@@ -92,7 +92,6 @@ class StorageManager():
                 pass
         return total
 
-
     def get_file_list(self, template):
         """ Get list of files matching to template """
         try:

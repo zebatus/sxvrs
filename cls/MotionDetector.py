@@ -114,7 +114,7 @@ class MotionDetector():
                 is_motion_detected = (self.cnt_frames_changed >= self.cnfg.motion_min_frames_changes)
             else:
                 self.cnt_frames_static += 1
-                self.logger.debug(f"Cooldown: cnt_frames_static={self.cnt_frames_static}")
+                #self.logger.debug(f"Cooldown: cnt_frames_static={self.cnt_frames_static}")
                 if self.cnt_frames_static >= self.cnfg.motion_max_frames_static:
                     if self.cnt_frames_changed>0:
                         self.logger.debug(f"Reset max frames_changed= {self.cnt_frames_changed}")
