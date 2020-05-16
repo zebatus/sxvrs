@@ -31,6 +31,9 @@ import signal
 import shlex
 import hashlib
 import math
+# interacting with proc by keypress events
+from threading import Thread, Event
+import select
 
 from cls.config_reader import config_reader
 from cls.misc import get_frame_shape
@@ -104,7 +107,28 @@ storage = StorageManager(cnfg.storage_path(), cnfg.storage_max_size, logger_name
 storage.cleanup()
 # Force create path for snapshot
 storage.force_create_file_path(cnfg.filename_snapshot())
-
+# event to detect if watcher is started
+_stop_event = Event() 
+_watcher_started_event = Event() 
+if cnfg.is_motion_detection:
+    _watcher_started_event.set()
+def handle_keypress():
+    while not _stop_event.is_set():
+        rfds, wfds, efds = select.select( [sys.stdin], [], [], 2)
+        if rfds:
+            char = sys.stdin.read(1)
+            #print('> '*20+f'pressed: {char}')
+            if char == 'w':
+                _watcher_started_event.set()
+            elif char == 'e':
+                _watcher_started_event.clear()
+thread_handle_keypress = Thread(target=handle_keypress)
+thread_handle_keypress.start()
+# correct termination on signal receive
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    _stop_event.set()
+signal.signal(signal.SIGINT, signal_handler)
 
 cmd_ffmpeg_read = cnfg.cmd_ffmpeg_read()
 logger.debug(f"Execute process to read frames:\n   {cmd_ffmpeg_read}")
@@ -130,7 +154,7 @@ try:
     throttling = 0
     frame_hash_old = ''
     compare_frame_width = None
-    while True:
+    while not _stop_event.is_set() and ((not snapshot_mode) or (snapshot_mode and _watcher_started_event.is_set)):
         frame_bytes = ffmpeg_read.stdout.read(frame_size)
         if len(frame_bytes)==0:
             logging.error("Received zero length frame. exiting recording loop..")
@@ -147,7 +171,7 @@ try:
             cv2.imwrite(filename_snapshot, frame_np_rgb)
             snapshot_taken_time = time()
         # process frame in RAM folder
-        if cnfg.is_motion_detection and (i % (cnfg.frame_skip + throttling) == 0):
+        if _watcher_started_event.is_set() and (i % (cnfg.frame_skip + throttling) == 0):
             # check for throttling
             tmp_size = storage.get_folder_size(ram_storage.storage_path, f'{cnfg.name}_*')
             if tmp_size > cnfg.throttling_max_mem_size:
@@ -189,6 +213,7 @@ try:
         logger.debug(f"Finish recording to {filename_video} wrote {i}/{snap} frames")
 except (KeyboardInterrupt, SystemExit):
     logger.info("[CTRL+C detected] MainLoop")
+_stop_event.set()
 if not ffmpeg_write is None:
     ffmpeg_write.send_signal(signal.SIGINT)
 if not ffmpeg_read is None:
