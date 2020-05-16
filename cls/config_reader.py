@@ -202,6 +202,8 @@ class recorder_configuration():
         # If defined <contour_detection> then it will try to detect motion by detecting contours inside the frame (slightly cpu expensive operation)
         _motion_detector = self.combine('motion_detector', default=[])  
         self.is_motion_detection =  self.combine('enabled', group='motion_detector', default=False)
+        # sleep_time while looking for a new file ready for detection
+        self.motion_detection_sleep_time =  self.combine('sleep_time', group='motion_detector', default=1)
         self.is_motion_contour_detection = 'contour_detection' in _motion_detector
         if self.is_motion_contour_detection:
             _motion_contour_detection = self.combine('contour_detection', group='motion_detector', default=[])
