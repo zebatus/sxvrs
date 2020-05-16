@@ -87,27 +87,57 @@ def ping_ip(ip):
 
 
 # OrEvent ( https://stackoverflow.com/questions/12317940/python-threading-can-i-sleep-on-two-threading-events-simultaneously/36661113 )
+""" Modified version: 
+    1) can be used multuple times (as events modificated only once and using callback function list)
+    2) If provided array of events have already triggered events, then discard them
+"""
 import threading
+
+def notify_on_change(self):
+    while len(self.on_change)>0:
+        callback = self.on_change.pop()
+        callback()
 
 def or_set(self):
     self._set()
-    self.changed()
+    notify_on_change(self)
 
 def or_clear(self):
     self._clear()
-    self.changed()
+    notify_on_change(self)
 
-def orify(e, changed_callback):
-    e._set = e.set
-    e._clear = e.clear
-    e.changed = changed_callback
-    e.set = lambda: or_set(e)
-    e.clear = lambda: or_clear(e)
+def orify(e, changed_callback):    
+    if not hasattr(e, "_set"):
+        e._set = e.set
+        e._clear = e.clear
+        e.on_change = []
+        e.set = lambda: or_set(e)
+        e.clear = lambda: or_clear(e)
+    e.on_change.append(changed_callback)
 
 def OrEvent(*events):
     or_event = threading.Event()
     def changed():
         bools = [e.is_set() for e in events]
+        if any(bools):
+            or_event.set()
+        else:
+            or_event.clear()
+    for e in events:
+        orify(e, changed)
+    changed()
+    return or_event
+
+def AnyChangeEvent(*events):
+    """Keep states of events, and fire when any event is changed 
+    (from _flag=True to Flase and vice versa)
+    """
+    or_event = threading.Event()
+    events_state = {}
+    for e in events:
+        events_state[id(e)] = e.is_set()
+    def changed():
+        bools = [(e.is_set() !=  events_state[id(e)]) for e in events]
         if any(bools):
             or_event.set()
         else:
