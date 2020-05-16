@@ -77,6 +77,8 @@ class config_reader():
             self.object_detector_cloud_key = cnfg['object_detector_cloud'].get('key') # obtain your personal key from cloud server
             self.object_detector_timeout = cnfg['object_detector_cloud'].get('timeout', 300) # in seconds
             self.object_detector_min_score = cnfg['object_detector_cloud'].get('min_score', 30) # min score from 0..100
+            # object detector watch folder for new files, will sleep if there is no any new file (seconds)
+            self.object_detector_sleep_time= cnfg['object_detector_local'].get('sleep_time', 0.5)
         self.is_object_detector_local = 'object_detector_local' in cnfg
         if self.is_object_detector_local:
             self._object_detector_local_model_path = cnfg['object_detector_local'].get('model_path', 'models/{model_name}/frozen_inference_graph.pb')
@@ -86,6 +88,8 @@ class config_reader():
             self.object_detector_min_score = cnfg['object_detector_local'].get('min_score', 30) # min score from 0..100
             # tensorflow per_process_gpu_memory_fraction param can limit usage of GPU memory
             self.tensorflow_per_process_gpu_memory_fraction = cnfg['object_detector_local'].get('tensorflow_per_process_gpu_memory_fraction', None)
+            # object detector watch folder for new files, will sleep if there is no any new file (seconds)
+            self.object_detector_sleep_time= cnfg['object_detector_local'].get('sleep_time', 0.5)
         if self.object_detector_min_score == 0:
             self.object_detector_min_score = 0.01
         # HTTP Server configs

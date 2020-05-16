@@ -27,7 +27,7 @@ class ObjectDetectorBase():
     def thread_watch(self):
         """ Watch folder and wait for new files
         """
-        sleep_time = self.cnfg.object_watch_delay
+        sleep_time = self.cnfg.object_detector_sleep_time
         while not self._stop_event.is_set():
             try:
                 filename = self.storage.get_first_file(f"{self.ram_storage.storage_path}/*.obj.wait", 
