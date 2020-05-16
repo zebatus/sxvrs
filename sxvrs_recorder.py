@@ -189,7 +189,9 @@ try:
         logger.debug(f"Finish recording to {filename_video} wrote {i}/{snap} frames")
 except (KeyboardInterrupt, SystemExit):
     logger.info("[CTRL+C detected] MainLoop")
-    ffmpeg_read.send_signal(signal.SIGINT)
+if not ffmpeg_write is None:
     ffmpeg_write.send_signal(signal.SIGINT)
+if not ffmpeg_read is None:
+    ffmpeg_read.send_signal(signal.SIGINT)
 dt_end = datetime.now()
 logger.debug(f"> Finish on: '{dt_end}'")
