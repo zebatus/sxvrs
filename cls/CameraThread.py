@@ -278,7 +278,7 @@ class CameraThread(Thread):
                         os.remove(filename_wch)
                     else:
                         self.cnt_motion_frame += 1
-                        if self.latest_recorded_filename != '':
+                        if self.latest_recorded_filename != '' and self._recorder_started_event.is_set():
                             self.log_to_file(self.latest_recorded_filename+".motion.log", '', label)                        
                         filename_obj_wait = f"{filename}.obj.wait"
                         filename_obj_none = f"{filename}.obj.none"
@@ -301,7 +301,7 @@ class CameraThread(Thread):
                                     self.logger.exception(f"Can't load info file: {filename_obj_found}.info")
                                     info = {"result": "can't load info file"}
                                     continue
-                                if self.latest_recorded_filename != '':
+                                if self.latest_recorded_filename != '' and self._recorder_started_event.is_set():
                                     self.log_to_file(self.latest_recorded_filename+".object.log", info, label)
                                 self.cnt_obj_frame += 1
                                 if watcher_memory.add(info):
