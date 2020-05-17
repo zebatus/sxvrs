@@ -29,6 +29,9 @@ class StorageManager():
             self.logger.debug(f'path not existing: {path} \n try to create it..')
             try:
                 os.makedirs(path)
+            except FileExistsError:
+                self.logger.debug(f'path already exists: {path}')
+                pass
             except:
                 self.logger.exception(f'Can''t create path: {path}')
 
