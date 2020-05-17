@@ -363,7 +363,11 @@ class CameraThread(Thread):
                             else:
                                 thread = Thread(target=thread_process, args=(filename,))
                                 thread.start()
-
+                    AnyChangeEvent(
+                            self._recorder_started_event, 
+                            self._watcher_started_event, 
+                            self._stop_event
+                        ).wait(1)
                 except:
                     self.logger.exception(f"watcher failed '{self.name}'")
 
@@ -416,7 +420,7 @@ class CameraThread(Thread):
         t.daemon = True # thread dies with the program
         t.start()                  
         duration = 0
-        while ((not self._stop_event.is_set()) and ((from_recorder and self._recorder_started_event.is_set()) or (not from_recorder and self._watcher_started_event.is_set()) )) and duration < self.cnfg.record_time+5:
+        while ((not self._stop_event.is_set()) and ((from_recorder and self._recorder_started_event.is_set()) or (not from_recorder and self._watcher_started_event.is_set() and not self._recorder_started_event.is_set()) )) and duration < self.cnfg.record_time+5:
             #output = self.proc_recorder.stdout.readline()
             # read line without blocking
             try:  output = q.get_nowait() # or q.get(timeout=.1)
