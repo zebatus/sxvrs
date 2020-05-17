@@ -13,19 +13,17 @@ class Recorder():
         self.status = 'None'
         self.error_cnt = 0 
         self.latest_file = ''
+        self.record = False
         self.watcher = False
     
     def update(self, values):
         """ Function updates recorder values according on dictionary
         """
-        if 'status' in values:
-            self.status = values['status']
-        if 'watcher' in values:
-            self.watcher = values['watcher']
-        if 'error_cnt' in values:
-            self.error_cnt = values['error_cnt']
-        if 'latest_file' in values:
-            self.latest_file = values['latest_file']
+        self.status = values.get('status', self.status)
+        self.record = values.get('record', self.record)
+        self.watcher = values.get('watcher', self.watcher)
+        self.error_cnt = values.get('error_cnt', self.error_cnt)
+        self.latest_file = values.get('latest_file', self.latest_file)
 
 def check_package_is_installed(name='tensorflow'):
     import importlib

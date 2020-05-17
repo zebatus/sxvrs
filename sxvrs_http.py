@@ -72,7 +72,7 @@ def on_mqtt_message(client, userdata, message):
             payload = json.loads(str(message.payload.decode("utf-8")))
             # topic = list
             if check_topic(message.topic, "list"):
-                logger.debug(f"receive list: {payload}")
+                logger.debug(f"mqtt receive recorder list: {payload}")
                 recorders = {}
                 for name in payload:
                     recorders[name] = Recorder(name)
@@ -80,6 +80,7 @@ def on_mqtt_message(client, userdata, message):
                     logger.debug(f"MQTT publish: {mqtt_topic_pub.format(source_name=name)} {{'cmd':'status'}}")
             # topic = <recorder_name>
             else:
+                logger.debug(f"mqtt receive recorder data: {payload}")
                 for name in recorders:
                     if check_topic(message.topic, name.lower()):
                         recorders[name].update(payload)
@@ -161,6 +162,7 @@ def recorder_view_data(recorder, width=None, height=None):
         "name": recorder.name,
         "error_cnt": recorder.error_cnt,
         "status": recorder.status,
+        "record": recorder.record,
         "watcher": recorder.watcher,
         "latest_file": recorder.latest_file,
         "widget_err": '_',
