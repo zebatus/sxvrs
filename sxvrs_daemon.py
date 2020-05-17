@@ -182,7 +182,7 @@ if stored_exception==None:
     # Main loop start
     while stored_exception==None:
         try:
-            print(f'\r{datetime.now()}: recording {cnt_instanse}     ', end = '\r')
+            print(f'{datetime.now()}: recorders: {cnt_instanse}     ', end = '\r')
             time.sleep(2)
             if stored_exception:
                 break        
