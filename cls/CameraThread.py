@@ -39,7 +39,7 @@ class CameraThread(Thread):
         self.state_msg = 'stopped'
         self._stop_event = Event()
         self._recorder_started_event = Event()
-        self._watcher_started_event = Event()        
+        self._watcher_started_event = Event() 
         self.name = name
         self.cnfg_daemon = cnfg_daemon
         self.cnfg = cnfg_recorder
@@ -53,7 +53,6 @@ class CameraThread(Thread):
         self.frame_channels = None
         self.watcher_thread = None
         self.proc_recorder = None
-        self.send_status_time = 0
         self.motion_throttling = ''
         self.cnt_motion_frame = 0
         self.cnt_obj_frame = 0
@@ -67,36 +66,37 @@ class CameraThread(Thread):
 
     def record_start(self):
         """ Start recording, if it is not started yet """
-        self._recorder_started_event.set()
         self.logger.debug(f'receve "record_start" event')
-        #self.mqtt_status()
+        self._recorder_started_event.set()
+        self.mqtt_status()
 
     def record_stop(self):
         """ Stop recording gracefully"""
+        self.logger.debug(f'receve "record_stop" event')
         if self._recorder_started_event.is_set():
-            self._recorder_started_event.clear()
+            self._recorder_started_event.clear()            
             if not self.proc_recorder is None:
                 self.proc_recorder.send_signal(signal.SIGINT)
                 #self.proc_recorder.kill()
-        self.logger.debug(f'receve "record_stop" event')
-        self.set_recorder_state('stopped')
+        self.mqtt_status()
+        
 
     def watcher_start(self):
         """ Start watching, if it is not started yet """
-        self._watcher_started_event.set()
         self.logger.debug(f'receve "watcher_start" event')
+        self._watcher_started_event.set()
         self.mqtt_status()
         self.recorder_send_watch_state(self._watcher_started_event.is_set())
 
     def watcher_stop(self):
         """ Stop watching"""
+        self.logger.debug(f'receve "watcher_stop" event')
         if self._watcher_started_event.is_set():
-            self._watcher_started_event.clear()
+            self._watcher_started_event.clear()            
             self.recorder_send_watch_state(self._watcher_started_event.is_set())
-            if not self._watcher_started_event.is_set() and not self.proc_recorder is None:
+            if not self._recorder_started_event.is_set() and not self._watcher_started_event.is_set() and not self.proc_recorder is None:
                 self.proc_recorder.send_signal(signal.SIGINT)
                 #self.proc_recorder.kill()
-        self.logger.debug(f'receve "watcher_stop" event')
         self.mqtt_status()
 
     def stop(self, timeout=None):
@@ -111,33 +111,29 @@ class CameraThread(Thread):
             self.logger.exception(f"Can't stop thread: {self.name} ")
     
     def set_recorder_state(self, state):
-        self.state_msg = state
-        self.mqtt_status()
+        if self.state_msg != state:
+            self.state_msg = state
+            self.mqtt_status()
 
     def mqtt_status(self):
         """ Sends MQTT status """
-        if time.time() - self.send_status_time > self.cnfg.send_status_interval:
-            payload = json.dumps({
-                    'name': self.name,
-                    'status': self.state_msg, 
-                    'error_cnt': self.err_cnt,
-                    'latest_file': self.latest_recorded_filename,
-                    'snapshot': self.latest_snapshot,
-                    'watcher': self._watcher_started_event.is_set(),
-                    'motion throttling': self.motion_throttling,
-                    'cnt_frame_analyzed': self.cnt_frame_analyzed,
-                    'cnt_motion_frame': self.cnt_motion_frame,
-                    'object throttling': math.ceil(self.cnt_no_object / self.cnfg.object_throttling),
-                    'cnt_obj_frame': self.cnt_obj_frame,
-                    'cnt_in_memory': self.cnt_in_memory,
-                    })
-            self.logger.debug(f'mqtt send "status" [{payload}]')
-            self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),payload)
-            self.send_status_time = time.time()
-            self.cnt_obj_frame = 0
-            self.cnt_in_memory = 0
-            self.cnt_motion_frame = 0
-            self.cnt_frame_analyzed = 0
+        payload = json.dumps({
+                'name': self.name,
+                'status': self.state_msg, 
+                'error_cnt': self.err_cnt,
+                'latest_file': self.latest_recorded_filename,
+                'snapshot': self.latest_snapshot,
+                'record': self._recorder_started_event.is_set(),
+                'watcher': self._watcher_started_event.is_set(),
+                'motion throttling': self.motion_throttling,
+                'cnt_frame_analyzed': self.cnt_frame_analyzed,
+                'cnt_motion_frame': self.cnt_motion_frame,
+                'object throttling': math.ceil(self.cnt_no_object / self.cnfg.object_throttling),
+                'cnt_obj_frame': self.cnt_obj_frame,
+                'cnt_in_memory': self.cnt_in_memory,
+                })
+        self.logger.debug(f'mqtt send "status" [{payload}]')
+        self.mqtt_client.publish(self.cnfg.mqtt_topic_recorder_publish.format(source_name=self.name),payload)
 
     def get_camera_info(self):
         """ Check if camera is available and calculate frame_shape"""
@@ -155,20 +151,24 @@ class CameraThread(Thread):
     def run(self):
         """Main thread"""        
         self.get_camera_info()        
+        self.notify_status_thread = Thread(target=self.run_notify_status_loop, args=())
+        self.notify_status_thread.start()
         while not self._stop_event.is_set(): 
             if self.state_msg in ('inactive'):
-                AnyChangeEvent(
-                    self._recorder_started_event, 
-                    self._watcher_started_event, 
-                    self._stop_event
-                ).wait(self.cnfg.camera_ping_interval)
+                if AnyChangeEvent(
+                            self._recorder_started_event, 
+                            self._watcher_started_event, 
+                            self._stop_event
+                        ).wait(self.cnfg.camera_ping_interval):
+                    self.mqtt_status()
                 self.get_camera_info()
             elif not (self._recorder_started_event.is_set() or self._watcher_started_event.is_set()):
-                AnyChangeEvent(
-                    self._recorder_started_event, 
-                    self._watcher_started_event, 
-                    self._stop_event
-                ).wait(self.cnfg.camera_ping_interval)
+                if AnyChangeEvent(
+                            self._recorder_started_event, 
+                            self._watcher_started_event, 
+                            self._stop_event
+                        ).wait(self.cnfg.camera_ping_interval):
+                    self.mqtt_status()
             else:
                 # watcher running in separate thread (start only once)
                 if self.watcher_thread is None:
@@ -219,7 +219,9 @@ class CameraThread(Thread):
                         self.err_cnt = 0
                         self.logger.debug(f'process execution finished in {duration:.2f} sec')
                     if self._recorder_started_event.is_set():
-                        self.set_recorder_state('restarting')                
+                        self.set_recorder_state('restarting')
+                    else:
+                        self.set_recorder_state('stopped')
                 i += 1
                 self.logger.debug(f'Running thread, iteration #{i}')
             elif self._watcher_started_event.is_set(): # take snapshots only (no recording)
@@ -328,7 +330,7 @@ class CameraThread(Thread):
                 else: # in case if object detection is dissabled
                     # TODO: notify recorder that object detected
                     os.remove(filename_wch)
-                self.mqtt_status()
+                #self.mqtt_status()
             except:
                 self.logger.exception(f'Watch: {filename} failed')
         sleep_time = self.cnfg.motion_detection_sleep_time
@@ -336,13 +338,12 @@ class CameraThread(Thread):
         while not self._stop_event.is_set():
             if not self._watcher_started_event.is_set():
                 self.logger.debug(f'Watcher {self.name}: wait for start {self.event_timeout} sec')
-                AnyChangeEvent(
-                    self._recorder_started_event, 
-                    self._watcher_started_event, 
-                    self._stop_event
-                ).wait(self.event_timeout)
-                #time.sleep(self.event_timeout)
-                #time.sleep(60)
+                if AnyChangeEvent(
+                            self._recorder_started_event, 
+                            self._watcher_started_event, 
+                            self._stop_event
+                        ).wait(self.event_timeout):
+                    self.mqtt_status()
             else:
                 try:
                     i += 1
@@ -365,6 +366,17 @@ class CameraThread(Thread):
 
                 except:
                     self.logger.exception(f"watcher failed '{self.name}'")
+
+    def run_notify_status_loop(self):
+        """ Send mqtt notify messages with given <send_status_interval> from separate thread
+        """
+        while not self._stop_event.is_set():            
+            if not self._stop_event.wait(self.cnfg.send_status_interval):
+                self.mqtt_status()
+                self.cnt_obj_frame = 0
+                self.cnt_in_memory = 0
+                self.cnt_motion_frame = 0
+                self.cnt_frame_analyzed = 0            
 
     def recorder_send_watch_state(self, state):
         """ interact with child process to set watcher state by keypress event
