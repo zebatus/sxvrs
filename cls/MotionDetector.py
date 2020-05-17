@@ -26,6 +26,7 @@ class MotionDetector():
     def detect(self, filename):
         """ Loads image from filename and compare with a previous
         """
+        #self.logger.debug(f'motion detection start: {filename}')
         is_motion_detected = False
         frame_orig = cv2.imread(filename)
         height, width, channels = frame_orig.shape
@@ -119,6 +120,7 @@ class MotionDetector():
                     if self.cnt_frames_changed>0:
                         self.logger.debug(f"Reset max frames_changed= {self.cnt_frames_changed}")
                         self.cnt_frames_changed = 0
+        #self.logger.debug(f'motion detection end: {filename}')
         return is_motion_detected
 
     def background_check(self):
