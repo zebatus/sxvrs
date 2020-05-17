@@ -11,3 +11,4 @@ env*/*
 envw/*
 !.gitkeep 
 test_email.py
+.pylintrc
