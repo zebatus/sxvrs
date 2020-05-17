@@ -141,7 +141,10 @@ else:
     filename_video = cnfg.filename_video()
     storage.force_create_file_path(filename_video)
     logger.info(f'Start record filename: <{filename_video}>')
-    cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=_frame_height, width=_frame_width, pixbytes=_frame_ch*8)
+    if scale != 1:
+        cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=new_height, width=new_width, pixbytes=_frame_ch*8)
+    else:
+        cmd_ffmpeg_write = cnfg.cmd_ffmpeg_write(filename=filename_video, height=_frame_height, width=_frame_width, pixbytes=_frame_ch*8)
 if not cmd_ffmpeg_write is None and not snapshot_mode:
     logger.debug(f"Execute process to write frames:\n  {cmd_ffmpeg_write}")
     ffmpeg_write = Popen(shlex.split(cmd_ffmpeg_write), stderr=None, stdout=None, stdin = PIPE, bufsize=frame_size*cnfg.ffmpeg_buffer_frames)
