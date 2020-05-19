@@ -48,7 +48,7 @@ class Painter():
                 obj_detection_results = json.loads(obj_detection_results)
             detected_objects = obj_detection_results['objects']
             for detected in detected_objects:
-                in_memory = detected.get('in_memory', False)
+                in_memory = 'memory_obj' in detected
                 if in_memory:
                     self.drawBox(action_cnfg, i, img, detected, color_blue)
                 else:

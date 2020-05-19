@@ -237,7 +237,12 @@ class recorder_configuration():
         if self.object_throttling < 1:
             self.object_throttling = 1
         self.memory_remember_time = self.combine('remember_time', group='memory', default=600)
-        self.memory_move_threshold = self.combine('move_threshold', group='memory', default=0.05)
+        # if two objects are shifted less than <move_threshold> value then it is the same objects (value in pixel)
+        self.memory_move_threshold = self.combine('move_threshold', group='memory', default=20)
+        # if average from heigh and width is changed less than <size_similarity> % then it is the same object
+        self.memory_size_similarity = self.combine('size_similarity', group='memory', default=90)
+        # if area of intersection of two objects is greater than <area_intersect> then it is the same object
+        self.memory_area_intersect = self.combine('area_intersect', group='memory', default=60)
         # determine interval to sending mqtt status
         self.send_status_interval = self.combine('send_status_interval', default=30)
         ### ObjectDetection block ###
