@@ -23,24 +23,45 @@ This is the main script that must run in background. It provide all recording fu
 run: `env/bin/python sxvrs_daemon.py`
 
 Available mqtt messages:
-  * sxvrs/daemon/list
-    - will return the list of the running instances
 
-  * sxvrs/daemon/daemon {cmd:restart}
-    - will restart script (can be used on updates)
+### Return the list of the running instances
 
-  * sxvrs/daemon/[name] {cmd:start}
-    - start recording if it is not started yet
+    topic: sxvrs/daemon/list
 
-  * sxvrs/daemon/[name] {cmd:stop}
-    - stop recording
+### Restart script (can be used on updates)
 
-  * sxvrs/daemon/[name] {cmd:status}
-    - returns complete informations about current status of the [instance]
+    topic: sxvrs/daemon/daemon 
+    message: {cmd:restart}
+
+### Start recording if it is not started yet
+
+    topic: sxvrs/daemon/[name]
+    message: {cmd:start}
+
+### Stop recording
+
+    topic: sxvrs/daemon/[name] 
+    message: {cmd:stop}
+
+### Return complete informations about current status of the [instance]
+
+    topic: sxvrs/daemon/[name]
+    message: {cmd:status}
+
+### Start Watcher (i.e. detection )
+
+    topic: sxvrs/daemon/[name] 
+    message: {cmd:watcher_start}
+
+### Stop Watcher
+
+    topic: sxvrs/daemon/[name] 
+    message: {cmd:watcher_stop}
+
 
 ******************************************************************************************
 ## sxvrs_http.py
-This script is needed only when you whant to view your cameras from web browser. Actually it was created only for using inside HomeAssistant
+This script is needed only when you want to view your cameras from web browser. Actually it was created only for using inside HomeAssistant
 
 run:`env/bin/python sxvrs_http.py`
 
