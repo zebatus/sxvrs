@@ -306,7 +306,7 @@ class CameraThread(Thread):
                                 self.cnt_obj_frame += 1
                                 if watcher_memory.add(info):
                                     self.cnt_no_object = 0 # dissable object detection throttling
-                                    # Take actions on image where objects was found
+                                    # Take actions if required objects was found
                                     action_manager.run(filename_obj_found, info) 
                                 else:
                                     self.cnt_in_memory += 1
