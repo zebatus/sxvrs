@@ -69,7 +69,7 @@ run:`env/bin/python sxvrs_http.py`
 Available pages:
 
 
-  * http://localhost:8282/logs/<name>/<max_len>/<page>
+  * http://localhost:8282/logs/<log_name>/<max_len>/<page>
     - this page show the last <max_len> rows from the <log_name> file. <page> parameter can be used in pagination
 
   * http://localhost:8282/restart/http
