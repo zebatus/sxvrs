@@ -28,9 +28,14 @@ Available mqtt messages:
 
     topic: sxvrs/daemon/list
 
-### Restart script (can be used on updates)
+### Restart daemon (can be used on updates)
 
     topic: sxvrs/daemon/daemon 
+    message: {cmd:restart}
+
+### Restart http server
+
+    topic: sxvrs/daemon/http 
     message: {cmd:restart}
 
 ### Start recording if it is not started yet
