@@ -17,7 +17,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from cls.Painter import Painter
-from cls.misc import json_serialize
 
 class ActionManager():
     """ If object is detected, then we need to take some actions described in config file
@@ -153,7 +152,7 @@ class ActionManager():
                 else:
                     strObjects += f'detected: {obj.get("class")}&nbsp;({obj.get("score"):.2f})<br>'
         if action_cnfg.use_memory and cnt_detected == 0:
-            self.logger.debug('Email not sent, as there are no new objects')
+            self.logger.debug('Email not sent, as there was no new objects')
             return
         # Create the container (outer) email message.
         msg = MIMEMultipart('related')

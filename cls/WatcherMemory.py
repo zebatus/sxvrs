@@ -82,11 +82,14 @@ class WatcherMemory():
             mem_obj = self.search(data)
             if mem_obj is None:
                 mem_obj = MemoryObj(data)
+                data["is_in_memory"] = False
                 data["memory_obj"] = mem_obj
                 self.memory_data.append(mem_obj)
                 self.logger.debug("Remember object: '%s'", str(data))
                 return True
             else:
+                data["is_in_memory"] = True
+                data["triggered_actions"] = mem_obj.triggered_actions
                 data["memory_obj"] = mem_obj
                 mem_obj.append_data(data)
                 if len(mem_obj.triggered_actions) > 0:
