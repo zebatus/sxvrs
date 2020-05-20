@@ -64,9 +64,10 @@ class ObjectDetectorBase():
     def stop_watch(self):
         """ Abstract method, must be implementet inside derived classes
         """
-        self._stop_event.set()
-        self.thread.join()
-        self.logger.debug("ObjectDetector stop folder watching")
+        if not self.thread is None:
+            self._stop_event.set()
+            self.thread.join()
+            self.logger.debug("ObjectDetector stop folder watching")
         return True
 
     def scan_waiting_files(self):
