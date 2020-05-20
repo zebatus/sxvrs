@@ -8,10 +8,7 @@ models
 cnfg/*
 .vscode/*
 extra/*
-env/*
-env36/*
 env*/*
-envw/*
 test_email.py
 .pylintrc
 !.gitkeep
