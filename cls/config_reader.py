@@ -243,6 +243,10 @@ class recorder_configuration():
         self.memory_size_similarity = self.combine('size_similarity', group='memory', default=90)
         # if area of intersection of two objects is greater than <area_intersect> then it is the same object
         self.memory_area_intersect = self.combine('area_intersect', group='memory', default=60)
+        # the list of objects to be remembered. Empty array means any object will be remembered
+        self.memory_objects = self.combine('objects', default=[])
+        # the list of objects to be excluded from remembering
+        self.memory_objects_exclude = self.combine('objects_exclude', default=[])        
         # determine interval to sending mqtt status
         self.send_status_interval = self.combine('send_status_interval', default=30)
         ### ObjectDetection block ###
@@ -424,6 +428,8 @@ class action_configuration():
         self.score = self.combine('score', default = 50)
         # the list of objects
         self.objects = self.combine('objects', default = [])
+        # the list of objects to be excluded from action
+        self.objects_exclude = self.combine('objects_exclude', default = [])
         # determine if we action must remember detected objects, and trigger only on new ones
         self.use_memory = self.combine('use_memory', default = False)
         #   for type = 'draw','copy'

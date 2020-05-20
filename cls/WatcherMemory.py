@@ -58,6 +58,20 @@ class WatcherMemory():
         self.memory_data = []
         self.logger = logging.getLogger(f"{name}:WatcherMemory")
 
+    def is_needed_to_remeber(self, detected_obj):
+        """ Function check, if specifyed object is to remeber
+        """
+        if len(self.cnfg.memory_objects)>0:
+            for obj_label in self.cnfg.memory_objects:
+                if obj_label == detected_obj['class']:
+                    break
+                return False
+        # check list of objects to exclude
+        for obj_label in self.cnfg.memory_objects_exclude:
+            if obj_label == detected_obj['class']:
+                return False
+        return True
+
     def add(self, data):
         """Function to add new object into memory. It checks if such object already exists.
         Returns: True, if it is a really new object (or existing object with no triggered actions yet)
@@ -78,6 +92,10 @@ class WatcherMemory():
             self.cleanup()
             return res
         else:
+            # check if it is needed to remember this object class
+            if not self.is_needed_to_remeber(data):
+                # return without memory, with a result that no new object was added
+                return False
             # Search if object is already in memory
             mem_obj = self.search(data)
             if mem_obj is None:

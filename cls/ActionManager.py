@@ -83,6 +83,7 @@ class ActionManager():
                 return True
             else:
                 tobe_detected = action_cnfg.objects
+                tobe_excluded = action_cnfg.objects_exclude
                 score_min = action_cnfg.score
                 #score_min = 0 if score_min=='' else score_min
                 area = action_cnfg.area
@@ -90,10 +91,8 @@ class ActionManager():
                 i = 0
                 detected = data.get('objects')
                 for obj in detected:                    
-                    if 'memory_obj' in obj: #just debug log
-                        self.logger.debug('Object is_action_triggered [%s] for object [%s]', obj['memory_obj'].is_action_triggered(action_cnfg.type), obj)
                     if (not action_cnfg.use_memory or not ('memory_obj' in obj and obj['memory_obj'].is_action_triggered(action_cnfg.type))):
-                        if (len(tobe_detected) == 0 or obj['class'] in tobe_detected):
+                        if (len(tobe_detected) == 0 or obj['class'] in tobe_detected) and (not obj['class'] in tobe_excluded):
                             found = True
                         else:
                             continue
