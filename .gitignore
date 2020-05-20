@@ -1,9 +1,10 @@
 __pycache__/
 logs/*
+
 storage/*
-logs
-storage
+
 models/*
+models
 cnfg/*
 .vscode/*
 extra/*
@@ -13,3 +14,4 @@ env*/*
 envw/*
 test_email.py
 .pylintrc
+!.gitkeep
