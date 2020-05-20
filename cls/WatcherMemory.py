@@ -171,8 +171,8 @@ class WatcherMemory():
                 obj1_shape = obj1.get('box', [0,0,0,0])
                 obj2_shape = obj2.get('box', [0,0,0,0])
                 if self.calculate_intersection(obj1_shape, obj2_shape) >= self.cnfg.memory_area_intersect \
-                    or self.calculate_size_change(obj1_shape, obj2_shape) >= self.cnfg.memory_size_similarity:
-                   #or self.calculate_move(obj1_shape, obj2_shape) < self.cnfg.memory_move_threshold:
+                    or self.calculate_size_change(obj1_shape, obj2_shape) >= self.cnfg.memory_size_similarity \
+                    or self.calculate_move(obj1_shape, obj2_shape) < self.cnfg.memory_move_threshold:
                     #self.logger.debug("compare_objects TRUE: %s || %s", obj1, obj2)
                     return True
                 #self.logger.debug("compare_objects FALSE: %s || %s", obj1, obj2)
