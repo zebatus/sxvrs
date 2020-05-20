@@ -1,8 +1,8 @@
 __pycache__/
 logs/*
-
+logs
 storage/*
-
+storage
 models/*
 models
 cnfg/*
