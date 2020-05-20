@@ -64,7 +64,7 @@ class ObjectDetectorBase():
     def stop_watch(self):
         """ Abstract method, must be implementet inside derived classes
         """
-        if not self.thread is None:
+        if hasattr(self, 'thread'):
             self._stop_event.set()
             self.thread.join()
             self.logger.debug("ObjectDetector stop folder watching")
