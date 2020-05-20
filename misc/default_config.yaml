@@ -106,7 +106,7 @@ global:
 recorders:
   camera_1: 
     record_autostart: True
-    ip: 192.168.1.10
+    ip: 127.0.0.1
     storage_max_size: 1 #GB
     stream_url: rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov
 
