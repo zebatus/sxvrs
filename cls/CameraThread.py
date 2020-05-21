@@ -159,7 +159,7 @@ class CameraThread(Thread):
                             self._recorder_started_event, 
                             self._watcher_started_event, 
                             self._stop_event
-                        ).wait(self.cnfg.camera_ping_interval):
+                        ).wait(self.cnfg.recorder_ping_interval):
                     self.mqtt_status()
                 self.get_camera_info()
             elif not (self._recorder_started_event.is_set() or self._watcher_started_event.is_set()):
@@ -167,7 +167,7 @@ class CameraThread(Thread):
                             self._recorder_started_event, 
                             self._watcher_started_event, 
                             self._stop_event
-                        ).wait(self.cnfg.camera_ping_interval):
+                        ).wait(self.cnfg.recorder_ping_interval):
                     self.mqtt_status()
             else:
                 # watcher running in separate thread (start only once)

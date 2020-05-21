@@ -154,8 +154,8 @@ class recorder_configuration():
         # If recording not started, thread will sleep for {recorder_sleep_time} sec. Increase of this value, will cause in delay for response when changing state frop rec stopped to rec started
         self.recorder_sleep_time = self.combine('recorder_sleep_time', default=5)
         # If camera is in inactive state (can not be pinged) than try to check and ping it again every {camera_ping_interval} sec
-        self.camera_ping_interval = 30
-        # resize image if needed
+        self.recorder_ping_interval = self.combine('ping_interval', default=30)
+        # # If size of the image coming from IP camera is too big, then you can resize it
         self.resize_frame = not self.combine('resize_frame', default=None) is None     
         if self.resize_frame:            
             self.resize_frame_width = self.combine('width', group='resize_frame', default=None)
@@ -164,10 +164,10 @@ class recorder_configuration():
         self.snapshot_time = self.combine('snapshot_time', default=5)
         # maximum storage folder size in GB. If it exceeds, then the oldes files will be removed
         self.storage_max_size = self.combine('storage_max_size', default=10)
-        # folder for storing recordings. This is template and can be formated with {name} and {datetime} params
+        # folder for storing recorded files. This is template and can be formated with {name} and {datetime} params
         self._storage_path = self.combine('storage_path', default='storage/{name}')
         # filename for the temp file in RAM disk. This is template and can be formated with {name},{storage_path}  and {datetime} params
-        self._filename_temp = self.combine('filename_temp', default = "{storage_path}/{name}_{frame_num}_{datetime:%H%M%S.%f}")
+        self._filename_temp = self.combine('filename_temp', default="{temp_storage_path}/{name}_{frame_num}_{datetime:%H%M%S.%f}")
         # filename for the snapshot. This is template and can be formated with {name},{storage_path} and {datetime} params
         self._filename_snapshot = self.combine('filename_snapshot', default='{storage_path}/snapshot.jpg')
         # filename for recording. This is template and can be formated with {name},{storage_path} and {datetime} params
@@ -180,7 +180,7 @@ class recorder_configuration():
         # shell command to start ffmpeg and read frames (used inside recorder subprocess)
         self._cmd_ffmpeg_read = self.combine('cmd_ffmpeg_read', default='ffmpeg -hide_banner -nostdin -nostats -flags low_delay -fflags +genpts+discardcorrupt -y -i "{stream_url}" -f rawvideo -pix_fmt rgb24 pipe:')
         # shell command to start ffmpeg and write video from collected frames (used inside recorder subprocess)
-        self._cmd_ffmpeg_write = self.combine('cmd_ffmpeg_write', default='ffmpeg -hide_banner -nostdin -nostats -y -f rawvideo -vcodec rawvideo -s {width}x{height} -pix_fmt rgb{pixbytes} -r {pixbytes} -i - -an -vcodec mpeg4 "{filename}"')
+        self._cmd_ffmpeg_write = self.combine('cmd_ffmpeg_write', default='ffmpeg -hide_banner -nostdin -nostats -y -f rawvideo -vcodec rawvideo -s {width}x{height} -pix_fmt rgb{pixbytes} -r 5 -i - -an -c:v libx264 -crf 26 -preset fast "{filename}"')
         # if there is too many errors to connect to video source, then try to sleep some time before new attempts
         self.start_error_atempt_cnt = self.combine('start_error_atempt_cnt', default=10)
         self.start_error_threshold = self.combine('start_error_threshold', default=10)
@@ -191,17 +191,17 @@ class recorder_configuration():
         self.frame_skip = self.combine('frame_skip', default=5)
         # To detect duplicate frames comparing hash of frame miniature, it is possible to define frame_comparing_width for this miniature
         self.frame_comparing_width = self.combine('frame_comparing_width', default=32)
-        # if on RAM disk there will be too many files, then start to increase frame skiping
-        self.throttling_min_mem_size = self.combine('throttling_min_mem_size', default=16)*1024*1024
-        # if total size of files exceeds maximum value, then dissable frame saving to RAM folder
-        self.throttling_max_mem_size = self.combine('throttling_max_mem_size', default=32)*1024*1024
+        # If there are too many files on RAM disk, then start to increase frame skipping (throttling) (means that motion_detection or object detection are not fast enough to process files)
+        self.throttling_min_mem_size = self.combine('throttling_min_mem_size', default=32)*1024*1024
+        # If total size of files exceeds maximum value, then disable frame saving to RAM folder (means that new frames are not added for processing if memory reaches max size)
+        self.throttling_max_mem_size = self.combine('throttling_max_mem_size', default=64)*1024*1024
         ### watcher params ###        
-        # before motion detection, we can resize image to reduce calculations
+        # before motion detection, image is resized for reducing of calculations
         self.motion_detector_max_image_height = self.combine('max_image_height', group='motion_detector', default=128)
         self.motion_detector_max_image_width = self.combine('max_image_width', group='motion_detector', default=128)
         # number of frames to remember for the background (selected randomly)
         self.motion_detector_bg_frame_count = self.combine('bg_frame_count', group='motion_detector', default=5)
-        # threshold for binarizing image difference in motion detector
+        # threshold for binarized image difference in motion detector
         self.motion_detector_threshold = self.combine('motion_detector_threshold', group='motion_detector', default=15)
         # If defined <contour_detection> then it will try to detect motion by detecting contours inside the frame (slightly cpu expensive operation)
         _motion_detector = self.combine('motion_detector', default=[])  
@@ -219,10 +219,10 @@ class recorder_configuration():
             self.motion_contour_max_count = _motion_contour_detection.get('max_count', '100')
         # if <contour_detection> is not enabled, then trigger detect event by difference threshold
         self.detect_by_diff_threshold = self.combine('detect_by_diff_threshold', group='motion_detector', default=5)
-        # min_frames_changes: 4 - how many frames must be changed, before triggering for the montion start
-        self.motion_min_frames_changes = self.combine('min_frames_changes', group='motion_detector', default=5)
+        # min_frames_changes: 4 - how many frames must be changed, before triggering for the motion start
+        self.motion_min_frames_changes = self.combine('min_frames_changes', group='motion_detector', default=3)
         # max_frames_static: 2 - how many frames must be static, before assume that there is no motion anymore
-        self.motion_max_frames_static = self.combine('max_frames_static', group='motion_detector', default=5)
+        self.motion_max_frames_static = self.combine('max_frames_static', group='motion_detector', default=2)
         # blur_size: 15 - blur image before compaing with background
         self.motion_blur_size = self.combine('blur_size', group='motion_detector', default=15)
         # if set debug filename, then write snapshots there
@@ -236,17 +236,17 @@ class recorder_configuration():
         self.object_throttling = self.combine('object_throttling', group='motion_detector', default=10)
         if self.object_throttling < 1:
             self.object_throttling = 1
-        self.memory_remember_time = self.combine('remember_time', group='memory', default=600)
+        self.memory_remember_time = self.combine('remember_time', group='memory', default=300)
         # if two objects are shifted less than <move_threshold> value then it is the same objects (value in pixel)
         self.memory_move_threshold = self.combine('move_threshold', group='memory', default=20)
         # if average from heigh and width is changed less than <size_similarity> % then it is the same object
-        self.memory_size_similarity = self.combine('size_similarity', group='memory', default=90)
+        self.memory_size_similarity = self.combine('size_similarity', group='memory', default=60)
         # if area of intersection of two objects is greater than <area_intersect> then it is the same object
-        self.memory_area_intersect = self.combine('area_intersect', group='memory', default=60)
+        self.memory_area_intersect = self.combine('area_intersect', group='memory', default=50)
         # the list of objects to be remembered. Empty array means any object will be remembered
-        self.memory_objects = self.combine('objects', default=[])
+        self.memory_objects = self.combine('objects', group='memory', default=[])
         # the list of objects to be excluded from remembering
-        self.memory_objects_exclude = self.combine('objects_exclude', default=[])        
+        self.memory_objects_exclude = self.combine('objects_exclude', group='memory', default=[])        
         # determine interval to sending mqtt status
         self.send_status_interval = self.combine('send_status_interval', default=30)
         ### ObjectDetection block ###
@@ -314,6 +314,8 @@ class recorder_configuration():
             kwargs['name'] = self.name
         if 'datetime' not in kwargs:
             kwargs['datetime'] = datetime.now()
+        if 'temp_storage_path'not in kwargs:
+            kwargs['temp_storage_path'] = self.parent.temp_storage_path
         if 'storage_path' not in kwargs:
             kwargs['storage_path'] = self.storage_path()
         return self._filename_temp.format(**kwargs)

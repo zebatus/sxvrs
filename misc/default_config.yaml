@@ -1,15 +1,15 @@
 mqtt:
   name_daemon: sxvrs_daemon
   name_http: sxvrs_http
-  server_host: 127.0.0.1
-  server_port: 1883
-  server_keepalive: 60
+  #server_host: 172.17.0.1 # default: '127.0.0.1'
+  #server_port: 1883 # default: 1883
+  #server_keepalive: 60 # default: 60
   login:
   pwd:
-  daemon_publish  : sxvrs/clients/{source_name}
-  daemon_subscribe: sxvrs/daemon/{source_name}
-  client_publish  : sxvrs/daemon/{source_name}
-  client_subscribe: sxvrs/clients/{source_name}
+  #daemon_publish  : sxvrs/clients/{source_name}
+  #daemon_subscribe: sxvrs/daemon/{source_name}
+  #client_publish  : sxvrs/daemon/{source_name}
+  #client_subscribe: sxvrs/clients/{source_name}
 
 http_server:
   #autostart: True
@@ -17,57 +17,88 @@ http_server:
   port: 8282
 
 temp_storage_path: /dev/shm/sxvrs # folder where RAM disk will be mounted
-temp_storage_size: 128 # Size of the RAM disk in MB
-temp_storage_cmd_mount: mkdir {temp_storage_path}; mount -t tmpfs -o size={temp_storage_size}m tmpfs {temp_storage_path}
-temp_storage_cmd_unmount: umount {path}
 
 # if defined <object_detector_cloud> then object detection will be done on a remote cloud server 
 # (files are encrypted with individual key, and not stored anywere on cloud server, even while processing)
-object_detector_cloud:
-  url: 
-  key:
-  timeout: 3000 # timeout in seconds
+#object_detector_cloud:
+#  url: 
+#  key:
+#  timeout: 3000 # timeout in seconds
 # If cloud server is not defined, then it is possible to use local CPU/GPU (make sure you installed thensorflow, cuda in your running environment)
 object_detector_local:
   model_name: faster_rcnn_resnet50_coco_2018_01_28
-  gpu: 0 # 0 means dissable GPU
+  #model_path: models/{model_name}/frozen_inference_graph.pb
+  #gpu: 0 # 0 means dissable GPU
+  #tensorflow_per_process_gpu_memory_fraction: 0.4 # The share of GPU memory to be used, default is all GPU memory
+  #timeout: 30
 
 # configure your recording instances by <global> or individual <recorders> blocks bellow
 global:
   record_autostart: False
   ip: 127.0.0.1
   stream_url: "rtsp://{ip}:5544/live0.264"
-  record_time: 30 # [seconds]
-  snapshot_time: 5 # [seconds] Take snapshot every <snapshot_time> seconds
-  storage_max_size: 10 # [GBytes]
-  storage_path: storage/{name}  
-  filename_temp: "{storage_path}/{name}_{datetime:%H%M%S.%f}"
-  filename_snapshot: "{storage_path}/snapshot.jpg"
-  filename_video: "{storage_path}/{datetime:%Y-%m-%d}/{name}_{datetime:%Y%m%d_%H%M%S}.mp4"
-  cmd_ffmpeg_read: "ffmpeg -hide_banner -nostdin -nostats -rtsp_transport tcp -flags low_delay -fflags +genpts+discardcorrupt -y -i {stream_url} -f rawvideo -pix_fmt rgb24 pipe:"
-  cmd_ffmpeg_write: 'ffmpeg -hide_banner -nostdin -nostats -y -f rawvideo -vcodec rawvideo -s {width}x{height} -pix_fmt rgb{pixbytes} -r {pixbytes} -i - -an -vcodec mpeg4 "{filename}"'
-  start_error_atempt_cnt: 10 # If process will not able to start for this number attempts, then it will go to sleep
-  start_error_threshold: 10 # Minimum number of seconds, to understand that process is started normally
-  start_error_sleep: 600 # Number of seconds to sleep on error
-  frame_skip: 5 # How many frames will be skipped between motion detection
-  throtling_min_mem_size: 16 # [MB] if there are too many files on RAM disk, then start to increase frame skiping (throtling) (means that motion_detection or object detection are not fast enoght to process files)
-  throtling_max_mem_size: 32 # [MB] if total size of files exceeds maximum value, then dissable frame saving to RAM folder (means that new frames are not added for processing if memory reaches max size)
+  #record_time: 30 # [seconds]
+  # If camera is in inactive state (can not be pinged) than try to check and ping it again every {camera_ping_interval} sec
+  #ping_interval: 30  
+  # If size of the image coming from IP camera is too big, then you can resize it
+  #resize_frame:
+  #  width: 1920
+  #  height: 1080
+  #snapshot_time: 5 # [seconds] Take snapshot every <snapshot_time> seconds
+  #storage_max_size: 10 # [GBytes]
+  #storage_path: storage/{name}  
+  #filename_snapshot: "{storage_path}/snapshot.jpg"
+  #filename_video: "{storage_path}/{datetime:%Y-%m-%d}/{name}_{datetime:%Y%m%d_%H%M%S}.mp4"
+  # It is possible to change ffmpeg command to read ip camera stream with cmd_ffmpeg_read (you can add hardware decoding)
+  #cmd_ffmpeg_read: "ffmpeg -hide_banner -nostdin -nostats -flags low_delay -fflags +genpts+discardcorrupt -y -i "{stream_url}" -f rawvideo -pix_fmt rgb24 pipe:"
+  # It is possible to change ffmpeg command to write stream into file with cmd_ffmpeg_write (you can add hardware encoding)
+  #cmd_ffmpeg_write: 'ffmpeg -hide_banner -nostdin -nostats -y -f rawvideo -vcodec rawvideo -s {width}x{height} -pix_fmt rgb{pixbytes} -r 5 -i - -an -c:v libx264 -crf 26 -preset fast "{filename}"'
+  # If there is too many errors to connect to video source, then try to sleep some time before new attempts
+  #start_error_atempt_cnt: 10 # If process will not able to start for this number attempts, then it will go to sleep
+  #start_error_threshold: 10 # Minimum number of seconds, to understand that process is started normally
+  #start_error_sleep: 600 # Number of seconds to sleep on error  
+  #frame_skip: 5 # How many frames will be skipped between motion detection
+  #throtling_min_mem_size: 32 # [MB] If there are too many files on RAM disk, then start to increase frame skipping (throttling) (means that motion_detection or object detection are not fast enough to process files)
+  #throtling_max_mem_size: 64 # [MB] If total size of files exceeds maximum value, then disable frame saving to RAM folder (means that new frames are not added for processing if memory reaches max size)
   motion_detector:    
     motion_detector:
-      enabled: True
+      enabled: True # you can disable motion detection on a startapp
+    # before motion detection, image is resized for reducing of calculations
     #max_image_width: 128 # If image bigger in width, it will be resized to this size. Default value is 128
     #max_image_height: 128 # If image bigger in width, it will be resized to this size. Default value is 128
-    # bg_frame_count: 5 # number of frames to remember for the background (selected randomly)
-    # motion_detector_threshold: 15 # threshold for binarizing image difference in motion detector
-    # If defined <contour_detection> then it will try to detect motion by detecting contours inside the frame (slightly cpu expensive operation)
-    contour_detection:
-      min_area: 0.05% # to trigger motion event, motion contour area must have minimum size
-      max_area: 50% # if changes are too big (i.e. all image is changed) then ignore it
-      max_count: 100 # if there are too many counturs, than there is an interference (such as rain, snow etc..)
-    detect_by_diff_threshold: 1.5 # if <contour_detection> is not enabled, then trigger detect event by difference threshold
-    min_frames_changes: 3 # min_frames_changes: 4 - how many frames must be changed, before triggering for the motion start
-    max_frames_static: 2 # max_frames_static: 2 - how many frames must be static, before assume that there is no motion anymore
-    #filename_debug:
+    #bg_frame_count: 5 # number of frames to remember for the background (selected randomly)
+    #motion_detector_threshold: 15 # threshold for binarized image difference in motion detector
+    # If defined <contour_detection> block then it will try to detect motion by detecting contours inside the frame (slightly cpu expensive operation)
+    #contour_detection:
+    #  min_area: 0.05% # to trigger motion event, motion contour area must have minimum size
+    #  max_area: 50% # if changes are too big (i.e. all image is changed) then ignore it
+    #  max_count: 100 # if there are too many contours, than there is an interference (such as rain, snow etc..)
+    #detect_by_diff_threshold: 5 # if <contour_detection> is not enabled, then trigger detect event by difference threshold
+    #min_frames_changes: 3 # min_frames_changes: 4 - how many frames must be changed, before triggering for the motion start
+    #max_frames_static: 2 # max_frames_static: 2 - how many frames must be static, before assume that there is no motion anymore
+    # If you want to save last motion frame, then you can set filename for it
+    #filename_last_motion: {storage_path}/last_motion.jpg
+    # to debug motion detection, you can save some images, to understand what is happening.
+    #filename_debug: "{storage_path}/last_motion_debug.jpg"
+    #filename_debug_bg: "{storage_path}/last_motion_debug_bg.jpg"
+  #memory:
+    # Time to remember object. If it is not detected again in this time, it will be forgotten
+    #remember_time: 300 #[seconds]
+    # if two objects are shifted less than <move_threshold> value then it is the same objects (value in pixel)
+    #move_threshold: 20
+    # if area of intersection of two objects is greater than <area_intersect> then it is the same object
+    #area_intersect: 50
+    # if average from heigh and width is changed less than <size_similarity> % then it is the same object
+    #size_similarity: 60
+    # You can set list of objects to be remembered. Empty array means any object will be remembered
+    #objects:
+    #  - person
+    #  - car
+    #  - truck
+    # You can set list of objects to be excluded from remembering
+    #objects_exclude:
+    #  - mouse
+    #  - train    
   actions: 
     draw_boxes_1:
       type: painter
@@ -76,7 +107,7 @@ global:
       file:
         source: "{filename}"
         target: "{filename}"
-      area: [[50,150], [200,1050], [1600,1050], [600,150]]    
+      #area: [[50,150], [200,1050], [1600,1050], [600,150]]    
     mail_2:
       use_memory: True # remember detected object, to not email trigger action multiple times for same object (i.e if someone parced a car)
       type: mail
@@ -94,7 +125,7 @@ global:
         - horse
         - sheep
         - cow
-      area: [[50,150], [200,1050], [1600,1050], [600,150]]
+      #area: [[50,150], [200,1050], [1600,1050], [600,150]]
       score: 50 # score: 50 [%]- minimum number of score to trigger the action      
     #save_3:
     #  type: copy

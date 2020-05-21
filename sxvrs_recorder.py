@@ -199,7 +199,7 @@ try:
                 frame_hash = hashlib.sha1(frame_compare).hexdigest()
                 if frame_hash != frame_hash_old:
                     frame_hash_old = frame_hash
-                    temp_frame_file = cnfg.filename_temp(storage_path=ram_storage.storage_path, frame_num=i)
+                    temp_frame_file = cnfg.filename_temp(temp_storage_path=ram_storage.storage_path, frame_num=i)
                     # save frame into RAM snapshot file
                     frame_np_rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)                    
                     cv2.imwrite(f'{temp_frame_file}.bmp', frame_np_rgb)
