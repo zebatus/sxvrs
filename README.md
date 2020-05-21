@@ -8,7 +8,8 @@ Application can do:
 - Creates snapshots from video source
 - Run motion detection
 - Run object detection
-- Send messages to mqtt broker
+- Send email on object detection
+- Communicate via mqtt messages
 - Implemented simple GUI via flask web server
 Each recording runs in separate thread, communications between threads are done by Mosquitto MQTT Server.
 
