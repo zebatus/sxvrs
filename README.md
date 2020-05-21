@@ -11,14 +11,16 @@ Application can do:
 - Implemented simple GUI via flask web server
 Each recording runs in separate thread, communications between threads are done by Mosquitto MQTT Server.
 
+![Preview](https://drive.google.com/uc?export=view&id=1NlwDKhZ4arfTd3VfHma0Y7nmXcAgi5YP)
+
 To run this script you will need:
 - python 3.6 or higher
 - ffmpeg (or any other application that can record rtsp streams like openrtsp, vlc)
 - Mosquitto MQTT Server running on local network
 
 Please refer to:
-[Installation-and-first-startup](https://github.com/zebatus/sxvrs/wiki/1.-Installation-and-first-startup)
-[Introduction-in-first-setup](https://github.com/zebatus/sxvrs/wiki/2.-Introduction-in-first-setup)
+1. [Installation-and-first-startup](https://github.com/zebatus/sxvrs/wiki/1.-Installation-and-first-startup)
+2. [Introduction-in-first-setup](https://github.com/zebatus/sxvrs/wiki/2.-Introduction-in-first-setup)
 
 ## sxvrs_daemon.py
 This is the main script that must run in background. It provide all recording functions
