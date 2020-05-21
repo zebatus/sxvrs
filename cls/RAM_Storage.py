@@ -17,11 +17,11 @@ class RAM_Storage():
         self.mount()
     
     def mount(self):
-        if not os.path.isdir(self.storage_path):
+        if not os.path.isdir(self.storage_path) and not self.cmd_mount is None:
             Popen(self.cmd_mount, shell=True)
 
     def unmount(self):
-        if os.path.isdir(self.storage_path):
+        if os.path.isdir(self.storage_path) and not self.cmd_unmount is None:
             Popen(self.cmd_unmount, shell=True)
     
     def clear(self):

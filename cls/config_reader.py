@@ -64,7 +64,7 @@ class config_reader():
         self.temp_storage_path = cnfg.get('temp_storage_path', '/dev/shm/sxvrs')
         # Size of the RAM disk in MB
         self.temp_storage_size = cnfg.get('temp_storage_size', 128)
-        self._temp_storage_cmd_mount = cnfg.get('temp_storage_cmd_mount', 'mount -t tmpfs -o size={size}m tmpfs {path}')
+        self._temp_storage_cmd_mount = cnfg.get('temp_storage_cmd_mount', None) # 'mount -t tmpfs -o size={temp_storage_size}m tmpfs {temp_storage_path}'
         self._temp_storage_cmd_unmount = cnfg.get('temp_storage_cmd_unmount', 'umount {path}')
         # set config for each recorder
         self.recorders = {}
@@ -102,10 +102,16 @@ class config_reader():
             self.http_refresh_img_speed= cnfg['http_server'].get('refresh_img_speed', 30) # image refresh speed (in seconds)
     @property
     def temp_storage_cmd_mount(self):
-        return self._temp_storage_cmd_mount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)
+        if self._temp_storage_cmd_mount is None:
+            return None
+        else:
+            return self._temp_storage_cmd_mount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)
     @property
     def temp_storage_cmd_unmount(self):
-        return self._temp_storage_cmd_unmount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)
+        if self._temp_storage_cmd_unmount is None:
+            return None
+        else:
+            return self._temp_storage_cmd_unmount.format(temp_storage_path=self.temp_storage_path, temp_storage_size=self.temp_storage_size)
     @property
     def object_detector_local_model_filename(self):
         return self._object_detector_local_model_path.format(model_name=self.object_detector_local_model_name)
