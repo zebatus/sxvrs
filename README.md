@@ -3,6 +3,7 @@
 The main purpose of this application is to record rtsp stream from ip camera into a local file with goal to be as lightweight as possible, with providing high customization capabilities via YAML config file.
 
 Application can do:
+- Record video files
 - Keeps and maintains available disk space. 
 - Creates snapshots from video source
 - Run motion detection
