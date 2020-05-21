@@ -12,10 +12,13 @@ Application can do:
 Each recording runs in separate thread, communications between threads are done by Mosquitto MQTT Server.
 
 To run this script you will need:
+- python 3.6 or higher
 - ffmpeg (or any other application that can record rtsp streams like openrtsp, vlc)
-- convert utility from imagemagick
 - Mosquitto MQTT Server running on local network
 
+Please refer to:
+[Installation-and-first-startup](https://github.com/zebatus/sxvrs/wiki/1.-Installation-and-first-startup)
+[Introduction-in-first-setup](https://github.com/zebatus/sxvrs/wiki/2.-Introduction-in-first-setup)
 
 ## sxvrs_daemon.py
 This is the main script that must run in background. It provide all recording functions
