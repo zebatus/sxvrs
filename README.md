@@ -29,46 +29,8 @@ This is the main script that must run in background. It provide all recording fu
 
 run: `env/bin/python sxvrs_daemon.py`
 
-Available mqtt messages:
+For available mqtt messages please refer to: [Mqtt-Messages](https://github.com/zebatus/sxvrs/wiki/4.-Mqtt-Messages)
 
-### Return the list of the running instances
-
-    topic: sxvrs/daemon/list
-
-### Restart daemon (can be used on updates)
-
-    topic: sxvrs/daemon/daemon 
-    message: {cmd:restart}
-
-### Restart http server
-
-    topic: sxvrs/daemon/http 
-    message: {cmd:restart}
-
-### Start recording if it is not started yet
-
-    topic: sxvrs/daemon/[name]
-    message: {cmd:record_start}
-
-### Stop recording
-
-    topic: sxvrs/daemon/[name] 
-    message: {cmd:record_stop}
-
-### Return complete informations about current status of the [instance]
-
-    topic: sxvrs/daemon/[name]
-    message: {cmd:status}
-
-### Start Watcher (i.e. detection )
-
-    topic: sxvrs/daemon/[name] 
-    message: {cmd:watcher_start}
-
-### Stop Watcher
-
-    topic: sxvrs/daemon/[name] 
-    message: {cmd:watcher_stop}
 
 
 ******************************************************************************************
@@ -78,54 +40,4 @@ This script is needed only when you want to view your cameras from web browser. 
 run:`env/bin/python sxvrs_http.py`
 
 
-Available pages:
-
-
-  * http://localhost:8282/logs/<log_name>/<max_len>/<page>
-    - this page show the last <max_len> rows from the <log_name> file. <page> parameter can be used in pagination
-
-  * http://localhost:8282/restart/http
-    - this link restarts HTTPS server itself (can be used on updates)
-
-  * http://localhost:8282/restart/daemon
-    - this link sends MQTT message {cmd:restart} to sxvrs_daemon script
-
-  * http://localhost:8282/static/<filename>
-    - it is possible to provide files located in folder: /templates/static/* 
-
-  * http://localhost:8282/recorder/<recorder_name>
-    Displays the page for <recorder_name> camera. Show all snapshots and logs
-
-  * http://localhost:8282/recorder/<name>/snapshot/<width>/<height>/<selected_name>'
-    - this link provides snapshot from the camera.
-    if <width> and <height> parameters are provided, the image will be resized to that size. <selected_name> is optional, and can be used to give alternative snapshot name (i.e. last_motion_snapshot)
-
-  * http://localhost:8282/recorder/<name>/record/start
-    - this link sends MQTT message {cmd:start} to sxvrs_daemon script
-    This will start recording on camera
-
-  * http://localhost:8282/recorder/<name>/record/stop
-    - this link sends MQTT message {cmd:stop} to sxvrs_daemon script
-    This will stop recording on camera
-
-
-Views are used for AJAX load elements
-
-  * http://localhost:8282/recorder/<recorder_name>/view_log/<log_name>/<log_len>/<log_start>
-    Function returns logs text for given <recorder_name>
-    Following parameters are optional: <log_name>/<log_len>/<log_start>
-
-  * http://localhost:8282/recorder/<recorder_name>/view_snapshots
-    Function returns view with list of snapshots for given recorder
-
-### How to test MQQT messages:
-For testing in linux shell, there can be used mosquitto_pub application:
-```
-    mosquitto_pub -m "{'cmd':'status'}" -t "sxvrs/daemon/camera_1"
-    mosquitto_pub -m "{'cmd':'start'}" -t "sxvrs/daemon/camera_1"
-    mosquitto_pub -m "{'cmd':'stop'}" -t "sxvrs/daemon/camera_1"
-    mosquitto_pub -m "{'cmd':'watcher_start'}" -t "sxvrs/daemon/camera_1"
-    mosquitto_pub -m "{'cmd':'watcher_stop'}" -t "sxvrs/daemon/camera_1"
-    mosquitto_pub -m "{'cmd':'restart'}" -t "sxvrs/daemon/daemon"
-```
-
+For available http pages and commands, please refer to: [Http-web-server](https://github.com/zebatus/sxvrs/wiki/6.-Http-web-server)
