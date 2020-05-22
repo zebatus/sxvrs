@@ -104,9 +104,9 @@ def on_mqtt_message(client, userdata, message):
         else:
             for camera in camera_list:
                 if check_topic(message.topic, camera.name.lower()):
-                    if payload.get('cmd').lower()=='start':
+                    if payload.get('cmd').lower()=='record_start':
                         camera.record_start()
-                    elif payload.get('cmd').lower()=='stop':
+                    elif payload.get('cmd').lower()=='record_stop':
                         camera.record_stop()
                     elif payload.get('cmd').lower()=='status':
                         camera.mqtt_status()

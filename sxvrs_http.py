@@ -391,14 +391,14 @@ def view_recorder_log(recorder_name, log_name='daemon', log_len=500, log_start=0
 
 @app.route('/recorder/<recorder_name>/record/start')
 def recorder_start(recorder_name):
-    mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'start'}))
+    mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'record_start'}))
     #time.sleep(2) # sleep before refresh, to give time to update data
     #return redirect(url_for('view_recorder', recorder_name=recorder_name))
     return "accepted"
 
 @app.route('/recorder/<recorder_name>/record/stop')
 def recorder_stop(recorder_name):
-    mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'stop'}))
+    mqtt_client.publish(mqtt_topic_pub.format(source_name=recorder_name), json.dumps({'cmd':'record_stop'}))
     #time.sleep(2) # sleep before refresh, to give time to update data
     #return redirect(url_for("view_recorder", recorder_name=recorder_name))
     return "accepted"

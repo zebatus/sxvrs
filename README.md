@@ -48,12 +48,12 @@ Available mqtt messages:
 ### Start recording if it is not started yet
 
     topic: sxvrs/daemon/[name]
-    message: {cmd:start}
+    message: {cmd:record_start}
 
 ### Stop recording
 
     topic: sxvrs/daemon/[name] 
-    message: {cmd:stop}
+    message: {cmd:record_stop}
 
 ### Return complete informations about current status of the [instance]
 
