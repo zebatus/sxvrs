@@ -74,7 +74,7 @@ def get_frame_shape(source):
             raise e
 
 def check_topic(topic, value):
-    return topic.lower().endswith(f"/{value}")
+    return topic.lower().endswith(f"/{value}") or topic.lower().endswith(f"/*") 
 
 def ping_ip(ip):
     try:
