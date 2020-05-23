@@ -424,38 +424,43 @@ class action_configuration():
                 else:
                     return default
     def __init__(self, parent, cnfg, recorder_name, action_name):
-        self.parent = parent
-        self.data = cnfg
-        self.recorder_name = recorder_name
-        self.name = action_name
-        # each action must have type
-        self.type = self.combine('type')
-        # each action can define area. If object inside this area, the action will be triggered
-        self.area = self.combine('area', default = [])
-        # the score of detected objects
-        self.score = self.combine('score', default = 50)
-        # the list of objects
-        self.objects = self.combine('objects', default = [])
-        # the list of objects to be excluded from action
-        self.objects_exclude = self.combine('objects_exclude', default = [])
-        # determine if we action must remember detected objects, and trigger only on new ones
-        self.use_memory = self.combine('use_memory', default = False)
-        #   for type = 'draw','copy'
-        self._file_source = self.combine('source', group='file', default='{filename}')
-        self._file_target = self.combine('target', group='file', default='{filename}')
-        if isinstance(self._file_source, dict) or isinstance(self._file_target, dict):
-            raise Exception('Filename must be a string. Please wrap with ""')
-        #   for type = 'draw'
-        # used for width of the drawing box border
-        self.brush_size = self.combine('brush_size', default = 1)
-        # quality for JPEG compression
-        self.jpeg_quality = self.combine('jpeg_quality', default = 90)
-        #   for type = 'mail'
-        self.user = self.combine('user')
-        self.password = self.combine('password')
-        self.subject = self.combine('subject')
-        self.mail_from = self.combine('mail_from')
-        self.mail_to = self.combine('mail_to')
+        try:
+            self.parent = parent
+            self.data = cnfg
+            self.recorder_name = recorder_name
+            self.name = action_name
+            # each action must have type
+            self.type = self.combine('type')
+            # each action can define area. If object inside this area, the action will be triggered
+            self.area = self.combine('area', default = [])
+            # the score of detected objects
+            self.score = self.combine('score', default = 50)
+            # the list of objects
+            self.objects = self.combine('objects', default = [])
+            # the list of objects to be excluded from action
+            self.objects_exclude = self.combine('objects_exclude', default = [])
+            # determine if we action must remember detected objects, and trigger only on new ones
+            self.use_memory = self.combine('use_memory', default = False)
+            #   for type = 'draw','copy'
+            if 'file' in cnfg:
+                self._file_source = self.combine('source', group='file', default='{filename}')
+                self._file_target = self.combine('target', group='file', default='{filename}')
+                if isinstance(self._file_source, dict) or isinstance(self._file_target, dict):
+                    raise Exception('Filename must be a string. Please wrap with ""')
+            #   for type = 'draw'
+            # used for width of the drawing box border
+            self.brush_size = self.combine('brush_size', default = 1)
+            # quality for JPEG compression
+            self.jpeg_quality = self.combine('jpeg_quality', default = 90)
+            #   for type = 'mail'
+            self.user = self.combine('user')
+            self.password = self.combine('password')
+            self.subject = self.combine('subject')
+            self.mail_from = self.combine('mail_from')
+            self.mail_to = self.combine('mail_to')
+        except:
+            self.parent.parent.logger.error("Action '%s' configuration error for recorder '%s'", action_name, recorder_name)
+            raise
 
     def file_source(self, **kwargs):
         if 'name' not in kwargs:
