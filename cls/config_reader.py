@@ -407,22 +407,32 @@ class action_configuration():
     """
     def combine(self, param, default=None, group=None):  
         """Function read configuration param from YAML returning local or global value"""
-        if group is None:
-            if 'actions' in self.data['recorders'][self.recorder_name] and param in self.data['recorders'][self.recorder_name]['actions'][self.name]:
-                return self.data['recorders'][self.recorder_name]['actions'][self.name][param]
-            else:
-                if param in self.data['global']['actions'][self.name]:
-                    return self.data['global']['actions'][self.name][param]
+        try:
+            if group is None:
+                if 'actions' in self.data['recorders'][self.recorder_name] and param in self.data['recorders'][self.recorder_name]['actions'][self.name]:
+                    if param in self.data['recorders'][self.recorder_name]['actions'][self.name]:
+                        return self.data['recorders'][self.recorder_name]['actions'][self.name][param]
+                    else:
+                        return default
                 else:
-                    return default
-        else:
-            if 'actions' in self.data['recorders'][self.recorder_name] and param in self.data['recorders'][self.recorder_name]['actions'][self.name][group]:
-                return self.data['recorders'][self.recorder_name]['actions'][self.name][group][param]
+                    if param in self.data['global']['actions'][self.name]:
+                        return self.data['global']['actions'][self.name][param]
+                    else:
+                        return default
             else:
-                if group in self.data['global']['actions'][self.name] and param in self.data['global']['actions'][self.name][group]:
-                    return self.data['global']['actions'][self.name][group][param]
+                if 'actions' in self.data['recorders'][self.recorder_name] and group in self.data['recorders'][self.recorder_name]['actions'][self.name] and param in self.data['recorders'][self.recorder_name]['actions'][self.name][group]:
+                    if param in self.data['recorders'][self.recorder_name]['actions'][self.name][group]:
+                        return self.data['recorders'][self.recorder_name]['actions'][self.name][group][param]
+                    else:
+                        return default
                 else:
-                    return default
+                    if group in self.data['global']['actions'][self.name] and param in self.data['global']['actions'][self.name][group]:
+                        return self.data['global']['actions'][self.name][group][param]
+                    else:
+                        return default
+        except:
+            self.parent.parent.logger.error('param=%s default=%s, group=%s', param, default, group)
+            raise
     def __init__(self, parent, cnfg, recorder_name, action_name):
         try:
             self.parent = parent
@@ -441,12 +451,12 @@ class action_configuration():
             self.objects_exclude = self.combine('objects_exclude', default = [])
             # determine if we action must remember detected objects, and trigger only on new ones
             self.use_memory = self.combine('use_memory', default = False)
-            #   for type = 'draw','copy'
-            if 'file' in cnfg:
-                self._file_source = self.combine('source', group='file', default='{filename}')
-                self._file_target = self.combine('target', group='file', default='{filename}')
-                if isinstance(self._file_source, dict) or isinstance(self._file_target, dict):
-                    raise Exception('Filename must be a string. Please wrap with ""')
+            #   for type = 'draw','copy','move','log'
+            #if 'file' in cnfg:
+            self._file_source = self.combine('source', group='file', default='{filename}')
+            self._file_target = self.combine('target', group='file', default='{filename}')
+            if isinstance(self._file_source, dict) or isinstance(self._file_target, dict):
+                raise Exception('Filename must be a string. Please wrap with ""')
             #   for type = 'draw'
             # used for width of the drawing box border
             self.brush_size = self.combine('brush_size', default = 1)
