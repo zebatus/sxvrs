@@ -74,12 +74,15 @@ def get_frame_shape(source):
             raise e
 
 def check_topic(topic, value):
-    return topic.lower().endswith(f"/{value}") or topic.lower().endswith(f"/*") 
+    return topic.lower().endswith(f"/{value}") or topic.lower().endswith(f"#")
 
 def ping_ip(ip):
     try:
         sp.check_output(["ping", "-c", "1", ip])
-        return True                      
+        return True     
+    except OSError(12):
+        logging.error(f'Cannot allocate memory: ping -c 1 {ip}')
+        return False            
     except sp.CalledProcessError:
         return False
 
