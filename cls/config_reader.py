@@ -57,8 +57,8 @@ class config_reader():
         self.mqtt_pwd = cnfg['mqtt'].get('pwd', None)
         self.mqtt_topic_daemon_publish = cnfg['mqtt'].get('daemon_publish', 'sxvrs/clients/{source_name}')
         self.mqtt_topic_daemon_subscribe = cnfg['mqtt'].get('daemon_subscribe', 'sxvrs/daemon/{source_name}')
-        self.mqtt_topic_client_publish = cnfg['mqtt'].get('client_publish', 'sxvrs/clients/{source_name}')
-        self.mqtt_topic_client_subscribe = cnfg['mqtt'].get('client_subscribe', 'sxvrs/daemon/{source_name}')
+        self.mqtt_topic_client_publish = cnfg['mqtt'].get('client_publish', 'sxvrs/daemon/{source_name}')
+        self.mqtt_topic_client_subscribe = cnfg['mqtt'].get('client_subscribe', 'sxvrs/clients/{source_name}')
         # temp storage RAM disk
         # folder name where RAM disk will be mounted
         self.temp_storage_path = cnfg.get('temp_storage_path', '/dev/shm/sxvrs')
